@@ -1,2 +1,3 @@
 /docs/refs/
-/jupyter/images/blocks/
+/jupyter/images/*
+/python/images/*
