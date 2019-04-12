@@ -5,15 +5,18 @@ import numpy as np
 block_dim = 32
 block_offset = 1
 
-# Initialize seed variables.
-img_str_1 = './images/samples/frame_1_complex.jpg'
-img_str_2 = './images/samples/frame_3_complex.jpg'
-img_str_out = './images/output_complex.jpg'
-img_str_roi = './images/frameblock_roi_complex.jpg'
+# Delete previously output frameblocks, and buffer shadows and buffer frames.
+os.system('rm -rf %s' % './images/blocks/pairs/*')
+os.system('rm -rf %s' % './images/blocks/buffer/shadows/*')
+os.system('rm -rf %s' % './images/blocks/buffer/frames/*')
 
-# Delete previously found shadows, frames and buffers are deleted later.
-os.system('rm -rf %s' % './images/blocks/buffer/shadows/')
-os.mkdir('./images/blocks/buffer/shadows/')
+# TODO: Implement inside a loop.
+
+# Initialize seed variables.
+img_str_1 = './images/samples/frame_1.jpg'
+img_str_2 = './images/samples/frame_3.jpg'
+img_str_shd = './images/frame_shadow.jpg'
+img_str_roi = './images/frameblock_roi.jpg'
 
 img_1 = cv2.cvtColor(cv2.imread(img_str_1), cv2.COLOR_BGR2RGB)
 height_1, width_1 = img_1.shape[:2]
@@ -34,9 +37,7 @@ total_pixel_sum = 0
 # Loop through each pixel.
 for y in range(0, height):
     for x in range(0, width):
-        #print(img_sample_1[y, x], img_sample_2[y, x])
         pixel_out = abs(img_1[y, x] ^ img_2[y, x])
-        #print(pixel_out)
         pixel_sum = int(pixel_out[0]) + int(pixel_out[1]) + int(pixel_out[2])
         if pixel_sum > 255:
             bw_val = 255
@@ -47,7 +48,7 @@ for y in range(0, height):
         img_out[y, x] = bw_val
 
 # Write image.
-cv2.imwrite(img_str_out, img_out)
+cv2.imwrite(img_str_shd, img_out)
 
 # Calculate the pixel_ratio.
 print("Total pixel sum: " + str(total_pixel_sum))
@@ -55,7 +56,7 @@ pixel_ratio = total_pixel_sum * 1.0 / (255 * width * height)
 print("Pixel ratio: " + str(pixel_ratio))
 
 # Create a clone of input image and draw ROIs on top of it.
-img_roi_all = cv2.imread(img_str_out)
+img_roi_all = cv2.imread(img_str_shd)
 
 # Create sliding window.
 left = 0
@@ -67,16 +68,15 @@ pixel_sum = 0
 cap = np.power(block_dim, 2) * 255 * pixel_ratio
 print("Cap found: " + str(cap))
 
-# Delete previously found frames and buffers.
-os.system('rm -rf %s' % './images/blocks/complex/')
-os.mkdir('./images/blocks/complex/')
-os.system('rm -rf %s' % './images/blocks/buffer/frames/')
-os.mkdir('./images/blocks/buffer/frames/')
-
 # Find the Region Of Interest (ROI).
-while bottom < height:
-    while right < width:
+while bottom <= height:
+    if bottom == height:
+        bottom -= 1
+    while right <= width:
+        if right == width:
+            right -= 1
         found_x = False
+        dirty = False
         pixel_sum = 0
         img_buff_str = './images/blocks/buffer/shadows/block' + str(frame_index) + '.jpg'
         img_buff = cv2.imread(img_buff_str)
@@ -88,46 +88,99 @@ while bottom < height:
             for x in range(left, right + 1):
                 # Store buffer pixel and calculate pixel_sum.
                 img_buff[y - top - 1, x - left - 1] += 255 - img_out[y, x]
-                if img_buff[y - top - 1, x - left - 1][0] > 255:
-                    img_buff[y - top - 1, x - left - 1] = 255
+                if img_buff[y - top - 1, x - left - 1][0] > 0:
+                    dirty = True
+                    if img_buff[y - top - 1, x - left - 1][0] > 255:
+                        img_buff[y - top - 1, x - left - 1] = 255
                 pixel_sum += img_buff[y - top - 1, x - left - 1][0]
                 
                 # Test if the cap was met.
                 if pixel_sum >= cap:
+                    # Mark as 
+                    dirty = True
+
                     # Draw ROI on clone image.
-                    cv2.rectangle(img_roi_all, (left, top), (right, bottom), (255, 0, 0), 1)
+                    cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1), (255, 0, 0), 1)
+                    cv2.putText(img_roi_all, str(frame_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (255, 0, 0), 1, 1)
                     print(str(frame_index) + ". Sum: " + str(pixel_sum) + ", Frameblock: (" + str(left) + ", " + str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
                     
+                    # Setup storage.
+                    img_out_buff = './images/blocks/pairs/block' + str(frame_index)
+                    if not os.path.exists(img_out_buff):
+                        os.mkdir(img_out_buff)
+
                     # Store window contents as image.
-                    img_roi_1 = img_1[top:bottom, left:right]
-                    img_roi_2 = img_2[top:bottom, left:right]
-                    cv2.imwrite('./images/blocks/complex/block' + str(frame_index) + '_1.jpg', img_roi_1)
-                    cv2.imwrite('./images/blocks/complex/block' + str(frame_index) + '_2.jpg', img_roi_2)
+                    img_roi = img_2[top:bottom, left:right]
+                    cv2.imwrite(img_out_buff + '/end.jpg', img_roi)
                     
                     # Exit both for loops.
                     found_x = True
                     break
             if found_x:
                 break
-        # If frameblock was used delete buffer file, else export buffer and frame ROI.
+
+        # If frameblock was used delete buffer shadow.
         if found_x:
+            # If a buffered shadow image was used, delete it.
             if os.path.exists(img_buff_str):
                 os.remove(img_buff_str)
+
+            # If there is a buffered frame for the block use it as the starting frame.
+            img_buff_str = './images/blocks/buffer/frames/block' + str(frame_index) + '.jpg'
+            if os.path.exists(img_buff_str):
+                # Setup storage.
+                img_out_str = './images/blocks/pairs/block' + str(frame_index)
+                if not os.path.exists(img_out_str):
+                    os.mkdir(img_out_str)
+
+                # Move and rename file.
+                os.rename(img_buff_str, img_out_str + '/start.jpg')
+
+            # Otherwise export the ROI of the first image as the starting frame.
+            else:
+                # Setup storage.
+                img_out_str = './images/blocks/pairs/block' + str(frame_index)
+                if not os.path.exists(img_out_str):
+                    os.mkdir(img_out_str)
+
+                # Store window contents as image.
+                img_roi = img_1[top:bottom, left:right]
+                cv2.imwrite(img_out_str + '/start.jpg', img_roi)
+
+        # Otherwise export the shadow and frame ROI to be used next time.
         else:
-            cv2.imwrite(img_buff_str, img_buff)
-            img_buff_str = './images/blocks/buffer/frames/block' + str(frame_index) + '_1.jpg'
-            if not os.path.exists(img_buff_str):
-                img_roi_buff = img_1[top:bottom, left:right]
-                cv2.imwrite(img_buff_str, img_roi_buff)
-            img_buff_str = './images/blocks/buffer/frames/block' + str(frame_index) + '_2.jpg'
-            if not os.path.exists(img_buff_str):
-                img_roi_buff = img_2[top:bottom, left:right]
-                cv2.imwrite(img_buff_str, img_roi_buff)
+            # Draw Shadow ROI on clone image.
+            cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1), (0, 0, 255), 1)
+            cv2.putText(img_roi_all, str(frame_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (0, 0, 255), 1, 1)
+
+            # If the shadow image already exists, update it using a linear add.
+            img_buff_str = './images/blocks/buffer/shadows/block' + str(frame_index) + '.jpg'
+            if os.path.exists(img_buff_str):
+                # Add the values of the current shadow image and previous shadow image.
+                img_prev_buff = cv2.imread(img_buff_str)
+                cv2.addWeighted(img_prev_buff, 1.0, img_buff, 1.0, 0.0, img_buff)
+
+                # Store updated shadow image (don't update the old frame ROI).
+                cv2.imwrite(img_buff_str, img_buff)
+                print('Updated shadow image, \'block' + str(frame_index) + '.jpg\'')
+
+            # Else if a black pixel was found write a new shadow image.
+            elif dirty:
+                cv2.imwrite(img_buff_str, img_buff)
+                print('Wrote new shadow image, \'block' + str(frame_index) + '.jpg\'')
+
+                # Store frame ROI image.
+                img_buff_str = './images/blocks/buffer/frames/block' + str(frame_index) + '.jpg'
+                img_roi = img_1[top:bottom, left:right]
+                cv2.imwrite(img_buff_str, img_roi)
+
+        # Increase frameblock index.
         frame_index += 1
         
         # Shift horizontally.
         left += int(block_dim / block_offset)
         right += int(block_dim / block_offset)
+
     # Shift vertically.
     top += int(block_dim / block_offset)
     bottom += int(block_dim / block_offset)
