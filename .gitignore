@@ -1,4 +1,6 @@
 /docs/refs/
 /jupyter/images/*
 /python/images/*
-/python/training/*
+/python/training/blurred
+/python/training/validation
+/python/training/testset
