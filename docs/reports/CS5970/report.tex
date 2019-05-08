@@ -101,7 +101,7 @@ have more flexibility for predicting what their animations will look like once
 rendered. For this paper I first in Section \ref{sec:related_concepts} work
 related to my project, then provide an overview
 of my proposed architecture in \ref{sec:architecture}. Section
-\ref{sec:deliverables} presents what I focused on for this term, and finally
+\ref{sec:considerations} presents what I focused on for this term, and finally
 Section \ref{sec:implementation} I then discuss what I implemented.
 I conclude with Section \ref{sec:future_work} to discuss my plans for the future of
 the project.
@@ -301,12 +301,12 @@ and I should have little difficulty replicating the work of
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{block_diagram.png}}
-\caption{Generalized project block diagram.}
+\caption{Block diagram for proposed architecture.}
 \label{fig:block_diagram}
 \end{figure}
 
-\section{Project Deliverables}
-\label{sec:deliverables}
+\section{Project Considerations}
+\label{sec:considerations}
 For my project this term, I focused on creating the inputs of my target
 architecture. In the following subsections, I ellaborate
 on the reasoning for how these inputs are difined. This work is essential to my
@@ -319,21 +319,20 @@ A major subarea of research for this project is how to generate the
 information from a 3D scene that would be valuable to the proposed architecture
 (see Figure \ref{fig:block_diagram}).
 When first researching this topic, I posed the question of what
-data should be sent to Generator I.
-In there research, \cite{ref:pose_guided} implemented a similar schema where the input to this
-component of their system was a condition image and target pose.
+data should be sent to Generator I of the system.
+In the research they present in \cite{ref:pose_guided},
 Ma et. all uses a state of the art pose recognition program to
-generate poses, and used this as a mask to give extra input to their generative model.
-The program assigned 18 ``keypoints'' for each pose,
-which were used as the pose representations for each iteration.
-Therefore the pose data was represented as a black and white image,
+create image masks as extra input to their generative model.
+The program assigns 18 ``keypoints'' for each pose,
+which are then used as the pose representations for each iteration.
+The pose data can be represented as a black and white image,
 as shown in Figure \ref{fig:pose_guided}.
 Disregarding the architectural changes to the generator, I predict I too will
-have similar inputs; one or more pairs of frame images to scene data.
+have similar inputs; one or more frame image/scene data pairs for each iteration.
 
-These data are not mapped one-to-one with my problem, however;
-what I need is for the renderer to use unrendered data as well,
-to solve the problem of reflective, transparent, or other dynamic surfaces.
+The pose data is not mapped one-to-one with my problem, however;
+to solve the problem of reflective, transparent, and other dynamic surface attributes
+I need the renderer to use all data in the scene.
 If the camera is facing a mirror, for example,
 then the entirety of the scene to be rendered is behind the camera.
 Therefore, unlike with \cite{ref:pose_guided}
@@ -344,62 +343,54 @@ the objects within the rendered view.
 However, serializing every attribute of the scene for each frame would take too much time
 and result in a bloated file size.
 Using too little data could also produce poor results when training the
-generator. Thus there are some requirements for this extra data:
+generator. Thus there are some requirements for this extra data, which I
+outline below:
+
 \begin{enumerate}
-\item Data must be small in size but representative of the objects which it is
-describing. If any characteristics of the scene are left out of this
+\item Data must be small in size but representative of the objects which it
+describes. If any characteristics of the scene are left out of this
 description, the trained algorithm may produce incorrect results in practice.
 \item Data must also uniquely represent the objects in the scene and how they
 interact with their environment.
 If there is an abundance of similarities between objects, then
 the algorithm might never learn the differences between the input frames.
-\item There are also no limitations nor expectations placed upon the animator;
-even when comparing scenes which have the same characters, landscapes, and
+\item There are no limitations nor expectations placed upon the animator;
+even when comparing scenes which have similar characters, landscapes, and
 animations, the generated data for each object should accurately represent
-the properties of that object alone. If all the objects in the scene are the
+the properties of that object's relationship with the scene. If all the objects in the scene are the
 same, then the focus would be on how they interact with each other in the scene
 during animation.
 \end{enumerate}
-Another obvious issue here is that we are trying to speed up rendering as much as possible;
-any extra rendering could add too much time to the overall algorithm,
-making it slower than rendering all frames of the animation
-and thereby defeating the purpose of using the proposed architecture.
-The method in which data is stored must be fast, efficient, and encompass only a fraction of the overall runtime of the algorithm.
 
-\subsection{Frameblocks}
-\label{subsec:frameblocks}
-There are many different ways to choose the inputs for the program.
-I believe the problem does not involve only the color values of each
-rendered pixel,
-but rather the relationship between that pixel and the scene data which
-generated it. Thus, not all pixels should be trained on, especially if they have
+Given the above requirements for the input data,
+I believe it is apparent not all pixels should be trained on, especially if they have
 little to do with how the rendered scene is changing.
-It is clear a preparation phase is necessary for all frames of a given
-animation; portions of each frame will become the inputs for the larger
-architecture proposed (see Figure \ref{fig:block_diagram}).
-I have defined these inputs as ``frameblocks''.
+If pixels are paired with scene data for which they don't impact, the aspects of
+the scene that are impacted will be recognized less accurately by the model.
+
+In order to generate proper inputs,
+a preparation phase is necessary for all frames of a given
+animation. This process will involve selecting portions of each frame
+to become system inputs.
+I have defined these portions as ``frameblocks''.
 Frameblocks represent a small ($\approx 3\%$) portion of a given frame,
 and it is assumed
 that a frameblock is representative of the changes between
 two frames that are significant enough to
-be used as input.
+be included in the training set of inputs.
 This concept of frameblocks also satisfies the
 requirements enumerated in Section \ref{subsec:inputs}.
 
-Thus, the selection of frameblocks depends upon how much the scene changes
-between frames and in what ways;
-just because a frame is keyed does not imply there was any major change.
-As with complex particle systems, simply existing in the scene is all that is
-needed to create great changes in the rendered output;
-this is also why it is so pertinent that the later stages of the arichtecture
-take into account both scene data and rendered pixels.
+The selection of frameblocks depends upon how much the scene changes
+between frames and in what ways it changes.
+It is also pertinent that the inputs
+take into account both scene data and rendered pixels;
+as with complex particle systems, simply existing in the scene is all that is
+needed to create great changes in the rendered output.
 Therefore we cannot rely on scene data in our selection of frameblocks, rather
 this selection must come from the changes in the frames themselves.
-This problem is not data-specific,
-however, as is the case with the later Machine Learning models.
-If the pixel data were converted into a format which showed changes and hid similarities,
-then it could be possible to train a general algorithm which could be queried
-for any given scene data input.
+Scene data must then be linked to each selected frameblock, so that there is a
+pairing between pixel and scene data.
 
 %They are defined below (frames are indexed by $f_i$ for $i = 1,2,...,n$ where $n$ is the number
 %of frames to train on):
@@ -423,181 +414,171 @@ for any given scene data input.
 %each scene must be processed separately.
 %Thus the decision of whether or not to use a given frame block for the current scene should be a trained decision,
 %where the training data comes from similar analysis of movie frames where the scenes and changing areas are clearly defined.
-
-\subsection{Buffer Frameblocks}
-\label{subsec:buffer_frameblocks}
-Concerning frameblocks, an important question still remains:
-how do we capture changes not significant enough to trigger a frameblock as
-described in sections \ref{subsec:inputs} and \ref{subsec:frameblocks}?
-Derp...
-
-Even if we captured all blocks that changed, how many of those changes would be similar?
-Depending on the frame rate and how many blocks changed,
-it could mean that most of the same blocks had similar changes which don't need to be retrained by the program.
-Given that a scene could have several seconds, if not minutes, of correlated data at a time,
-it is only natural to crop out important portions of the scene to use for training.
-Therefore there must also be a dynamic mechanism to select which frames classify as part of the current ?scene? and of those frames which to use as inputs to train on.
-
+%
+%\subsection{Buffer Frameblocks}
+%\label{subsec:buffer_frameblocks}
+%Concerning frameblocks, an important question still remains:
+%how do we capture changes not significant enough to trigger a frameblock as
+%described in sections \ref{subsec:inputs} and \ref{subsec:frameblocks}?
+%It is for this reason that I created the 
+%
+%Even if we captured all blocks that changed, how many of those changes would be similar?
+%Depending on the frame rate and how many blocks changed,
+%it could mean that most of the same blocks had similar changes which don't need to be retrained by the program.
+%Given that a scene could have several seconds, if not minutes, of correlated data at a time,
+%it is only natural to crop out important portions of the scene to use for training.
+%Therefore there must also be a dynamic mechanism to select which frames classify as part of the current ?scene? and of those frames which to use as inputs to train on.
 
 \subsection{Training The Algorithm}
 \label{subsec:training_the_algorithm}
-What of training the algorithm? What kinds of datasets should be used?
-How many data should be included in each dataset for effective training to occur?
-Usually, for a Deep Learning project, small images on the order of 10's of thousands are necessary to create a well-trained algorithm.
-Where might the training data originate from my project, however?
-The obvious choice is that it must be a subset of rendered frame data.
-These frames, used in combination with corresponding scene data,
-would be used as Ground Truth to train a GAN on how to produce images given scene and random inputs.
-As described in \cite{ref:pose}, these types of inputs can be used to create low-resolution images,
-which are then used as the random data for the second GAN which is responsible for creating high-resolution images.
-For my research there are also CNN LSTM qualities to consider,
-since all frames for a given ?scene? are related.
-Multiple frames could be used as inputs,
-therefore using frames more than once and getting more use out of the training dataset.
-However, if the training data originates from the current scene,
-would there be enough frames to justify the use of such a system?
-If there is only a single frame rendered previously to be used as training data, the answer is simple;
-render the other frame from scratch! This is obviously too little data to support wholesome Machine Learning;
-then, we must ask, where is the cut-off? What variables could this depend on?
-Size of the scene? Number of keyframes? Number of vertices, edges, or faces?
-Materials, textures, and attributes? Oh but surely,
-couldn't we simply say the complexity of the scene as a whole?
-Therein lies the problem, for we must first classify what complexity means;
-there must be some ruler by which to measure the complexity of a scene in terms of tangible data for Machine Learning.
+Now we know what we'd expect to be the inputs of the system, but what is an
+appropriate amount of data to create good training results?
+Usually, for a Deep Learning project, 10's of thousands of small images
+are required to create a well-trained algorithm.
+How many frames would I need to process in order to generate an appropriate
+number of training data? I turn now to the industry standards for frame sizes
+and frame rates.
 
-So, given there are enough rendered frames respective to the current scene,
-how might we use them in training? CNN's employ the powerful technique of (as one might guess) convolution.
-They are able to extract data from the whole of an image without extra identification.
-Could a similar technique be applied here? Most certainly, given any small portion of an animated scene,
-is there anyone who could say where it came from on the screen?
-Without viewing other portions of the scene as well, comparing their composition,
-and piecing together the rest of the jigsaw puzzle, there is no way to determine from where on the screen a portion originates.
-This is by nature of the 3D world; no object has simply one view and one view only,
-the rotation, position, and scale of any object depends on the camera view itself.
-Therefore, I feel it very possible to split a single frame into several pieces,
-each with its own ways of seeing the 3D world around them.
-Especially with extremely high resolutions; a 32x32 pixel block may take up half of one resolutions,
-while merely a hundredth of another. It is the higher end of this spectrum for which I wish to apply my algorithm,
-and so I will assume that the blocks of each frame will be a hundredth if not less of each frame.
-And what of frame rate in producing the quantity of rendered frames?
-Framerate does indeed play a large role in how many frames are produced,
-given how many seconds long the clip of an animation is.
-60 fps or higher is quite common for high quality gaming applications,
-however these would not give enough data to support the proposed
-Machine Learning methodology since future frames and training time is necessary.
-Real time applications cannot be assisted through this means.
-Therefore, we must focus on the standard for animation frame rates.
-As stated in [], studio standards currently average to * fps (assuming 30),
-which is roughly half that needed in real time rendering.
+My research of frame resolutions leads me to believe that production-quality
+renders are no less than 1080 x 1920 (reffered to as 1k) pixels, while for movie
+theatres or HD displays frames could be as large as 2k or 4k, meaning a max
+resolution of 4096 x 3072 pixels. I will assume for this project frames are the
+minimum 1k resolution.
 
-Given these new attributes of the dataset,
-how then do the quantity and quality of renders affect training capabilities?
-Well we must ask several questions.
-How high of a resolution must the frame be, how many blocks can exist per frame,
-and how many frames are there per second;
-only then can we finally stipulate how many seconds is to be expected by this program.
-Let's assume that 32x32 pixel blocks is sufficient, and that a frame is roughly 1600x1600 pixels (fairly high resolution).
-This leaves us with 50x50 blocks per frame, or 2500 created blocks total.
-Similarly, if we assume there are 30 frames per second and half are rendered to be used as part of the training dataset,
-that leaves us with 37,500 images per second (or 37.5 per millisecond).
-Now we can finally conjecture as to how many seconds of rendered data would be worth using this approach,
-and it appears that 1 second might very well be enough!
-However there is one more factor which we have not yet considered; how much changes within fractions of a second.
-In order to be considered as part of the same scene, and similarly have enough merit to train over,
-an object would have to change very minutely each millisecond.
-There are certain things which behave according to this logic, such as the movement of living things.
-However, there are also objects such as particle systems which are intended to give the impression of randomness by changing very rapidly.
-These two types of motion cannot be classified the same way;
-it is very likely they will need to be dealt with dynamically!
-For instance, one might imagine the animation of characters talking inside of a cafe on a rainy day.
-The frameblocks that render the rain through the window are changing very rapidly,
-while those that contain the characters are most likely changing very slowly.
-So why not accommodate this phenomenon by quing frameblocks and their scene configuration data based upon the block itself;
-unchanging blocks need not be queued for further processing,
-as this could lead to overfitting of the unchanging blocks and underfitting of the dynamic blocks.
+Framerates of 60 frames per second (fps) or higher is quite common for high quality gaming applications,
+however these would not apply to my project since game rendering must ocurr in
+real-time.
+Instead, I focus on the standard for animation frame rates, which was found to
+range from 24 to 30 fps. I'd like to focus on 24 fps which is the minimum
+standard I found.
 
-\subsection{Training Analysis}
-\label{subsec:training_analysis}
-However clustering is a problem better suited for data with multiple unique qualities,
-much like a problem for n-dimensional space.
-This data does not represent anything more than the amount of difference between two frame's pixels.
-The argument can be made that there may be waste in the frameblocks; take for example if a
-frame block edge straddles an area that just barely meets the criteria for processing while neither frame block will be processed.
-So a set configuration is ineffective for selecting frameblocks, since there may be missing frames in the selection.
-What about a sliding window? But then by how much should this window slide by? And what if there is too much overlap between frameblocks selected?
-Well if there is too much overlap, too many of the same frame will be selected and the algorithm can overtrain.
-If there is too little coverage, then frames will be missing.
-The solution? Perhaps a window that slides by half the width of a frame block, and half the height of a frame block.
-Should there be any extra rules to decide if a block indeed qualifies?
-For example, if two blocks are chosen because they have the exact same changes shown in both, should one of them be discarded?
-And should frameblocks be optimized to show changes in the center instead of on one side?
-Perhaps the frame should be dynamically chosen based upon threshold, shifted by 1 pixel each time until the frame has enough changes shown.
-A summation of all pixel values of the frame block could be applicable,
-and once a frame is found the offset could be set to half the frame block width
-(and height, when next changing rows).
+Let's assume that 32 x 32 pixel frameblocks are sufficient for each image in the
+training set.
+Assuming the 1k resolution, there are then roughly 33x60 frameblocks available per frame,
+or 1980 created blocks total.
+Similarly, if we assume there is a rate of 24 fps and that every other frame is
+rendered,
+that leaves 23,760 possible frameblocks per second.
+Now we can finally conjecture as to how many seconds of rendered data would be
+worth using this approach.
+Given that the number of frameblocks generated as described in Section
+\ref{sec:implementation} could be much less than half of those available on
+average, I assume that each frame has an average of 5\% of frameblocks passed
+on to the training set. Thus, each second there are roughly 1,188 frameblocks
+generated. So to reach at least 10,000 images or more, we would require around
+10 seconds worth of animated data.
+The animation I used this term contained 13 seconds of 1k resolution data and generated
+a total of 14,330 frameblocks, which lines up nicely with my assumptions and
+requirements for training.
 
-I also feel that the changes should not be a set value either; perhaps it should be a percentage of the total change overall.
-Take for example a slowly changing gradient from one color to another (changing over multiple frames).
-We would like to include this, since it is an important lerp to show in the generated frame,
-however the changes would be continuous over the entire frame. This is a big problem!
-How do we manage to only capture the frames we need for each configuration?
-Perhaps previous frameblocks should be captured and hashed, so that similar frameblocks are not captured.
-To do this I propose we take the first 5 bits of each color value for hashing (so that the last 8 possible values are ignored).
-Thus there are 15 bits to hash per pixel, and 32 x 32 pixels. I should research further what type of hash could be done.
-Some data loss is ok, since we want to disregard frameblocks that are too similar.
-Then maybe values should be super-sampled (averaged?) in smaller blocks to create a smaller 15 bits x 8 x 8 pixel image to compare against.
-However how much similarity is acceptable? There are probably too many ways to create the generated 8 x 8 pixel image based off of the given frames.
-Either way, it is clear that some method of hash could be used to avoid training on repeated blocks.
+%\subsection{Training Analysis}
+%\label{subsec:training_analysis}
+%However clustering is a problem better suited for data with multiple unique qualities,
+%much like a problem for n-dimensional space.
+%This data does not represent anything more than the amount of difference between two frame's pixels.
+%The argument can be made that there may be waste in the frameblocks; take for example if a
+%frame block edge straddles an area that just barely meets the criteria for processing while neither frame block will be processed.
+%So a set configuration is ineffective for selecting frameblocks, since there may be missing frames in the selection.
+%What about a sliding window? But then by how much should this window slide by? And what if there is too much overlap between frameblocks selected?
+%Well if there is too much overlap, too many of the same frame will be selected and the algorithm can overtrain.
+%If there is too little coverage, then frames will be missing.
+%The solution? Perhaps a window that slides by half the width of a frame block, and half the height of a frame block.
+%Should there be any extra rules to decide if a block indeed qualifies?
+%For example, if two blocks are chosen because they have the exact same changes shown in both, should one of them be discarded?
+%And should frameblocks be optimized to show changes in the center instead of on one side?
+%Perhaps the frame should be dynamically chosen based upon threshold, shifted by 1 pixel each time until the frame has enough changes shown.
+%A summation of all pixel values of the frame block could be applicable,
+%and once a frame is found the offset could be set to half the frame block width
+%(and height, when next changing rows).
+%
+%I also feel that the changes should not be a set value either; perhaps it should be a percentage of the total change overall.
+%Take for example a slowly changing gradient from one color to another (changing over multiple frames).
+%We would like to include this, since it is an important lerp to show in the generated frame,
+%however the changes would be continuous over the entire frame. This is a big problem!
+%How do we manage to only capture the frames we need for each configuration?
+%Perhaps previous frameblocks should be captured and hashed, so that similar frameblocks are not captured.
+%To do this I propose we take the first 5 bits of each color value for hashing (so that the last 8 possible values are ignored).
+%Thus there are 15 bits to hash per pixel, and 32 x 32 pixels. I should research further what type of hash could be done.
+%Some data loss is ok, since we want to disregard frameblocks that are too similar.
+%Then maybe values should be super-sampled (averaged?) in smaller blocks to create a smaller 15 bits x 8 x 8 pixel image to compare against.
+%However how much similarity is acceptable? There are probably too many ways to create the generated 8 x 8 pixel image based off of the given frames.
+%Either way, it is clear that some method of hash could be used to avoid training on repeated blocks.
+%
+%In summary, the total process would be 1) find the frame block (by so far an unknown method), 2) check frame against previously found frames, 3) generate frame block and add to hash list. When the frame is completely processed, clear the list of hashed frameblocks.
 
-In summary, the total process would be 1) find the frame block (by so far an unknown method), 2) check frame against previously found frames, 3) generate frame block and add to hash list. When the frame is completely processed, clear the list of hashed frameblocks.
-
-\section{Implementation}
+\section{Term Project Implementation Details}
 \label{sec:implementation}
-Derp intro.
+This term I implemented an application to select all available frameblocks
+showing changes in an input set of rendered frames. The only assumption on the
+set of frames is that either dimension is divisible by the size of frame blocks,
+or otherwise the edges of the frames contain no necessary training data. Below I
+describe each step of the algorithm, and show intermediate outputs with
+discussion on their significance.
 
-\subsection{Frame Processing}
+\subsection{Frame processing}
 \label{subsec:frame_processing}
 The process for generating frameblocks takes in an input of 2 images and
-outputs all frameblocks which meet our image processing requirements.
-Given these two image inputs,
-we must decide what portions of them are different enough to be used as frameblocks.
+outputs all frameblocks which meet the image processing requirements discussed
+in Section \ref{subsec:inputs}.
+Given the two frames shown in Figure \ref{fig:frame_processing},
+the algorithm decides what portions of them contain enough changes to trigger
+use in the training set as a frameblock.
+Frame processing is iterative, and in order to obtain the changes between two
+frames every frame will need to be processed along with its neighbors.
+Luckily, the previous frame will have already been calculated in the previous
+step, so we only need to compare each frame to the next frame for frameblock
+selection.
 
-For this problem, we will need to process every frame with its neighbors.
-Luckily, the left neighbor will have already been calculated in the previous step.
-So we only need to compare each frame to its right neighbor for frameblock generation.
-
-Now we must read in the frames and process them.
-Boundaries are also chosen here, in case the images are different sizes.
-In theory for this wouldn't occur since the frames of an animation are always the same dimensions,
-however it doesn't take much time to check. Below the two images are plotted side by side,
-as a reminder of how different they appear.
-In theory these images should be two consecutive frames,
+As shown by the implemention in Appendix \ref{app:1}, the frames are
+read in as an array and processed.
+Boundaries are also chosen, in case the images are different sizes.
+In practice this wouldn't occur since the frames of an animation are always the
+same dimensions.
+Figure \ref{fig:frame_processing} shows an example of the two input frames,
+as a reminder of how different they appear (compare this to what is later
+described as the pair's shadow image, discussed in Section
+\ref{subsec:shadow_image_creation}).
+In theory these images should be separated by a single consecutive frame,
 which usually means they will have very small differences.
 
-\subsection{Shadow Image Creation}
-\label{subsec:shadow_image_creation}
-Here the pixels of each image are processed.
-A summation of pixel values is recorded while the loop is running;
-each pixel adds it's red, green, and blue (RGB) values together,
-caps the value at 255, and then adds this to the pixel\_sum variable.
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{frame_processing.png}}
+\caption{Frame processing comparision between 2 input frames.}
+\label{fig:frame_processing}
+\end{figure}
 
-My goal is to find pixel $P(x,y)$,
-which represents the difference between the two input
-pixels at the coordinates $(x,y)$ for each image.
+\subsection{Shadow image creation}
+\label{subsec:shadow_image_creation}
+At this stage of the algorithm the pixels of each image are processed.
+A summation of pixel values is recorded for each pixel;
+this sum adds the pixel's red, green, and blue (RGB) values together, and
+caps the value at 255.
+The goal is to record pixel $P(x,y)$,
+which represents the difference between the two
+pixels at the coordinates $(x,y)$ for each input image.
 I call the image created out of the resulting pixels the "shadow image" for the two inputs.
 For our purposes, let $p_i(x,y)$ represent the pixel at coordinate
 $(x,y)$ for image $i$ and let $\oplus$ represent the XOR operation.
-Thus for each pixel of the input images we calculate the following value:
+Thus for each cooresponding pixel of input image pair,
+the following value is calculated:
 
 $$P(x,y) = p_1(x,y) \oplus p_2(x,y)$$
 
-and store this as the value for the output image.
+The image made up of $P(x,y)$ for all $x,y$ ranging over the width and height of
+the input images is output as the ``shadow image''.
 Below is the calculated output image.
 This image graphically shows the differences between frames,
 where white represents no difference and black represents the maximal difference.
 We are able to use this later to calculate frameblocks.
 
-\subsection{Frameblock Selection}
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{shadow_image.png}}
+\caption{Shadow image produced between input frames shown in Figure
+\ref{fig:frame_processing}.}
+\label{fig:shadow_image}
+\end{figure}
+
+\subsection{Frameblock selection}
 \label{subsec:frameblock_selection}
 We select frameblocks using the above calculated image.
 Frameblocks are selected based on the percentage of black pixels
@@ -622,7 +603,14 @@ Each frameblock selected is saved to an image file.
 A red rectangle is also overlaid on top of the original calculated image to represent where each frameblock was selected from.
 Frameblocks which are found to not show enough changes to be included in this iteration are used to find differences spanning multiple frames (described later).
 
-\subsection{Buffer Frameblocks}
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{shadow_roi.png}}
+\caption{Selected (red) and unselected (blue) frameblocks found from shadow
+image in Figure \ref{fig:shadow_image}.}
+\label{fig:shadow_roi}
+\end{figure}
+
+\subsection{Buffer frameblocks}
 \label{subsec:buffer_frameblocks}
 We stored the frameblocks that failed to pass the test this iteration in two formats:
 an inverted shadow image file and a frame image file.
@@ -637,7 +625,13 @@ If the frameblock never changes enough over the entire course of frameblock gene
 it is not included in the dataset.
 An example pair of inverted shadow and frame buffer images is shown below.
 
-\subsection{Data Analysis}
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{frameblock_pair.png}}
+\caption{Example of two frames that were skipped and the generated buffer frameblock.}
+\label{fig:frameblock_pair}
+\end{figure}
+
+\subsection{Data analysis}
 \label{subsec:data_analysis}
 So, we were able to generate frameblocks, but how are we to know they are indeed all correct?
 I propose we compare these outputs to a different scene.
@@ -647,8 +641,14 @@ so the changes to one sphere impact changes to all the spheres in the scene.
 The process used above is repeated below, but for spheres that are completely opaque and diffuse;
 thus the algorithm is able to filter out more data and choose only frameblocks which change between the two frames.
 
-\subsection{Conclusions}
-\label{subsec:conclusions}
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{frameblock_pair.png}}
+\caption{Example of two frames that were skipped and the generated buffer frameblock.}
+\label{fig:frameblock_pair}
+\end{figure}
+
+\subsection{Term project conclusions}
+\label{subsec:term_conclusions}
 The process shown here is an effective means of choosing frameblocks
 for training the proposed Machine Learning algorithm.
 By carefully deciding which portions of the frame to use,
@@ -662,11 +662,9 @@ the dataset generated should contain enough images with enough differences betwe
 The other input (i.e. the scene data) has not been decided yet.
 Deciding what aspects of the scene to bundle with each frameblock will require more research and experimentation.
 
-\section{Introduction}
+\section{Future Work}
 
-\section{Ease of Use}
-
-\subsection{Maintaining the Integrity of the Specifications}
+\section{Conclusion}
 
 %\begin{table}[htbp]
 %\caption{Table Type Styles}
