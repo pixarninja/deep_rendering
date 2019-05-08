@@ -32,50 +32,127 @@ of a given animation.
 
 \section{Introduction}
 \label{sec:introduction}
-Derp intro.
+Rendering the frames of a production-level quality animation can take an
+excessive amount of time. As stated in \cite{ref:monsters}, ``All told, it has
+taken more than 100 million CPU hours to render [Monster's University] in its final form. If
+you used one CPU to do the job, it would have taken about 10,000 years to
+finish. With [the supercomputer]\dots it took a couple of years to
+render.'' The slowness of high quality rendering is all the more pertinent when considering all of the
+pre-film preduction, such as intermediate renderings, changes to the scene, and
+recasting or changes in the script. If there was a way to speed up the rendering
+process, it would greatly benefit feature film animation and 3D effects companies such as Pixar
+and Industrial Light \& Magic.
 
-\section{Problem Statement}
-\label{sec:}
-Derp
+So how might we be able to speed up rendering? The main bottleneck that
+researchers of this topic have been struggling with is the level of detail
+encapsulated within a single frame of an animation. For example of this, Figure
+\ref{fig:incredibles} shows a close up of of Bob Parr's shirt from the trailer
+of ``Incredibles 2'' (released by Pixar June 15, 2018). There is enough
+resolution on that image to clearly show not only the detailed stitching of the
+fabric, but also strands of thread extruding from the shirt itself. While a
+viewer most likely won't be able to discern these details during the running
+movie, the quality tricks their subconscious into believing they are
+experiencing something real; these details help convey more emotion and
+connections to the world inhabited by the characters on the screen.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{incredibles.png}}
+\caption{Level of detail in Pixar's ``Incredibles 2''.}
+\label{fig:incredibles}
+\end{figure}
+
+\subsection{Problem Statement}
+\label{subsec:problem_statement}
+So if this bottleneck cannot be surpassed by lowering the quality, perhaps we
+can overcome it through rendering less frames. This is the foundationary concept
+of my project. The production pipeline would work as follows:
+
+\begin{enumerate}
+\item Artists create content as they would normally.
+\item When the animation is ready to be rendered as a video, only every other
+frame is rendered.
+\item These frames, are then passed into a preprocessing stage to generate
+what I call
+``frameblocks'' (see Section \ref{subsec:frameblocks} for more information).
+\item Scene data for each frameblock is extracted.
+\item All collected frameblock/scene data pairs are passed into a generator/discriminator
+Machine Learning architecture (see Figure \ref{fig:block_diagram}) to train an algorithm
+to recognize the relationships between the rendered frame and scene data.
+\item Once the algorithm is sufficiently trained, scene data for the missing
+frames is input into the generator system in order to create frameblocks
+representing the previously unseen rendered frame.
+\item These generated frameblocks are stitched together (perhaps using another Machine
+Learning model) in order to output a final rendered frame.
+\end{enumerate}
+
+There are many benefits to using this system. The most obvious is the ability
+for artists to select the frames that are input into the algorithm; using half
+of an animation's frames guarantees most changes will be captured in the
+generated frameblocks, however artists may also include frames that have
+uniqueness they would want to be recognized by the algorithm. Another benefit is
+the ability to apply the trained model to similar 3D scenes, or to small changes
+of the trained 3D scene. Thus the animation pipeline itself could be sped up
+significantly by rendering predictions of how an animated scene will look in
+realtime.
+
+My hypothesis is that using the system outlined in this paper, rendering the
+final animation will take less time than it does currently and animators will
+have more flexibility for predicting what their animations will look like once
+rendered. For this paper I first in Section \ref{sec:related_concepts} work
+related to my project, then provide an overview
+of my proposed architecture in \ref{sec:architecture}. Section
+\ref{sec:deliverables} presents what I focused on for this term, and finally
+Section \ref{sec:implementation} I then discuss what I implemented.
+I conclude with Section \ref{sec:future_work} to discuss my plans for the future of
+the project.
 
 \section{Related Concepts}
-\label{sec:related concepts}
-Derp intro.
+\label{sec:related_concepts}
+I found found many research concepts, especially those relating to Machine Learning,
+which provide the foundations for implementating this project.
+In Section \ref{subsec:applicable} I discuss the
+research (much of it cutting-edge) which has provided me insight into the
+components that make up the final architecture I will implement and evalulate.
+Then in Section \ref{subsec:complex_systems} I
+touch on concepts from Complex Systems to discuss the relationships between
+the 3D animated scene and dynamism, and the complexities of what needs to be
+recognized by the Machine Learning models.
 
 \subsection{Applicable research}
 \label{subsec:applicable}
-I have found many papers that are applicable to the stated problem. I would like
+I have found many papers that are applicable to my stated problem. I would like
 to discuss 4 of them in detail as well as provide
-discussion on how they could be applied to the project.
+discussion on how they could be applied to my project implementation.
 
 \cite{ref:frame_prediction} (``Geometry-Based Next Frame Prediction From
-Monocular Video'') focused on generating the
+Monocular Video'') focuses on generating the
 next frame of a monocular (i.e. single-view) video 
-given the video's previous frames; the researchers deployed
+given the video's previous frames. The researchers deployed
 an LSTM Machine Learning model in order to generate a depth map representing the next frame.
 Another Machine Learning model was then applied to convert the generated depth
-map into the pixels of the predicted frame. The biggest draw-back of their
-research was the poorness of the output frame's quality (see Figure
-\ref{fig:frame_prediction}); in order to use the
-application they developed in a professional environment, more steps would have
-to be made to ensure the quality is comparable to the quality of the original input frames.
+map into the pixels of the predicted frame. The largest deficiency of their
+project was the poorness of the output frame's quality as shown in Figure
+\ref{fig:frame_prediction}; in order to use their
+application for production-quality outputs, more steps would have
+to be taken to ensure the quality is comparable to the quality of the original input frames.
 Concerning applications to my
 project, what was most note-worthy is the use of the LSTM model in order to
-collect changes from all previous frames; I feel this type of mechanism will be
-crucial for the generative model I plan to implement in the future.
+collect changes from all previous frames instead of just one previous frame;
+I feel this type of mechanism will be
+crucial for the generative model described in Section \ref{sec:architecture}.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=9cm]{frame_prediction.png}}
+\centerline{\includegraphics[width=8cm]{frame_prediction.png}}
 \caption{Example of output frame and depth map of \cite{ref:frame_prediction}.}
 \label{fig:frame_prediction}
 \end{figure}
 
 \cite{ref:spatiotemporal} (``Spatiotemporal Variance-Guided Filtering: Real-Time Reconstruction for
-Path-Traced Global Illumination'') concentrated on
-generating high-quality outputs given very low-quality input
-frames. The inputs to the algorithm were rendered frames using one path-per-pixel global
-illumination. As shown in Figure \ref{fig:spatiotemporal}, they were able to
-transform frames with lots of noise into production-grade outputs comparable to
+Path-Traced Global Illumination'') concentrates on
+generating high quality outputs given very low quality input
+frames. The inputs to the algorithm are rendered frames using one path-per-pixel global
+illumination. As shown in Figure \ref{fig:spatiotemporal}, they are able to
+transform very crude, noisy frames into production-grade outputs comparable to
 the frames rendered at full resolution. Their algorithm is essentially a
 multi-pass filter which the inputs are fed into, making it very fast and
 reliable. My project benefit's from the foundational algorithms presented in
@@ -84,42 +161,43 @@ requires frame generation given scene data that has not been rendered at all,
 while theirs depends on entire rendered frames.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=9cm]{spatiotemporal.png}}
+\centerline{\includegraphics[width=8cm]{spatiotemporal.png}}
 \caption{Example input and output frame of \cite{ref:spatiotemporal}.}
 \label{fig:spatiotemporal}
 \end{figure}
 
 \cite{ref:posecnn} (``PoseCNN: A Convolutional Neural Network for 6D Object Pose Estimation in
-Cluttered Scenes'') proposed a framework called ``PoseCNN'' which
+Cluttered Scenes'', 2018) proposes a framework called ``PoseCNN'' which
 employes a CNN to estimate pose information and object attributes given an input
 image. The general architecture is shown in Figure \ref{fig:posecnn}; an image
 is input into the system, and what is output are semantic labels, 3D
-translation, and 3D rotation of each object. The researchers name the collection
-of these outputs as ``6D'' data, since there are 6 dimensions total. This
+translation, and 3D rotation of each object. The researchers deem the collection
+of these outputs ``6D'' data, since there are 6 dimensions total. This
 research is very applicable to my project, since I need to generate some form of
 the same information about objects in a 3D scene to use as inputs into my
-system. I will reference the author's references and reasoning when making those
+system. I will consider the author's references and reasoning when making those
 decision for the scene data inputs of my project.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=9cm]{posecnn.png}}
+\centerline{\includegraphics[width=8cm]{posecnn.png}}
 \caption{Example architecture for \cite{ref:posecnn}.}
 \label{fig:posecnn}
 \end{figure}
 
-\cite{ref:pose_guided} (``Pose Guided Person Image Generation'')
-presented a system entitled
+\cite{ref:pose_guided} (``Pose Guided Person Image Generation'', 2017)
+presents a system entitled
 ``Pose Guided Person Generation Network'' (abbreviated as
 PG\textsuperscript{2}). This system takes as input a condition image
-of a person in a given pose, and an image representing how the person should be
-posed (the choice of the representation for pose data is explained further in the
-paper). The system produces as intermediate output a low-resolution generated
-image that defines global structure and features for the new pose, and a final refined
-image of the person in the new pose. See Figure \ref{fig:pose_guided} for
-details on their project architecture. I found this research directly applicable
-to my project, since both problems involve extraneous data. There are, however,
+of a person in a given pose, and an image representing the targe pose the person
+should be translated into (the choice of the representation for pose data is explained further in the
+paper). Using two difference generators,
+the system produces as intermediate output a low-resolution generated
+image that defines global structure and features for the new pose, as well as a final refined
+image of the person in the new pose (see Figure \ref{fig:pose_guided} for
+details on their project architecture). I found this research directly applicable
+to my project, since both problems involve combining an image with extraneous data. There are, however,
 some differences between my project and theirs. As explained more in their
-paper, the author's were able to represent pose data as a standardized black and white image.
+paper, the authors were able to represent pose data as a standardized black and white image.
 Since my project requires the use of scene data outside of the rendered
 boundaries (i.e. what the camera can ``see''), I would find it difficult to
 obtain good results with the same approach. As I also found with the research in
@@ -132,22 +210,24 @@ have two generators and one discriminator, which can be trained on frame and
 scene inputs.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=9cm]{pose_guided.png}}
+\centerline{\includegraphics[width=8cm]{pose_guided.png}}
 \caption{System architecture proposed by \cite{ref:pose_guided}.}
 \label{fig:pose_guided}
 \end{figure}
 
-\subsection{Complex Systems}
+\subsection{Concepts from Complex Systems}
 \label{subsec:complex_systems}
-My interest in the field of computer animation is what sparked my interest in
+My interest in the field of computer animation is what sparked my desire to
 tackling one of the hardest problems studied therein; that is, given any 3D scene
 predict what will rendered to the screen. The problem does not sound too
 difficult, since the types of data for the scene is finite; however if we
 consider the infinite number of possible interactions within the scene itself,
 the problem space grows exponentially.
 
-Based on what we studied during class, my definition of a ``complex system'' is
-as follows:
+In order to facilitate discussion on how the field of Complex Systems relates to
+my project, I would first like to provide a definition of a ``complex system''
+based what we studied in class:
+
 \blockquote{
 A complex system is a system made up of small components interacting with each
 other to produce emmergence and to create global phenomena without a centeralized
@@ -157,66 +237,83 @@ affecting the system and all initial starting conditions; the system is
 nonlinear by nature of its complexity.
 }
 
-Predicting what will be rendered contains all the qualities of a complex system;
+I believe my project abstractly encapsulates all the qualities of a complex system;
 we are not concerned with the state of the animation software, but rather the
 complexity of predicting the pixels that make up a rendered frame of an
-animation. What is displayed by these pixels is completely dependent upon the
-objects in the scene, however at times it is difficult to know what objects.
-These anomalies create the emmergent behaviour that makes 3D animation so rich
-of a media.
+animation. What is displayed by these pixels is completely dependent upon how
+the objects in the scene interact with one another, however at times it is difficult
+to find these interactions.
+Anomalies such as these create the emmergent behaviour that makes 3D animation so rich
+an artform.
 
-\subsection*{Local interactions producing global phenomenon}
-\label{subsubsec:global_phenomenon}
-What should we consider as the ``global phenomena'' for a 3D scene?
-To answer this question, we must examine the various parts that make up a scene;
-we are only concerned with components that impact the visual scene by the
+What might we consider as the ``global phenomena'' for a 3D scene?
+To answer this question, we must examine the various parts that make up a scene.
+We are only concerned with components that impact the visual rendered by the
 camera, and so components such as scripts, heirarchy data, etc. can be safely
 excluded from consideration. Any physical objects, including meshes, particle
-systems, lights, and cameras, contains valuable information pertinent to
-what will be rendered; material attributes (e.g. opacity, reflectivity, and emission),
+systems, lights, and cameras, contain valuable information pertinent to
+what will be rendered; material attributes (e.g. opacity, reflectivity, or emission),
 physical characteristics (e.g. size, shape, or behaviour), and animated movement can all
-impact the rendering of other objects in the scene. Essentially, what is rendered to the
-screen is the combination of all of these characteristics for each object.
+impact the rendered pixels for other objects in the scene. Essentially, what is rendered to the
+screen is a combination of all of these characteristics for each object.
 This behaviour increases the visual richness of what is rendered, however in the
 same way also increases the complexity of defining how objects interact with
-each other. After also considering the limitless possibilities for a 3D scene,
-it becomes clear that no iterative solution will ever be good enough
-to provide a solution to this problem.
-
-\subsection{Research and background information}
-\label{subsec:background}
-Looked up current progress for prediction during rendering [1]
-Found paper on next frame prediction given depth data and previous frames. Decided that a CNN LSTM approach would be necessary to generate sufficient results [2]
-Looked for papers which covered image classification/recognition [3]
-Found papers on pose estimation [4]
-Found papers on PixelCNN and PixelCNN++, methods to generate images using CNN [5, 6]
-Looked for papers on combining multiple aspects of ML algorithms [7]
-Found Pose Guided image generation systems [8, 9, 10]
-Found Spatiotemporal Variance-Guidance paper to help with GAN work [11]
+each other. After also considering the limitless possibilities for the objects
+in a 3D scene,
+it becomes clear that no iterative algorithm will ever be good enough
+to provide a solution to this problem. Therefore this problem is
+nonlinear and requires an abstract nonlinear approach in order to be solved.
 
 \section{Architectural Overview}
-\label{sec:important_concepts}
-Derp
- purpose is to select the best frameblocks out of the set to use in training the later Machine Learning algorithm.
-Each iteration of the first generator of the proposed architecture
-(shown in Figure \ref{fig:block_diagram})
-receives pixel information and scene data as inputs. The model then trains
-itself
-to recognize the causal relationship between the rendered pixels and the 3D
-scene such that previously unknown frameblocks can be produced given
-corresponding scene data.
+\label{sec:architecture}
+The architecture I outline here is based off of the research presented in
+\cite{ref:pose_guided}. As I mentioned before, this architecture has several
+components which I believe are important to my system. Below I outline the three
+most important components which I plan to include in my architecture (see Figure
+\ref{fig:block_diagram} for a block diagram of my architecture):
 
-\subsection{Definitions}
-Define object, light, camera, material, particle system
+\begin{enumerate}
+\item Generator I: uses a Convolutional Nueral Network (CNN) model to generate a
+low resolution image containing global structures found in the
+source data. This generator will likely be the most important component to
+research, since I have not found a previously developed model to best suit the
+generator's purposes. To accomplish my desired end result,
+I believe I will need to combine the research of the LSTM
+model from \cite{ref:frame_prediction} with the
+generative CNN models from \cite{ref:pixelcnn_decoders}, \cite{ref:pixelcnn++},
+and \cite{ref:multi_source}, and the research of semantic data from
+\cite{ref:image_captioning} and \cite{ref:posecnn}. Because of the apparent
+level of developmenet necessary for this compoenent, I have
+outlined it in orange as shown in Figure \ref{fig:block_diagram}.
+\item Generator II: uses a fully connected CNN with the output of the first generative network and a
+condition image to generate a detailed output suitable as pixels of a rendered
+frame. I believe this network will be easier to construct than the model for the
+first generator, since it is likely I will be able to use roughly the same approach as
+\cite{ref:pose_guided} did for their second generative network. One difference I
+predict is the necessity for training data spanning multiple frames, which again
+could touch on the LSTM model presented in \cite{ref:frame_prediction}.
+\item Discriminator: trains a network to recognize a fake image from a real
+image, thereby driving both generators to do a better job of creating their
+respective outputs. This component is very well-researched by current standards,
+and I should have little difficulty replicating the work of
+\cite{ref:pose_guided} in order to create a working discriminator.
+\end{enumerate}
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=9cm]{block_diagram.png}}
-\caption{Generalized project Block Diagram.}
+\centerline{\includegraphics[width=8cm]{block_diagram.png}}
+\caption{Generalized project block diagram.}
 \label{fig:block_diagram}
 \end{figure}
 
+\section{Project Deliverables}
+\label{sec:deliverables}
+For my project this term, I focused on creating the inputs of my target
+architecture. In the following subsections, I ellaborate
+on the reasoning for how these inputs are difined. This work is essential to my
+proposed system, since the generator/discriminator model is useless if input
+training data is not representative what what we'd like to be generated.
 
-\subsection{A discussion on inputs}
+\subsection{A discussion on system inputs}
 \label{subsec:inputs}
 A major subarea of research for this project is how to generate the
 information from a 3D scene that would be valuable to the proposed architecture
@@ -607,6 +704,8 @@ Deciding what aspects of the scene to bundle with each frameblock will require m
 \bibitem{ref:multi_view} Bo Zhao, Xiao Wu, Zhi-Qi Cheng, Hao Liu, Zequn Jie, and Jiashi Feng. 2018. ``Multi-View Image Generation from a Single-View.'' In Proceedings of the 26th ACM international conference on Multimedia (MM '18). ACM, New York, NY, USA, 383-391.
 \bibitem{ref:info_gan} Xi Chen, Yan Duan, Rein Houthooft, John Schulman, Ilya Sutskever, Pieter Abbeel. ``InfoGAN: Interpretable Representation Learning by Information Maximizing Generative Adversarial Nets.'' NIPS (2016).
 \bibitem{ref:spatiotemporal} Christoph Schied, Anton Kaplanyan, Chris Wyman, Anjul Patney, Chakravarty R. Alla Chaitanya, John Burgess, Shiqiu Liu, Carsten Dachsbacher, Aaron Lefohn, and Marco Salvi. 2017. Spatiotemporal variance-guided filtering: real-time reconstruction for path-traced global illumination. In Proceedings of High Performance Graphics (HPG '17). ACM, New York, NY, USA, Article 2, 12 pages.
+\bibitem{ref:monsters} Dean Takahashi, ``How Pixar made Monsters University, its
+latest technological marvel''. April 24, 2013. Article.
 \end{thebibliography}
 %==========================================================
 \end{document}
