@@ -1,6 +1,7 @@
 \documentclass[conference]{IEEEtran}
 \usepackage[english]{babel}
 \usepackage{cite,setspace}
+\usepackage[autostyle]{csquotes}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
@@ -23,8 +24,6 @@ May 16, 2019}
 
 \maketitle
 
-\onehalfspacing
-
 \begin{abstract}
 This paper describes my preliminary research and implementation of a
 system for dynamically generating frames or portions of frame
@@ -35,20 +34,157 @@ of a given animation.
 \label{sec:introduction}
 Derp intro.
 
-\section{Connection to Complex Systems}
-\label{sec:introduction}
+\section{Problem Statement}
+\label{sec:}
+Derp
+
+\section{Related Concepts}
+\label{sec:related concepts}
 Derp intro.
 
-\subsection{Global Phenomenon}
-\label{ref:subsection_ref}
-Derp.
+\subsection{Applicable research}
+\label{subsec:applicable}
+I have found many papers that are applicable to the stated problem. I would like
+to discuss 4 of them in detail as well as provide
+discussion on how they could be applied to the project.
 
-\section{Discussion on Research}
-\label{sec:discussion_on_research}
-Derp intro.
+\cite{ref:frame_prediction} (``Geometry-Based Next Frame Prediction From
+Monocular Video'') focused on generating the
+next frame of a monocular (i.e. single-view) video 
+given the video's previous frames; the researchers deployed
+an LSTM Machine Learning model in order to generate a depth map representing the next frame.
+Another Machine Learning model was then applied to convert the generated depth
+map into the pixels of the predicted frame. The biggest draw-back of their
+research was the poorness of the output frame's quality (see Figure
+\ref{fig:frame_prediction}); in order to use the
+application they developed in a professional environment, more steps would have
+to be made to ensure the quality is comparable to the quality of the original input frames.
+Concerning applications to my
+project, what was most note-worthy is the use of the LSTM model in order to
+collect changes from all previous frames; I feel this type of mechanism will be
+crucial for the generative model I plan to implement in the future.
 
-\subsection{Research Process}
-\label{ref:subsection_ref}
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=9cm]{frame_prediction.png}}
+\caption{Example of output frame and depth map of \cite{ref:frame_prediction}.}
+\label{fig:frame_prediction}
+\end{figure}
+
+\cite{ref:spatiotemporal} (``Spatiotemporal Variance-Guided Filtering: Real-Time Reconstruction for
+Path-Traced Global Illumination'') concentrated on
+generating high-quality outputs given very low-quality input
+frames. The inputs to the algorithm were rendered frames using one path-per-pixel global
+illumination. As shown in Figure \ref{fig:spatiotemporal}, they were able to
+transform frames with lots of noise into production-grade outputs comparable to
+the frames rendered at full resolution. Their algorithm is essentially a
+multi-pass filter which the inputs are fed into, making it very fast and
+reliable. My project benefit's from the foundational algorithms presented in
+this research, however the overall premises are very different; my problem
+requires frame generation given scene data that has not been rendered at all,
+while theirs depends on entire rendered frames.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=9cm]{spatiotemporal.png}}
+\caption{Example input and output frame of \cite{ref:spatiotemporal}.}
+\label{fig:spatiotemporal}
+\end{figure}
+
+\cite{ref:posecnn} (``PoseCNN: A Convolutional Neural Network for 6D Object Pose Estimation in
+Cluttered Scenes'') proposed a framework called ``PoseCNN'' which
+employes a CNN to estimate pose information and object attributes given an input
+image. The general architecture is shown in Figure \ref{fig:posecnn}; an image
+is input into the system, and what is output are semantic labels, 3D
+translation, and 3D rotation of each object. The researchers name the collection
+of these outputs as ``6D'' data, since there are 6 dimensions total. This
+research is very applicable to my project, since I need to generate some form of
+the same information about objects in a 3D scene to use as inputs into my
+system. I will reference the author's references and reasoning when making those
+decision for the scene data inputs of my project.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=9cm]{posecnn.png}}
+\caption{Example architecture for \cite{ref:posecnn}.}
+\label{fig:posecnn}
+\end{figure}
+
+\cite{ref:pose_guided} (``Pose Guided Person Image Generation'')
+presented a system entitled
+``Pose Guided Person Generation Network'' (abbreviated as
+PG\textsuperscript{2}). This system takes as input a condition image
+of a person in a given pose, and an image representing how the person should be
+posed (the choice of the representation for pose data is explained further in the
+paper). The system produces as intermediate output a low-resolution generated
+image that defines global structure and features for the new pose, and a final refined
+image of the person in the new pose. See Figure \ref{fig:pose_guided} for
+details on their project architecture. I found this research directly applicable
+to my project, since both problems involve extraneous data. There are, however,
+some differences between my project and theirs. As explained more in their
+paper, the author's were able to represent pose data as a standardized black and white image.
+Since my project requires the use of scene data outside of the rendered
+boundaries (i.e. what the camera can ``see''), I would find it difficult to
+obtain good results with the same approach. As I also found with the research in
+\cite{ref:spatiotemporal}, this project requires an input image while the only
+input of my final generative architecture is scene data itself. I will need to
+keep this in mind during my investigation of what Machine Learning models to
+develop for the generator. Despite these counterpoints, I do find the overall
+system achitecture to most closely represent my target architecture; I plan to
+have two generators and one discriminator, which can be trained on frame and
+scene inputs.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=9cm]{pose_guided.png}}
+\caption{System architecture proposed by \cite{ref:pose_guided}.}
+\label{fig:pose_guided}
+\end{figure}
+
+\subsection{Complex Systems}
+\label{subsec:complex_systems}
+My interest in the field of computer animation is what sparked my interest in
+tackling one of the hardest problems studied therein; that is, given any 3D scene
+predict what will rendered to the screen. The problem does not sound too
+difficult, since the types of data for the scene is finite; however if we
+consider the infinite number of possible interactions within the scene itself,
+the problem space grows exponentially.
+
+Based on what we studied during class, my definition of a ``complex system'' is
+as follows:
+\blockquote{
+A complex system is a system made up of small components interacting with each
+other to produce emmergence and to create global phenomena without a centeralized
+controller. The system must also adapt to context and environment, meaning it is
+impossible to predict the state it is in even if we were to know all laws
+affecting the system and all initial starting conditions; the system is
+nonlinear by nature of its complexity.
+}
+
+Predicting what will be rendered contains all the qualities of a complex system;
+we are not concerned with the state of the animation software, but rather the
+complexity of predicting the pixels that make up a rendered frame of an
+animation. What is displayed by these pixels is completely dependent upon the
+objects in the scene, however at times it is difficult to know what objects.
+These anomalies create the emmergent behaviour that makes 3D animation so rich
+of a media.
+
+\subsection*{Local interactions producing global phenomenon}
+\label{subsubsec:global_phenomenon}
+What should we consider as the ``global phenomena'' for a 3D scene?
+To answer this question, we must examine the various parts that make up a scene;
+we are only concerned with components that impact the visual scene by the
+camera, and so components such as scripts, heirarchy data, etc. can be safely
+excluded from consideration. Any physical objects, including meshes, particle
+systems, lights, and cameras, contains valuable information pertinent to
+what will be rendered; material attributes (e.g. opacity, reflectivity, and emission),
+physical characteristics (e.g. size, shape, or behaviour), and animated movement can all
+impact the rendering of other objects in the scene. Essentially, what is rendered to the
+screen is the combination of all of these characteristics for each object.
+This behaviour increases the visual richness of what is rendered, however in the
+same way also increases the complexity of defining how objects interact with
+each other. After also considering the limitless possibilities for a 3D scene,
+it becomes clear that no iterative solution will ever be good enough
+to provide a solution to this problem.
+
+\subsection{Research and background information}
+\label{subsec:background}
 Looked up current progress for prediction during rendering [1]
 Found paper on next frame prediction given depth data and previous frames. Decided that a CNN LSTM approach would be necessary to generate sufficient results [2]
 Looked for papers which covered image classification/recognition [3]
@@ -58,40 +194,146 @@ Looked for papers on combining multiple aspects of ML algorithms [7]
 Found Pose Guided image generation systems [8, 9, 10]
 Found Spatiotemporal Variance-Guidance paper to help with GAN work [11]
 
-\subsection{Frameblocks}
-\label{ref:subsection_ref}
-One major research subarea is how to generate information from a 3D scene that is valuable to the proposed Machine Learning architecture;
-I first posed the question of what data should be included.
-Serializing every attribute of the scene would be excessive,
-and take much to long to convert and work with.
-However, using too little data would not work very well either and could produce poor results.
-I realized that the data for each object must uniquely represent the objects in the scene.
-Otherwise there would be too much overlapping data,
-and the algorithm might never learn the differences between the input frames.
-There are also no limitations nor expectations placed upon the animator;
-even when comparing scenes which have the same characters, landscapes, and animations
-the generated data for each object should accurately represent the properties of that object and that object alone.
+\section{Architectural Overview}
+\label{sec:important_concepts}
+Derp
+ purpose is to select the best frameblocks out of the set to use in training the later Machine Learning algorithm.
+Each iteration of the first generator of the proposed architecture
+(shown in Figure \ref{fig:block_diagram})
+receives pixel information and scene data as inputs. The model then trains
+itself
+to recognize the causal relationship between the rendered pixels and the 3D
+scene such that previously unknown frameblocks can be produced given
+corresponding scene data.
 
-I found through reading the implementation details of [8] that Ma et. all
-used a state of the art pose recognition program to generate poses,
-used as a mask to give extra input to their GAN model.
-The program assigned 18 (?) key points for each pose,
-which Ma et. all used as pose data in their program.
-What was generated was (an image?).
+\subsection{Definitions}
+Define object, light, camera, material, particle system
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=9cm]{block_diagram.png}}
+\caption{Generalized project Block Diagram.}
+\label{fig:block_diagram}
+\end{figure}
+
+
+\subsection{A discussion on inputs}
+\label{subsec:inputs}
+A major subarea of research for this project is how to generate the
+information from a 3D scene that would be valuable to the proposed architecture
+(see Figure \ref{fig:block_diagram}).
+When first researching this topic, I posed the question of what
+data should be sent to Generator I.
+In there research, \cite{ref:pose_guided} implemented a similar schema where the input to this
+component of their system was a condition image and target pose.
+Ma et. all uses a state of the art pose recognition program to
+generate poses, and used this as a mask to give extra input to their generative model.
+The program assigned 18 ``keypoints'' for each pose,
+which were used as the pose representations for each iteration.
+Therefore the pose data was represented as a black and white image,
+as shown in Figure \ref{fig:pose_guided}.
+Disregarding the architectural changes to the generator, I predict I too will
+have similar inputs; one or more pairs of frame images to scene data.
+
 These data are not mapped one-to-one with my problem, however;
 what I need is for the renderer to use unrendered data as well,
 to solve the problem of reflective, transparent, or other dynamic surfaces.
 If the camera is facing a mirror, for example,
 then the entirety of the scene to be rendered is behind the camera.
-Therefore, unlike with [8] I found that using images as input would not work for this problem,
-unless the image abstractly captures the scene relative to the camera.
+Therefore, unlike with \cite{ref:pose_guided}
+I found that using images as input would not work well for this problem,
+unless the image abstractly captures the scene data relative to the camera and
+the objects within the rendered view.
+
+However, serializing every attribute of the scene for each frame would take too much time
+and result in a bloated file size.
+Using too little data could also produce poor results when training the
+generator. Thus there are some requirements for this extra data:
+\begin{enumerate}
+\item Data must be small in size but representative of the objects which it is
+describing. If any characteristics of the scene are left out of this
+description, the trained algorithm may produce incorrect results in practice.
+\item Data must also uniquely represent the objects in the scene and how they
+interact with their environment.
+If there is an abundance of similarities between objects, then
+the algorithm might never learn the differences between the input frames.
+\item There are also no limitations nor expectations placed upon the animator;
+even when comparing scenes which have the same characters, landscapes, and
+animations, the generated data for each object should accurately represent
+the properties of that object alone. If all the objects in the scene are the
+same, then the focus would be on how they interact with each other in the scene
+during animation.
+\end{enumerate}
 Another obvious issue here is that we are trying to speed up rendering as much as possible;
 any extra rendering could add too much time to the overall algorithm,
-making it slower than rendering all frames of the animation thereby defeating the purpose of the proposed architecture.
+making it slower than rendering all frames of the animation
+and thereby defeating the purpose of using the proposed architecture.
 The method in which data is stored must be fast, efficient, and encompass only a fraction of the overall runtime of the algorithm.
+
+\subsection{Frameblocks}
+\label{subsec:frameblocks}
+There are many different ways to choose the inputs for the program.
+I believe the problem does not involve only the color values of each
+rendered pixel,
+but rather the relationship between that pixel and the scene data which
+generated it. Thus, not all pixels should be trained on, especially if they have
+little to do with how the rendered scene is changing.
+It is clear a preparation phase is necessary for all frames of a given
+animation; portions of each frame will become the inputs for the larger
+architecture proposed (see Figure \ref{fig:block_diagram}).
+I have defined these inputs as ``frameblocks''.
+Frameblocks represent a small ($\approx 3\%$) portion of a given frame,
+and it is assumed
+that a frameblock is representative of the changes between
+two frames that are significant enough to
+be used as input.
+This concept of frameblocks also satisfies the
+requirements enumerated in Section \ref{subsec:inputs}.
+
+Thus, the selection of frameblocks depends upon how much the scene changes
+between frames and in what ways;
+just because a frame is keyed does not imply there was any major change.
+As with complex particle systems, simply existing in the scene is all that is
+needed to create great changes in the rendered output;
+this is also why it is so pertinent that the later stages of the arichtecture
+take into account both scene data and rendered pixels.
+Therefore we cannot rely on scene data in our selection of frameblocks, rather
+this selection must come from the changes in the frames themselves.
+This problem is not data-specific,
+however, as is the case with the later Machine Learning models.
+If the pixel data were converted into a format which showed changes and hid similarities,
+then it could be possible to train a general algorithm which could be queried
+for any given scene data input.
+
+%They are defined below (frames are indexed by $f_i$ for $i = 1,2,...,n$ where $n$ is the number
+%of frames to train on):
+%\begin{enumerate}
+%\item The first frame, $f_1$, is automatically queried
+%since it provides a baseline for changes shown in subsequent frames.
+%\item The rest of the frames are processed as follows:
+%\begin{enumerate}
+%\item Frame $f_i$ 
+%\end{enumerate}
+%\item For each subsequent frame $f{i=2...n-1}$, the respective pixel values for
+%frame $f_i$ and $f_{i - 1}$ are XOR'ed, and these results are summed together
+%(perhaps the summation could be capped at 255, in order to save memory).
+%\end{enumerate}
+%This new composite image contains data on what has changed between frames,
+%and it is to be evaluated by the Phase 1 Machine Learning algorithm to determine if the frame has enough changed values.
+%But we should ask ourselves, is a Machine Learning algorithm necessary at this point?
+%Surely we could just use the ratio of dark pixels to light pixels to make this decision.
+%As stated before we are not only concerned with how much the frame changed overall but how it changed and where it changed.
+%There is a problem with using frames that change too much, especially if the frames could be classified as separate scenes;
+%each scene must be processed separately.
+%Thus the decision of whether or not to use a given frame block for the current scene should be a trained decision,
+%where the training data comes from similar analysis of movie frames where the scenes and changing areas are clearly defined.
 
 \subsection{Buffer Frameblocks}
 \label{subsec:buffer_frameblocks}
+Concerning frameblocks, an important question still remains:
+how do we capture changes not significant enough to trigger a frameblock as
+described in sections \ref{subsec:inputs} and \ref{subsec:frameblocks}?
+Derp...
+
 Even if we captured all blocks that changed, how many of those changes would be similar?
 Depending on the frame rate and how many blocks changed,
 it could mean that most of the same blocks had similar changes which don't need to be retrained by the program.
@@ -99,45 +341,6 @@ Given that a scene could have several seconds, if not minutes, of correlated dat
 it is only natural to crop out important portions of the scene to use for training.
 Therefore there must also be a dynamic mechanism to select which frames classify as part of the current ?scene? and of those frames which to use as inputs to train on.
 
-There are many different ways to go about this.
-However we must first define the problem clearly, so the best way can be chosen.
-I believe the problem in itself does not involve only the color values of each pixel,
-but rather the relationship between the pixel and its surroundings.
-Our purpose is to select the best frame blocks out of the set to use in training the later Machine Learning algorithm.
-The proposed architecture, as discussed before,
-is meant to take in one frame block and one scene data per iteration and train an algorithm
-to recognize the causal relationship between the rendered pixels and the 3D
-scene such that rendered frame blocks can be produced given scene data inputs.
-The selection of frame blocks is not only dependent upon if the objects in the scene change between frames,
-but how much they change and in what ways; just because a frame is keyed does not imply there was any major change.
-As with complex particle systems, simply existing in the scene is all that is needed to create great change in the rendered output.
-(This is also why it is so pertinent that the later stages of the algorithm take into account both scene data and rendered pixels.)
-Therefore we cannot rely on scene data in our selection of frame blocks,
-this selection must come from the frames themselves. This problem is not data-specific,
-however, as is the case with the later stages.
-If the pixel data were converted into a format which showed changes and hid similarities,
-then it could be possible to train a general algorithm which could be queried for any given problem.
-
-It is for this reason I feel a preparation phase is necessary, where each (i)th frame is processed.
-The first frame $(i=1)$ is automatically queried, since it provides a baseline for the rest of the frames.
-Then for each subsequent frame $i=2...n-1$ the respective pixel values for the frame and its neighbors
-are subtracted from each other and these differences are summed together (perhaps the summation could be capped at 255, in order to save memory).
-This new composite image contains data on what has changed between frames,
-and it is to be evaluated by the Phase 1 Machine Learning algorithm to determine if the frame has enough changed values.
-But we should ask ourselves, is a Machine Learning algorithm necessary at this point?
-Surely we could just use the ratio of dark pixels to light pixels to make this decision.
-As stated before we are not only concerned with how much the frame changed overall but how it changed and where it changed.
-There is a problem with using frames that change too much, especially if the frames could be classified as separate scenes;
-each scene must be processed separately.
-Thus the decision of whether or not to use a given frame block for the current scene should be a trained decision,
-where the training data comes from similar analysis of movie frames where the scenes and changing areas are clearly defined.
-Another point of consideration is using an LSTM model instead of a regular CNN;
-would previous frames be necessary to determine the amount of change in the current frame?
-
-I have concluded from further study that a Machine Learning algorithm could be used to locate clusters of differences,
-thereby maximizing the placement of a frame block for a given area inside of a frame.
-I should look at example/tutorial Machine Learning architectures that provide this kind of clustering ability.
-Perhaps I should also look into creating multiple different kinds of clusters, and current cluster datasets available online.
 
 \subsection{Training The Algorithm}
 \label{subsec:training_the_algorithm}
@@ -148,7 +351,7 @@ Where might the training data originate from my project, however?
 The obvious choice is that it must be a subset of rendered frame data.
 These frames, used in combination with corresponding scene data,
 would be used as Ground Truth to train a GAN on how to produce images given scene and random inputs.
-As described in [8], these types of inputs can be used to create low-resolution images,
+As described in \cite{ref:pose}, these types of inputs can be used to create low-resolution images,
 which are then used as the random data for the second GAN which is responsible for creating high-resolution images.
 For my research there are also CNN LSTM qualities to consider,
 since all frames for a given ?scene? are related.
@@ -210,9 +413,9 @@ However, there are also objects such as particle systems which are intended to g
 These two types of motion cannot be classified the same way;
 it is very likely they will need to be dealt with dynamically!
 For instance, one might imagine the animation of characters talking inside of a cafe on a rainy day.
-The frame blocks that render the rain through the window are changing very rapidly,
+The frameblocks that render the rain through the window are changing very rapidly,
 while those that contain the characters are most likely changing very slowly.
-So why not accommodate this phenomenon by quing frame blocks and their scene configuration data based upon the block itself;
+So why not accommodate this phenomenon by quing frameblocks and their scene configuration data based upon the block itself;
 unchanging blocks need not be queued for further processing,
 as this could lead to overfitting of the unchanging blocks and underfitting of the dynamic blocks.
 
@@ -221,16 +424,16 @@ as this could lead to overfitting of the unchanging blocks and underfitting of t
 However clustering is a problem better suited for data with multiple unique qualities,
 much like a problem for n-dimensional space.
 This data does not represent anything more than the amount of difference between two frame's pixels.
-The argument can be made that there may be waste in the frame blocks; take for example if a
+The argument can be made that there may be waste in the frameblocks; take for example if a
 frame block edge straddles an area that just barely meets the criteria for processing while neither frame block will be processed.
-So a set configuration is ineffective for selecting frame blocks, since there may be missing frames in the selection.
-What about a sliding window? But then by how much should this window slide by? And what if there is too much overlap between frame blocks selected?
+So a set configuration is ineffective for selecting frameblocks, since there may be missing frames in the selection.
+What about a sliding window? But then by how much should this window slide by? And what if there is too much overlap between frameblocks selected?
 Well if there is too much overlap, too many of the same frame will be selected and the algorithm can overtrain.
 If there is too little coverage, then frames will be missing.
 The solution? Perhaps a window that slides by half the width of a frame block, and half the height of a frame block.
 Should there be any extra rules to decide if a block indeed qualifies?
 For example, if two blocks are chosen because they have the exact same changes shown in both, should one of them be discarded?
-And should frame blocks be optimized to show changes in the center instead of on one side?
+And should frameblocks be optimized to show changes in the center instead of on one side?
 Perhaps the frame should be dynamically chosen based upon threshold, shifted by 1 pixel each time until the frame has enough changes shown.
 A summation of all pixel values of the frame block could be applicable,
 and once a frame is found the offset could be set to half the frame block width
@@ -241,15 +444,15 @@ Take for example a slowly changing gradient from one color to another (changing 
 We would like to include this, since it is an important lerp to show in the generated frame,
 however the changes would be continuous over the entire frame. This is a big problem!
 How do we manage to only capture the frames we need for each configuration?
-Perhaps previous frame blocks should be captured and hashed, so that similar frame blocks are not captured.
+Perhaps previous frameblocks should be captured and hashed, so that similar frameblocks are not captured.
 To do this I propose we take the first 5 bits of each color value for hashing (so that the last 8 possible values are ignored).
 Thus there are 15 bits to hash per pixel, and 32 x 32 pixels. I should research further what type of hash could be done.
-Some data loss is ok, since we want to disregard frame blocks that are too similar.
+Some data loss is ok, since we want to disregard frameblocks that are too similar.
 Then maybe values should be super-sampled (averaged?) in smaller blocks to create a smaller 15 bits x 8 x 8 pixel image to compare against.
 However how much similarity is acceptable? There are probably too many ways to create the generated 8 x 8 pixel image based off of the given frames.
 Either way, it is clear that some method of hash could be used to avoid training on repeated blocks.
 
-In summary, the total process would be 1) find the frame block (by so far an unknown method), 2) check frame against previously found frames, 3) generate frame block and add to hash list. When the frame is completely processed, clear the list of hashed frame blocks.
+In summary, the total process would be 1) find the frame block (by so far an unknown method), 2) check frame against previously found frames, 3) generate frame block and add to hash list. When the frame is completely processed, clear the list of hashed frameblocks.
 
 \section{Implementation}
 \label{sec:implementation}
@@ -391,19 +594,19 @@ Deciding what aspects of the scene to bundle with each frameblock will require m
 %\label{fig}
 %\end{figure}
 
-\begin{thebibliography}{00}
-\bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
-\bibitem{b2} Alexander Wilkie, Andrea Weidlich, Marcus Magnor, and Alan Chalmers. 2009. ``Predictive Rendering.'' In ACM SIGGRAPH ASIA 2009 Courses (SIGGRAPH ASIA '09). ACM, New York, NY, USA, Article 12, 428 pages.
-\bibitem{b3} R. Mahjourian, M. Wicke and A. Angelova, ``Geometry-Based Next Frame Prediction From Monocular Video''. 2017 IEEE Intelligent Vehicles Symposium (IV), Los Angeles, CA, 2017, pp. 1700-1707.
-\bibitem{b4} Oriol Vinyals, Alexander Toshev, Samy Bengio, and Dumitru Erhan. 2017. ``Show and Tell: Lessons Learned from the 2015 MSCOCO Image Captioning Challenge.'' IEEE Trans. Pattern Anal. Mach. Intell. 39, 4 (April 2017), 652-663.
-\bibitem{b5} Yu Xiang, Tanner Schmidt, Venkatraman Narayanan, Dieter Fox. ``PoseCNN: A Convolutional Neural Network for 6D Object Pose Estimation in Cluttered Scenes.'' CoRR abs/1711.00199 (2018): n. pag.
-\bibitem{b6} A\"{a}ron van den Oord, Nal Kalchbrenner, Oriol Vinyals, Lasse Espeholt, Alex Graves, and Koray Kavukcuoglu. 2016. ``Conditional Image Generation With PixelCNN Decoders.'' In Proceedings of the 30th International Conference on Neural Information Processing Systems (NIPS'16), Daniel D. Lee, Ulrike von Luxburg, Roman Garnett, Masashi Sugiyama, and Isabelle Guyon (Eds.). Curran Associates Inc., USA, 4797-4805.
-\bibitem{b7} Time Salimans, Andrej Karpathy, Xi Chen, Diederik P. Kingma. 2017. ``PixelCNN++: Improving The PixelCNN with Discretized Logistic Mixture Likelihood and Other Modifications.'' ICLR Conference Paper (2017).
-\bibitem{b8} Eunvyung Park, Xufeng Han, Tamara L. Berg, Alexander C. Berg. ``Combining Multiple Sources of Knowledge In Deep CNN's For Action Recognition.'' 2016 IEEE Winter Conference on Applications of Computer Vision (WACV) (2016): 1-8.
-\bibitem{b9} Liquian Ma, Xu Jia, Qianru Sun, Bernt Schiele, Tinne Tuytelaars, Luc Van Gool. ``Pose Guided Person Image Generation.'' NIPS (2017).
-\bibitem{b10} Bo Zhao, Xiao Wu, Zhi-Qi Cheng, Hao Liu, Zequn Jie, and Jiashi Feng. 2018. ``Multi-View Image Generation from a Single-View.'' In Proceedings of the 26th ACM international conference on Multimedia (MM '18). ACM, New York, NY, USA, 383-391.
-\bibitem{b11} Xi Chen, Yan Duan, Rein Houthooft, John Schulman, Ilya Sutskever, Pieter Abbeel. ``InfoGAN: Interpretable Representation Learning by Information Maximizing Generative Adversarial Nets.'' NIPS (2016).
-\bibitem{b12} Christoph Schied, Anton Kaplanyan, Chris Wyman, Anjul Patney, Chakravarty R. Alla Chaitanya, John Burgess, Shiqiu Liu, Carsten Dachsbacher, Aaron Lefohn, and Marco Salvi. 2017. Spatiotemporal variance-guided filtering: real-time reconstruction for path-traced global illumination. In Proceedings of High Performance Graphics (HPG '17). ACM, New York, NY, USA, Article 2, 12 pages.
+\begin{thebibliography}{12}
+\bibitem{ref:bessel_functions} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
+\bibitem{ref:predictive_rendering} Alexander Wilkie, Andrea Weidlich, Marcus Magnor, and Alan Chalmers. 2009. ``Predictive Rendering.'' In ACM SIGGRAPH ASIA 2009 Courses (SIGGRAPH ASIA '09). ACM, New York, NY, USA, Article 12, 428 pages.
+\bibitem{ref:frame_prediction} R. Mahjourian, M. Wicke and A. Angelova, ``Geometry-Based Next Frame Prediction From Monocular Video''. 2017 IEEE Intelligent Vehicles Symposium (IV), Los Angeles, CA, 2017, pp. 1700-1707.
+\bibitem{ref:image_captioning} Oriol Vinyals, Alexander Toshev, Samy Bengio, and Dumitru Erhan. 2017. ``Show and Tell: Lessons Learned from the 2015 MSCOCO Image Captioning Challenge.'' IEEE Trans. Pattern Anal. Mach. Intell. 39, 4 (April 2017), 652-663.
+\bibitem{ref:posecnn} Yu Xiang, Tanner Schmidt, Venkatraman Narayanan, Dieter Fox. ``PoseCNN: A Convolutional Neural Network for 6D Object Pose Estimation in Cluttered Scenes.'' CoRR abs/1711.00199 (2018): n. pag.
+\bibitem{ref:pixelcnn_decoders} A\"{a}ron van den Oord, Nal Kalchbrenner, Oriol Vinyals, Lasse Espeholt, Alex Graves, and Koray Kavukcuoglu. 2016. ``Conditional Image Generation With PixelCNN Decoders.'' In Proceedings of the 30th International Conference on Neural Information Processing Systems (NIPS'16), Daniel D. Lee, Ulrike von Luxburg, Roman Garnett, Masashi Sugiyama, and Isabelle Guyon (Eds.). Curran Associates Inc., USA, 4797-4805.
+\bibitem{ref:pixelcnn++} Time Salimans, Andrej Karpathy, Xi Chen, Diederik P. Kingma. 2017. ``PixelCNN++: Improving The PixelCNN with Discretized Logistic Mixture Likelihood and Other Modifications.'' ICLR Conference Paper (2017).
+\bibitem{ref:multi_source} Eunvyung Park, Xufeng Han, Tamara L. Berg, Alexander C. Berg. ``Combining Multiple Sources of Knowledge In Deep CNN's For Action Recognition.'' 2016 IEEE Winter Conference on Applications of Computer Vision (WACV) (2016): 1-8.
+\bibitem{ref:pose_guided} Liquian Ma, Xu Jia, Qianru Sun, Bernt Schiele, Tinne Tuytelaars, Luc Van Gool. ``Pose Guided Person Image Generation.'' NIPS (2017).
+\bibitem{ref:multi_view} Bo Zhao, Xiao Wu, Zhi-Qi Cheng, Hao Liu, Zequn Jie, and Jiashi Feng. 2018. ``Multi-View Image Generation from a Single-View.'' In Proceedings of the 26th ACM international conference on Multimedia (MM '18). ACM, New York, NY, USA, 383-391.
+\bibitem{ref:info_gan} Xi Chen, Yan Duan, Rein Houthooft, John Schulman, Ilya Sutskever, Pieter Abbeel. ``InfoGAN: Interpretable Representation Learning by Information Maximizing Generative Adversarial Nets.'' NIPS (2016).
+\bibitem{ref:spatiotemporal} Christoph Schied, Anton Kaplanyan, Chris Wyman, Anjul Patney, Chakravarty R. Alla Chaitanya, John Burgess, Shiqiu Liu, Carsten Dachsbacher, Aaron Lefohn, and Marco Salvi. 2017. Spatiotemporal variance-guided filtering: real-time reconstruction for path-traced global illumination. In Proceedings of High Performance Graphics (HPG '17). ACM, New York, NY, USA, Article 2, 12 pages.
 \end{thebibliography}
 %==========================================================
 \end{document}
