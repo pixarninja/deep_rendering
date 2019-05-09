@@ -8,6 +8,13 @@
 \graphicspath{{images/}}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage[outputdir=output]{minted}
+%\usemintedstyle{autumn} % friendly, colorful
+%\newminted{c}{mathescape, linenos, numbersep=5pt, gobble=0, frame=lines, framesep=2mm}
+%\definecolor{background}{gray}{0.90}
+%\newminted{bash}{bgcolor=background}
+%\newminted{console}{bgcolor=background}
+%\usemintedstyle[console]{bw}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -529,7 +536,7 @@ Luckily, the previous frame will have already been calculated in the previous
 step, so we only need to compare each frame to the next frame for frameblock
 selection.
 
-As shown by the implemention in Appendix \ref{app:1}, the frames are
+As shown by the implemention in Appendix A, the frames are
 read in as an array and processed.
 Boundaries are also chosen, in case the images are different sizes.
 In practice this wouldn't occur since the frames of an animation are always the
@@ -605,8 +612,7 @@ Frameblocks which are found to not show enough changes to be included in this it
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{shadow_roi.png}}
-\caption{Selected (red) and unselected (blue) frameblocks found from shadow
-image in Figure \ref{fig:shadow_image}.}
+\caption{Selected (red) and unselected (blue) frameblocks.}
 \label{fig:shadow_roi}
 \end{figure}
 
@@ -626,70 +632,121 @@ it is not included in the dataset.
 An example pair of inverted shadow and frame buffer images is shown below.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=8cm]{frameblock_pair.png}}
-\caption{Example of two frames that were skipped and the generated buffer frameblock.}
-\label{fig:frameblock_pair}
+\centerline{\includegraphics[width=8cm]{buffer_frameblock.png}}
+\caption{Example of a buffer frameblock.}
+\label{fig:buffer_frameblock}
 \end{figure}
 
-\subsection{Data analysis}
+\subsection{Validation of experimental data}
 \label{subsec:data_analysis}
-So, we were able to generate frameblocks, but how are we to know they are indeed all correct?
-I propose we compare these outputs to a different scene.
-As it so happens, the scene processed above is much more complex than we might have realized before.
+The animation I used to test the application
+contained 13 seconds of 1k resolution data and generated
+a total of 14,330 frameblocks, which lines up nicely with my assumptions and
+requirements for training. However how can we validate that the output frameblocks
+accurately reflect the changes in the scene that should be captured?
+I propose a comparison between these outputs and those generated from the same
+scene with different properties.
+As it so happens, the original scene is much more complex than we might have realized before.
 Each sphere is transparent and very reflective,
 so the changes to one sphere impact changes to all the spheres in the scene.
-The process used above is repeated below, but for spheres that are completely opaque and diffuse;
-thus the algorithm is able to filter out more data and choose only frameblocks which change between the two frames.
+Since each the sphere's scaling and translation are changed throughout the
+animation, the rendered sequence has lots of dynamic changes which should be
+captured in frameblocks.
+The process described above is repeated, but with
+spheres that are completely opaque and diffuse.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=8cm]{frameblock_pair.png}}
-\caption{Example of two frames that were skipped and the generated buffer frameblock.}
-\label{fig:frameblock_pair}
+\centerline{\includegraphics[width=8cm]{data_analysis.png}}
+\caption{Comparison of complex (top) and simple (bottom) inputs.}
+\label{fig:data_analysis}
 \end{figure}
+
+As can be seen in Figure \ref{fig:data_analysis}, the algorithm is able to filter
+out more data and choose only frameblocks which change between the two frames.
+This is exactly the desired outcome, since in both the complex and simple
+scenes all changes are captured appropriately and no unnecessary frameblocks are
+generated that could result in poor training data.
+
+\subsection{A study on the discriminator model}
+\label{subsec:discriminator}
+Machine Learning stuff...
 
 \subsection{Term project conclusions}
 \label{subsec:term_conclusions}
-The process shown here is an effective means of choosing frameblocks
-for training the proposed Machine Learning algorithm.
-By carefully deciding which portions of the frame to use,
-we guarantee there will be minimal over-training data and maximum changes shown in the dataset.
-The next steps of this process will be to develop the Machine Learning algorithm itself,
-which will take as input the frameblocks of every other frame in an animation.
-
-We have solved the problem of what input would be appropriate to train
-the proposed Machine Learning algorithm;
-the dataset generated should contain enough images with enough differences between them.
-The other input (i.e. the scene data) has not been decided yet.
-Deciding what aspects of the scene to bundle with each frameblock will require more research and experimentation.
+The process discussed here is an effective means of choosing frameblocks
+for training Generator I of the proposed framework in Figure \ref{fig:block_diagram}.
+By carefully deciding which portions of the input frames to use,
+it is guaranteed there will be minimal over-training of data and maximal changes shown in the dataset.
+The implementation in Appendix A has proven to generate enough images for the
+data training set.
+The other input for the generator (i.e. the scene data) has not been decided yet.
 
 \section{Future Work}
+\label{sec:future_work}
+The next step concerning input preprocessing will be to define how
+scene data should be paired with the generated frameblocks.
+Deciding what aspects of the scene to bundle with each
+frameblock will require more research and experimentation;
+it is possible that unique object masks may need to be rendered in order to
+distinguish between objects inside of each frameblock.
+Further work is also needed to complete the implementation of the discriminator;
+I plan to apply what I learned from my study of the discriminator model, and
+create a basic working generator/discriminator system which trains itself to
+create realistic frameblocks. This simpler generator/discriminator system will
+then be modified to accomodate the addition of scene data.
+
+I have collected a small number of research papers which will help me solve this
+problem and many others I will face.
+\cite{ref:frame_prediction},
+\cite{ref:spatiotemporal}, \cite{ref:posecnn}, and \cite{ref:pose_guided}
+contain concepts that apply directly to my project.
+Building upon the collection of cutting-edge research I uncover,
+I intend to fully develop an appropriate system to address my problem statement.
+After implemention and testing of the completed system is
+accomplished, I plan to compile my research into a Master's Thesis with the
+hopes of presenting my findings at conferences such as SIGGRAPH.
 
 \section{Conclusion}
+\label{sec:conclusion}
+This term project presented many unforseen challenges. The foundation of this
+idea was fostered
+through the insights of CS 5790, Wearable Computing \& Complex Systems, via the
+classroom discussions and reading assignments therein. I found these concepts to
+be very applicable to many problems in the field
+of Computer Graphics. At the start of the semester, I had hoped to simply provide a solid foundation
+for beginning work on my thesis, however I did not believe I would come as far
+as I have this semester alone. I succeeded in solving one of many problems I
+will face for this project: the creation of image data for training a
+basic generator/discriminator model. As discussed previously, I will build upon my
+research and implementation to create a fully functioning frame prediction system.
 
-%\begin{table}[htbp]
-%\caption{Table Type Styles}
-%\begin{center}
-%\begin{tabular}{|c|c|c|c|}
-%\hline
-%\textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
-%\cline{2-4} 
-%\textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
-%\hline
-%copy& More table copy$^{\mathrm{a}}$& &  \\
-%\hline
-%\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
-%\end{tabular}
-%\label{tab1}
-%\end{center}
-%\end{table}
+Through the work I completed on this term project
+I created an application to capture the changes
+represented through an animated sequence in portions of rendered frames which I call
+``frameblocks''. After discovering that my system lacked in representing gradual
+changes, I increased the flexibility of it through the concept of ``buffer
+frameblocks''. Once my implementation was complete,
+I proved its worth by generating an adequate number of frameblocks for a
+data set using a complex animation of 300 frames with 1080 x 1920 pixel
+resolutions.
+I was also able to validate my results
+by comparing intermediate data to a simpler scene, and confirming that in all cases
+the expected frameblocks were output by the application.
+Finally I created a secondary application to separate the exported frameblocks
+into a training, validation, and testing sets which will be used for the next
+steps of my project. Although I did not complete an implementation of the
+Machine Learning discriminator model, I feel my research into the topic provided
+me with enough foundation to start working to meet this goal.
 
-%\begin{figure}[htbp]
-%\centerline{\includegraphics{fig1.png}}
-%\caption{Example of a figure caption.}
-%\label{fig}
-%\end{figure}
+I learned so much throughout the course of this project, and I am very excited
+to continue my work in the Fall of 2020. Over the summer I will continue to
+collect conference papers and other research materials that might aid me in the
+development of this project, and I look forward to overcoming the new challeges I will
+undoubtedly face in the future. They will surely provide me with new and
+exciting insights
+into the fields of Computer Graphics and Complex Systems.
 
-\begin{thebibliography}{12}
+\begin{thebibliography}{13}
 \bibitem{ref:bessel_functions} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
 \bibitem{ref:predictive_rendering} Alexander Wilkie, Andrea Weidlich, Marcus Magnor, and Alan Chalmers. 2009. ``Predictive Rendering.'' In ACM SIGGRAPH ASIA 2009 Courses (SIGGRAPH ASIA '09). ACM, New York, NY, USA, Article 12, 428 pages.
 \bibitem{ref:frame_prediction} R. Mahjourian, M. Wicke and A. Angelova, ``Geometry-Based Next Frame Prediction From Monocular Video''. 2017 IEEE Intelligent Vehicles Symposium (IV), Los Angeles, CA, 2017, pp. 1700-1707.
@@ -705,6 +762,381 @@ Deciding what aspects of the scene to bundle with each frameblock will require m
 \bibitem{ref:monsters} Dean Takahashi, ``How Pixar made Monsters University, its
 latest technological marvel''. April 24, 2013. Article.
 \end{thebibliography}
+
+\onecolumn
+
+\begin{center}
+\section*{Appendix A}
+\label{app:a}
+\end{center}
+
+The following code is the contents of the
+\mintinline{shell}{generate_frameblocks.py} project file, which is the
+implementation file used to generate frameblocks.
+
+\bigskip
+
+\begin{minted}{python}
+import os as os
+import cv2 as cv2
+import numpy as np
+
+block_dim = 32
+block_offset = 1
+
+# Delete previously output frameblocks, and buffer shadows and buffer frames.
+os.system('rm -rf %s' % './images/blocks/pairs/*')
+os.system('rm -rf %s' % './images/blocks/buffer/shadows/*')
+os.system('rm -rf %s' % './images/blocks/buffer/frames/*')
+
+# Setup main loop to process all frames in an animation.
+frames = os.listdir('./images/frames/')
+frames.sort()
+
+# Process each frame.
+for frame_index in range(0, len(frames), 2):
+  frame = frames[frame_index]
+
+  # If the frame index is 0, store all frameblocks.
+  if frame_index < 1:
+    # Initialize seed variables.
+    img_str_1 = './images/frames/' + frames[frame_index]
+
+    # Choose smallest boundaries.
+    img_1 = cv2.cvtColor(cv2.imread(img_str_1), cv2.COLOR_BGR2RGB)
+    img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
+    height, width = img_1.shape[:2]
+
+    # Create sliding window.
+    left = 0
+    right = block_dim
+    top = 0
+    bottom = block_dim
+    block_index = 1
+
+    # Find the Region Of Interest (ROI).
+    while bottom <= height:
+      if bottom == height:
+        bottom -= 1
+      while right <= width:
+        if right == width:
+            right -= 1
+
+        # ROI pixel processing
+        print(str(block_index) + ". Frameblock: (" + str(left) + ", " +
+          str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
+        
+        # Setup storage.
+        img_out_str = './images/blocks/pairs/block' + str(block_index)
+                      + '/frame' + str(frame_index + 1)
+        if not os.path.exists(img_out_str):
+          os.mkdir('./images/blocks/pairs/block' + str(block_index))
+          os.mkdir(img_out_str)
+
+        # Store window contents as image.
+        img_roi = img_1[top:bottom, left:right]
+        cv2.imwrite(img_out_str + '/end.jpg', img_roi)
+
+        # Increase frameblock index.
+        block_index += 1
+        
+        # Shift horizontally.
+        left += int(block_dim / block_offset)
+        right += int(block_dim / block_offset)
+
+      # Shift vertically.
+      top += int(block_dim / block_offset)
+      bottom += int(block_dim / block_offset)
+      left = 0
+      right = block_dim
+
+  # Otherwise process as normal.
+  else:
+    # Initialize seed variables.
+    img_str_1 = './images/frames/' + frames[frame_index - 2]
+    img_str_2 = './images/frames/' + frames[frame_index]
+    img_str_shd = './images/shadow/frame' + str(frame_index) + '.jpg'
+    img_str_roi = './images/roi/frame' + str(frame_index) + '.jpg'
+
+    img_1 = cv2.cvtColor(cv2.imread(img_str_1), cv2.COLOR_BGR2RGB)
+    img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
+    height_1, width_1 = img_1.shape[:2]
+
+    img_2 = cv2.cvtColor(cv2.imread(img_str_2), cv2.COLOR_BGR2RGB)
+    img_2 = cv2.resize(img_2, (0,0), fx=0.5, fy=0.5) 
+    height_2, width_2 = img_2.shape[:2]
+
+    # Choose smallest boundaries.
+    height = height_1
+    width = width_1
+    if height_1 > height_2:
+      height = height_2
+    if width_1 > width_2:
+      width = width_2
+
+    img_out = np.ones((height, width, 3), np.uint8)
+
+    # Calculate XOR image and pixel sum.
+    print("Processing pixels of images, \'" + img_str_1 + "\' and \'"
+           + img_str_2 + "\'")
+    img_xor = cv2.bitwise_xor(img_1, img_2)
+    pixel_sum = np.sum(img_xor)
+    img_out = cv2.bitwise_not(cv2.cvtColor(img_xor, cv2.COLOR_BGR2GRAY))
+
+    # Continue to next frame if no changes were found.
+    if pixel_sum == 0:
+      print("No changes found, continuing to next image.")
+      continue
+
+    # Write image.
+    cv2.imwrite(img_str_shd, img_out)
+    print("Wrote shadow image, \'" + img_str_shd + "\'")
+
+    # Calculate the pixel_ratio.
+    print("Total pixel sum: " + str(pixel_sum))
+    pixel_ratio = pixel_sum * 1.0 / (255 * width * height)
+    print("Pixel ratio: " + str(pixel_ratio))
+
+    # Create a clone of input image and draw ROIs on top of it.
+    img_roi_all = cv2.imread(img_str_shd)
+
+    # Create sliding window.
+    left = 0
+    right = block_dim
+    top = 0
+    bottom = block_dim
+    block_index = 1
+    pixel_sum = 0
+    cap = np.power(block_dim, 2) * 255 * pixel_ratio
+    print("Cap found: " + str(cap))
+
+    # Find the Region Of Interest (ROI).
+    while bottom <= height:
+      if bottom == height:
+        bottom -= 1
+      while right <= width:
+        if right == width:
+          right -= 1
+        found_x = False
+        dirty = False
+        pixel_sum = 0
+        img_buff_str = './images/blocks/buffer/shadows/block'
+                       + str(block_index) + '.jpg'
+        img_buff = cv2.imread(img_buff_str)
+        if img_buff is None:
+          img_buff = np.zeros((block_dim, block_dim, 3), np.uint8)
+        
+        # ROI pixel processing
+        for y in range(top, bottom + 1):
+          for x in range(left, right + 1):
+
+            # Store buffer pixel and calculate pixel_sum.
+            img_buff[y - top - 1, x - left - 1] += 255
+                    - img_out[y, x]
+
+            if img_buff[y - top - 1, x - left - 1][0] > 0:
+              dirty = True
+              if img_buff[y - top - 1, x - left - 1][0] > 255:
+                  img_buff[y - top - 1, x - left - 1] = 255
+            pixel_sum += img_buff[y - top - 1, x - left - 1][0]
+            
+            # Test if the cap was met.
+            if pixel_sum >= cap:
+
+              # Draw ROI on clone image.
+              cv2.rectangle(img_roi_all, (left + 1, top + 1),
+                           (right - 1, bottom - 1), (255, 0, 0), 1)
+              cv2.putText(img_roi_all, str(block_index),
+                         (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN,
+                         0.75, (255, 0, 0), 1, 1)
+              print(str(block_index) + ". Sum: " + str(pixel_sum)
+                   + ", Frameblock: (" + str(left) + ", " + str(top)
+                   + "), (" + str(right) + ", " + str(bottom) + "))")
+              
+              # Setup storage.
+              img_out_str = './images/blocks/pairs/block' + str(block_index)
+                            + '/frame' + str(frame_index + 1)
+              if not os.path.exists(img_out_str):
+                os.mkdir(img_out_str)
+
+              # Store window contents as image.
+              img_roi = img_2[top:bottom, left:right]
+              cv2.imwrite(img_out_str + '/end.jpg', img_roi)
+              
+              # Exit both for loops.
+              found_x = True
+              break
+          if found_x:
+            break
+
+        # If frameblock was used delete buffer shadow.
+        if found_x:
+          # If a buffered shadow image was used, delete it.
+          if os.path.exists(img_buff_str):
+            os.remove(img_buff_str)
+
+          # If there is a buffered frame for the block use
+          # it as the starting frame.
+          img_buff_str = './images/blocks/buffer/frames/block'
+                         + str(block_index) + '.jpg'
+          if os.path.exists(img_buff_str):
+            # Setup storage.
+            img_out_str = './images/blocks/pairs/block' + str(block_index)
+                          + '/frame' + str(frame_index + 1)
+            if not os.path.exists(img_out_str):
+                os.mkdir(img_out_str)
+
+            # Move and rename file.
+            os.rename(img_buff_str, img_out_str + '/start.jpg')
+
+          # Otherwise export the ROI of the first image as the starting frame.
+          else:
+            # Setup storage.
+            img_out_str = './images/blocks/pairs/block' + str(block_index)
+                          + '/frame' + str(frame_index + 1)
+            if not os.path.exists(img_out_str):
+                os.mkdir(img_out_str)
+
+            # Store window contents as image.
+            img_roi = img_1[top:bottom, left:right]
+            cv2.imwrite(img_out_str + '/start.jpg', img_roi)
+
+        # Otherwise export the shadow and frame ROI to be used next time.
+        else:
+          # Draw Shadow ROI on clone image.
+          cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1),
+                       (0, 0, 255), 1)
+          cv2.putText(img_roi_all, str(block_index), (left + 3, bottom - 3),
+                     cv2.FONT_HERSHEY_PLAIN, 0.75, (0, 0, 255), 1, 1)
+
+          # If the shadow image already exists, update it using a linear add.
+          img_buff_str = './images/blocks/buffer/shadows/block'
+                         + str(block_index) + '.jpg'
+          if os.path.exists(img_buff_str):
+            # Add the values of the current shadow image and previous shadow image.
+            img_prev_buff = cv2.imread(img_buff_str)
+            cv2.addWeighted(img_prev_buff, 1.0, img_buff, 1.0, 0.0, img_buff)
+
+            # Store updated shadow image (don't update the old frame ROI).
+            cv2.imwrite(img_buff_str, img_buff)
+            print('Updated shadow image, \'block' + str(block_index) + '.jpg\'')
+
+          # Else if a black pixel was found write a new shadow image.
+          elif dirty:
+            cv2.imwrite(img_buff_str, img_buff)
+            print('Wrote new shadow image, \'block' + str(block_index) + '.jpg\'')
+
+            # Store frame ROI image.
+            img_buff_str = './images/blocks/buffer/frames/block'
+                           + str(block_index) + '.jpg'
+            img_roi = img_1[top:bottom, left:right]
+            cv2.imwrite(img_buff_str, img_roi)
+
+          # Otherwise notify that the block has been processed with no export.
+          else:
+            print(str(block_index) + ". No export")
+
+        # Increase frameblock index.
+        block_index += 1
+        
+        # Shift horizontally.
+        left += int(block_dim / block_offset)
+        right += int(block_dim / block_offset)
+
+      # Shift vertically.
+      top += int(block_dim / block_offset)
+      bottom += int(block_dim / block_offset)
+      left = 0
+      right = block_dim
+
+    # Write image.
+    cv2.imwrite(img_str_roi, img_roi_all)
+\end{minted}
+
+\pagebreak
+
+\begin{center}
+\section*{Appendix B}
+\label{app:b}
+\end{center}
+
+The following code is the contents of the
+\mintinline{shell}{blur_frameblocks.py} project file, which is the
+implementation file used to create training, validation, and test image sets for
+training the discriminator discussed in Section \ref{subsec:derp}.
+
+\bigskip
+
+\begin{minted}{python}
+import os as os
+import cv2 as cv2
+import numpy as np
+
+home_dir = './images/'
+blocks_dir = 'blocks/pairs/'
+orig_dir = './training/validation/'
+blur_dir = './training/blurred/'
+keep_dir = './training/testset/'
+blur_count = 1
+keep_count = 1
+
+# Delete previously output blurred frameblocks.
+os.system('rm -rf %s' % orig_dir + '*')
+os.system('rm -rf %s' % blur_dir + '*')
+os.system('rm -rf %s' % keep_dir + '*')
+
+# Setup main loop to process all frameblocks.
+blocks = os.listdir(home_dir + blocks_dir)
+blocks.sort()
+
+# Process each block.
+for block_index in range(0, len(blocks)):
+  block = blocks[block_index]
+
+  # Store all frames for that block.
+  frames = os.listdir(home_dir + blocks_dir + block)
+  frames.sort()
+
+  # Process each frame.
+  for frame_index in range(0, len(frames)):
+    frame = frames[frame_index]
+    img_in_str = home_dir + blocks_dir + block + '/' + frame + '/end.jpg'
+
+    # Decide if image will be blurred or kept.
+    flip = np.random.uniform(0, 1)
+    if flip < 0.75:
+      # Store end.jpg image to be blurred.
+      img = cv2.cvtColor(cv2.imread(img_in_str), cv2.COLOR_BGR2RGB)
+
+      # Skip image if entirely black.
+      if np.sum(img) == 0:
+          continue
+
+      # Save original end.jpg image for validation.
+      img_org_str = orig_dir + block + frame + '.jpg'
+      cv2.imwrite(img_org_str, img)
+
+      # Blur image.
+      img = cv2.GaussianBlur(img, (7, 7), 0)
+      
+      # Output blurred image.
+      img_out_str = blur_dir + block + frame + '.jpg'
+      cv2.imwrite(img_out_str, img)
+      print(str(blur_count) + ': 0 Blur ' + img_out_str)
+      blur_count += 1
+
+    else:
+      # Skip image if entirely black.
+      img = cv2.cvtColor(cv2.imread(img_in_str), cv2.COLOR_BGR2RGB)
+      if np.sum(img) == 0:
+          continue
+
+      # Copy end.jpg image to testset.
+      img_out_str = keep_dir + block + frame + '.jpg'
+      cv2.imwrite(img_out_str, img)
+      print(str(keep_count) + ': 1 Kept ' + img_out_str)
+      keep_count += 1
+\end{minted}
 %==========================================================
 \end{document}
 %==========================================================
