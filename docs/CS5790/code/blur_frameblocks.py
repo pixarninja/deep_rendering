@@ -38,6 +38,10 @@ for block_index in range(0, len(blocks)):
             # Store end.jpg image to be blurred.
             img = cv2.cvtColor(cv2.imread(img_in_str), cv2.COLOR_BGR2RGB)
 
+            # Skip image if entirely black.
+            if np.sum(img) == 0:
+                continue
+
             # Save original end.jpg image for validation.
             img_org_str = orig_dir + block + frame + '.jpg'
             cv2.imwrite(img_org_str, img)
@@ -52,8 +56,12 @@ for block_index in range(0, len(blocks)):
             blur_count += 1
 
         else:
-            # Copy end.jpg image to testset.
+            # Skip image if entirely black.
             img = cv2.cvtColor(cv2.imread(img_in_str), cv2.COLOR_BGR2RGB)
+            if np.sum(img) == 0:
+                continue
+
+            # Copy end.jpg image to testset.
             img_out_str = keep_dir + block + frame + '.jpg'
             cv2.imwrite(img_out_str, img)
             print(str(keep_count) + ': 1 Kept ' + img_out_str)

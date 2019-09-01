@@ -1,0 +1,257 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
+\PYG{n}{import} \PYG{n}{os} \PYG{n}{as} \PYG{n}{os}
+\PYG{n}{import} \PYG{n}{cv2} \PYG{n}{as} \PYG{n}{cv2}
+\PYG{n}{import} \PYG{n}{numpy} \PYG{n}{as} \PYG{n}{np}
+
+\PYG{n}{block\PYGZus{}dim} \PYG{o}{=} \PYG{l+m+mi}{32}
+\PYG{n}{block\PYGZus{}offset} \PYG{o}{=} \PYG{l+m+mi}{1}
+
+\PYG{c+cp}{\PYGZsh{} Delete previously output frameblocks, and buffer shadows and buffer frames.}
+\PYG{n}{os}\PYG{p}{.}\PYG{n}{system}\PYG{p}{(}\PYG{err}{\PYGZsq{}}\PYG{n}{rm} \PYG{o}{\PYGZhy{}}\PYG{n}{rf} \PYG{o}{\PYGZpc{}}\PYG{n}{s}\PYG{err}{\PYGZsq{}} \PYG{o}{\PYGZpc{}} \PYG{err}{\PYGZsq{}}\PYG{p}{.}\PYG{o}{/}\PYG{n}{images}\PYG{o}{/}\PYG{n}{blocks}\PYG{o}{/}\PYG{n}{pairs}\PYG{c+cm}{/*\PYGZsq{})}
+\PYG{c+cm}{os.system(\PYGZsq{}rm \PYGZhy{}rf \PYGZpc{}s\PYGZsq{} \PYGZpc{} \PYGZsq{}./images/blocks/buffer/shadows/*\PYGZsq{})}
+\PYG{c+cm}{os.system(\PYGZsq{}rm \PYGZhy{}rf \PYGZpc{}s\PYGZsq{} \PYGZpc{} \PYGZsq{}./images/blocks/buffer/frames/*\PYGZsq{})}
+
+\PYG{c+cm}{\PYGZsh{} Setup main loop to process all frames in an animation.}
+\PYG{c+cm}{frames = os.listdir(\PYGZsq{}./images/frames/\PYGZsq{})}
+\PYG{c+cm}{frames.sort()}
+
+\PYG{c+cm}{\PYGZsh{} Process each frame.}
+\PYG{c+cm}{for frame\PYGZus{}index in range(0, len(frames), 2):}
+\PYG{c+cm}{    frame = frames[frame\PYGZus{}index]}
+
+\PYG{c+cm}{    \PYGZsh{} If the frame index is 0, store all frameblocks.}
+\PYG{c+cm}{    if frame\PYGZus{}index \PYGZlt{} 1:}
+\PYG{c+cm}{        \PYGZsh{} Initialize seed variables.}
+\PYG{c+cm}{        img\PYGZus{}str\PYGZus{}1 = \PYGZsq{}./images/frames/\PYGZsq{} + frames[frame\PYGZus{}index]}
+
+\PYG{c+cm}{        \PYGZsh{} Choose smallest boundaries.}
+\PYG{c+cm}{        img\PYGZus{}1 = cv2.cvtColor(cv2.imread(img\PYGZus{}str\PYGZus{}1), cv2.COLOR\PYGZus{}BGR2RGB)}
+\PYG{c+cm}{        img\PYGZus{}1 = cv2.resize(img\PYGZus{}1, (0,0), fx=0.5, fy=0.5)}
+\PYG{c+cm}{        height, width = img\PYGZus{}1.shape[:2]}
+
+\PYG{c+cm}{        \PYGZsh{} Create sliding window.}
+\PYG{c+cm}{        left = 0}
+\PYG{c+cm}{        right = block\PYGZus{}dim}
+\PYG{c+cm}{        top = 0}
+\PYG{c+cm}{        bottom = block\PYGZus{}dim}
+\PYG{c+cm}{        block\PYGZus{}index = 1}
+
+\PYG{c+cm}{        \PYGZsh{} Find the Region Of Interest (ROI).}
+\PYG{c+cm}{        while bottom \PYGZlt{}= height:}
+\PYG{c+cm}{            if bottom == height:}
+\PYG{c+cm}{                bottom \PYGZhy{}= 1}
+\PYG{c+cm}{            while right \PYGZlt{}= width:}
+\PYG{c+cm}{                if right == width:}
+\PYG{c+cm}{                    right \PYGZhy{}= 1}
+
+\PYG{c+cm}{                \PYGZsh{} ROI pixel processing}
+\PYG{c+cm}{                print(str(block\PYGZus{}index) + \PYGZdq{}. Frameblock: (\PYGZdq{} + str(left) + \PYGZdq{}, \PYGZdq{} + str(top) + \PYGZdq{}), (\PYGZdq{} + str(right) + \PYGZdq{}, \PYGZdq{} + str(bottom) + \PYGZdq{}))\PYGZdq{})}
+
+\PYG{c+cm}{                \PYGZsh{} Setup storage.}
+\PYG{c+cm}{                img\PYGZus{}out\PYGZus{}str = \PYGZsq{}./images/blocks/pairs/block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}/frame\PYGZsq{} + str(frame\PYGZus{}index + 1)}
+\PYG{c+cm}{                if not os.path.exists(img\PYGZus{}out\PYGZus{}str):}
+\PYG{c+cm}{                    os.mkdir(\PYGZsq{}./images/blocks/pairs/block\PYGZsq{} + str(block\PYGZus{}index))}
+\PYG{c+cm}{                    os.mkdir(img\PYGZus{}out\PYGZus{}str)}
+
+\PYG{c+cm}{                \PYGZsh{} Store window contents as image.}
+\PYG{c+cm}{                img\PYGZus{}roi = img\PYGZus{}1[top:bottom, left:right]}
+\PYG{c+cm}{                cv2.imwrite(img\PYGZus{}out\PYGZus{}str + \PYGZsq{}/end.jpg\PYGZsq{}, img\PYGZus{}roi)}
+
+\PYG{c+cm}{                \PYGZsh{} Increase frameblock index.}
+\PYG{c+cm}{                block\PYGZus{}index += 1}
+
+\PYG{c+cm}{                \PYGZsh{} Shift horizontally.}
+\PYG{c+cm}{                left += int(block\PYGZus{}dim / block\PYGZus{}offset)}
+\PYG{c+cm}{                right += int(block\PYGZus{}dim / block\PYGZus{}offset)}
+
+\PYG{c+cm}{            \PYGZsh{} Shift vertically.}
+\PYG{c+cm}{            top += int(block\PYGZus{}dim / block\PYGZus{}offset)}
+\PYG{c+cm}{            bottom += int(block\PYGZus{}dim / block\PYGZus{}offset)}
+\PYG{c+cm}{            left = 0}
+\PYG{c+cm}{            right = block\PYGZus{}dim}
+
+\PYG{c+cm}{    \PYGZsh{} Otherwise process as normal.}
+\PYG{c+cm}{    else:}
+\PYG{c+cm}{        \PYGZsh{} Initialize seed variables.}
+\PYG{c+cm}{        img\PYGZus{}str\PYGZus{}1 = \PYGZsq{}./images/frames/\PYGZsq{} + frames[frame\PYGZus{}index \PYGZhy{} 2]}
+\PYG{c+cm}{        img\PYGZus{}str\PYGZus{}2 = \PYGZsq{}./images/frames/\PYGZsq{} + frames[frame\PYGZus{}index]}
+\PYG{c+cm}{        img\PYGZus{}str\PYGZus{}shd = \PYGZsq{}./images/shadow/frame\PYGZsq{} + str(frame\PYGZus{}index) + \PYGZsq{}.jpg\PYGZsq{}}
+\PYG{c+cm}{        img\PYGZus{}str\PYGZus{}roi = \PYGZsq{}./images/roi/frame\PYGZsq{} + str(frame\PYGZus{}index) + \PYGZsq{}.jpg\PYGZsq{}}
+
+\PYG{c+cm}{        img\PYGZus{}1 = cv2.cvtColor(cv2.imread(img\PYGZus{}str\PYGZus{}1), cv2.COLOR\PYGZus{}BGR2RGB)}
+\PYG{c+cm}{        img\PYGZus{}1 = cv2.resize(img\PYGZus{}1, (0,0), fx=0.5, fy=0.5)}
+\PYG{c+cm}{        height\PYGZus{}1, width\PYGZus{}1 = img\PYGZus{}1.shape[:2]}
+
+\PYG{c+cm}{        img\PYGZus{}2 = cv2.cvtColor(cv2.imread(img\PYGZus{}str\PYGZus{}2), cv2.COLOR\PYGZus{}BGR2RGB)}
+\PYG{c+cm}{        img\PYGZus{}2 = cv2.resize(img\PYGZus{}2, (0,0), fx=0.5, fy=0.5)}
+\PYG{c+cm}{        height\PYGZus{}2, width\PYGZus{}2 = img\PYGZus{}2.shape[:2]}
+
+\PYG{c+cm}{        \PYGZsh{} Choose smallest boundaries.}
+\PYG{c+cm}{        height = height\PYGZus{}1}
+\PYG{c+cm}{        width = width\PYGZus{}1}
+\PYG{c+cm}{        if height\PYGZus{}1 \PYGZgt{} height\PYGZus{}2:}
+\PYG{c+cm}{            height = height\PYGZus{}2}
+\PYG{c+cm}{        if width\PYGZus{}1 \PYGZgt{} width\PYGZus{}2:}
+\PYG{c+cm}{            width = width\PYGZus{}2}
+
+\PYG{c+cm}{        img\PYGZus{}out = np.ones((height, width, 3), np.uint8)}
+
+\PYG{c+cm}{        \PYGZsh{} Calculate XOR image and pixel sum.}
+\PYG{c+cm}{        print(\PYGZdq{}Processing pixels of images, \PYGZbs{}\PYGZsq{}\PYGZdq{} + img\PYGZus{}str\PYGZus{}1 + \PYGZdq{}\PYGZbs{}\PYGZsq{} and \PYGZbs{}\PYGZsq{}\PYGZdq{} + img\PYGZus{}str\PYGZus{}2 + \PYGZdq{}\PYGZbs{}\PYGZsq{}\PYGZdq{})}
+\PYG{c+cm}{        img\PYGZus{}xor = cv2.bitwise\PYGZus{}xor(img\PYGZus{}1, img\PYGZus{}2)}
+\PYG{c+cm}{        pixel\PYGZus{}sum = np.sum(img\PYGZus{}xor)}
+\PYG{c+cm}{        img\PYGZus{}out = cv2.bitwise\PYGZus{}not(cv2.cvtColor(img\PYGZus{}xor, cv2.COLOR\PYGZus{}BGR2GRAY))}
+
+\PYG{c+cm}{        \PYGZsh{} Continue to next frame if no changes were found.}
+\PYG{c+cm}{        if pixel\PYGZus{}sum == 0:}
+\PYG{c+cm}{            print(\PYGZdq{}No changes found, continuing to next image.\PYGZdq{})}
+\PYG{c+cm}{            continue}
+
+\PYG{c+cm}{        \PYGZsh{} Write image.}
+\PYG{c+cm}{        cv2.imwrite(img\PYGZus{}str\PYGZus{}shd, img\PYGZus{}out)}
+\PYG{c+cm}{        print(\PYGZdq{}Wrote shadow image, \PYGZbs{}\PYGZsq{}\PYGZdq{} + img\PYGZus{}str\PYGZus{}shd + \PYGZdq{}\PYGZbs{}\PYGZsq{}\PYGZdq{})}
+
+\PYG{c+cm}{        \PYGZsh{} Calculate the pixel\PYGZus{}ratio.}
+\PYG{c+cm}{        print(\PYGZdq{}Total pixel sum: \PYGZdq{} + str(pixel\PYGZus{}sum))}
+\PYG{c+cm}{        pixel\PYGZus{}ratio = pixel\PYGZus{}sum * 1.0 / (255 * width * height)}
+\PYG{c+cm}{        print(\PYGZdq{}Pixel ratio: \PYGZdq{} + str(pixel\PYGZus{}ratio))}
+
+\PYG{c+cm}{        \PYGZsh{} Create a clone of input image and draw ROIs on top of it.}
+\PYG{c+cm}{        img\PYGZus{}roi\PYGZus{}all = cv2.imread(img\PYGZus{}str\PYGZus{}shd)}
+
+\PYG{c+cm}{        \PYGZsh{} Create sliding window.}
+\PYG{c+cm}{        left = 0}
+\PYG{c+cm}{        right = block\PYGZus{}dim}
+\PYG{c+cm}{        top = 0}
+\PYG{c+cm}{        bottom = block\PYGZus{}dim}
+\PYG{c+cm}{        block\PYGZus{}index = 1}
+\PYG{c+cm}{        pixel\PYGZus{}sum = 0}
+\PYG{c+cm}{        cap = np.power(block\PYGZus{}dim, 2) * 255 * pixel\PYGZus{}ratio}
+\PYG{c+cm}{        print(\PYGZdq{}Cap found: \PYGZdq{} + str(cap))}
+
+\PYG{c+cm}{        \PYGZsh{} Find the Region Of Interest (ROI).}
+\PYG{c+cm}{        while bottom \PYGZlt{}= height:}
+\PYG{c+cm}{            if bottom == height:}
+\PYG{c+cm}{                bottom \PYGZhy{}= 1}
+\PYG{c+cm}{            while right \PYGZlt{}= width:}
+\PYG{c+cm}{                if right == width:}
+\PYG{c+cm}{                    right \PYGZhy{}= 1}
+\PYG{c+cm}{                found\PYGZus{}x = False}
+\PYG{c+cm}{                dirty = False}
+\PYG{c+cm}{                pixel\PYGZus{}sum = 0}
+\PYG{c+cm}{                img\PYGZus{}buff\PYGZus{}str = \PYGZsq{}./images/blocks/buffer/shadows/block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}.jpg\PYGZsq{}}
+\PYG{c+cm}{                img\PYGZus{}buff = cv2.imread(img\PYGZus{}buff\PYGZus{}str)}
+\PYG{c+cm}{                if img\PYGZus{}buff is None:}
+\PYG{c+cm}{                    img\PYGZus{}buff = np.zeros((block\PYGZus{}dim, block\PYGZus{}dim, 3), np.uint8)}
+
+\PYG{c+cm}{                \PYGZsh{} ROI pixel processing}
+\PYG{c+cm}{                for y in range(top, bottom + 1):}
+\PYG{c+cm}{                    for x in range(left, right + 1):}
+
+\PYG{c+cm}{                        \PYGZsh{} Store buffer pixel and calculate pixel\PYGZus{}sum.}
+\PYG{c+cm}{                        img\PYGZus{}buff[y \PYGZhy{} top \PYGZhy{} 1, x \PYGZhy{} left \PYGZhy{} 1] += 255 \PYGZhy{} img\PYGZus{}out[y, x]}
+
+\PYG{c+cm}{                        if img\PYGZus{}buff[y \PYGZhy{} top \PYGZhy{} 1, x \PYGZhy{} left \PYGZhy{} 1][0] \PYGZgt{} 0:}
+\PYG{c+cm}{                            dirty = True}
+\PYG{c+cm}{                            if img\PYGZus{}buff[y \PYGZhy{} top \PYGZhy{} 1, x \PYGZhy{} left \PYGZhy{} 1][0] \PYGZgt{} 255:}
+\PYG{c+cm}{                                img\PYGZus{}buff[y \PYGZhy{} top \PYGZhy{} 1, x \PYGZhy{} left \PYGZhy{} 1] = 255}
+\PYG{c+cm}{                        pixel\PYGZus{}sum += img\PYGZus{}buff[y \PYGZhy{} top \PYGZhy{} 1, x \PYGZhy{} left \PYGZhy{} 1][0]}
+
+\PYG{c+cm}{                        \PYGZsh{} Test if the cap was met.}
+\PYG{c+cm}{                        if pixel\PYGZus{}sum \PYGZgt{}= cap:}
+
+\PYG{c+cm}{                            \PYGZsh{} Draw ROI on clone image.}
+\PYG{c+cm}{                            cv2.rectangle(img\PYGZus{}roi\PYGZus{}all, (left + 1, top + 1), (right \PYGZhy{} 1, bottom \PYGZhy{} 1), (255, 0, 0), 1)}
+\PYG{c+cm}{                            cv2.putText(img\PYGZus{}roi\PYGZus{}all, str(block\PYGZus{}index), (left + 3, bottom \PYGZhy{} 3), cv2.FONT\PYGZus{}HERSHEY\PYGZus{}PLAIN, 0.75, (255, 0, 0), 1, 1)}
+\PYG{c+cm}{                            print(str(block\PYGZus{}index) + \PYGZdq{}. Sum: \PYGZdq{} + str(pixel\PYGZus{}sum) + \PYGZdq{}, Frameblock: (\PYGZdq{} + str(left) + \PYGZdq{}, \PYGZdq{} + str(top) + \PYGZdq{}), (\PYGZdq{} + str(right) + \PYGZdq{}, \PYGZdq{} + str(bottom) + \PYGZdq{}))\PYGZdq{})}
+
+\PYG{c+cm}{                            \PYGZsh{} Setup storage.}
+\PYG{c+cm}{                            img\PYGZus{}out\PYGZus{}str = \PYGZsq{}./images/blocks/pairs/block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}/frame\PYGZsq{} + str(frame\PYGZus{}index + 1)}
+\PYG{c+cm}{                            if not os.path.exists(img\PYGZus{}out\PYGZus{}str):}
+\PYG{c+cm}{                                os.mkdir(img\PYGZus{}out\PYGZus{}str)}
+
+\PYG{c+cm}{                            \PYGZsh{} Store window contents as image.}
+\PYG{c+cm}{                            img\PYGZus{}roi = img\PYGZus{}2[top:bottom, left:right]}
+\PYG{c+cm}{                            cv2.imwrite(img\PYGZus{}out\PYGZus{}str + \PYGZsq{}/end.jpg\PYGZsq{}, img\PYGZus{}roi)}
+
+\PYG{c+cm}{                            \PYGZsh{} Exit both for loops.}
+\PYG{c+cm}{                            found\PYGZus{}x = True}
+\PYG{c+cm}{                            break}
+\PYG{c+cm}{                    if found\PYGZus{}x:}
+\PYG{c+cm}{                        break}
+
+\PYG{c+cm}{                \PYGZsh{} If frameblock was used delete buffer shadow.}
+\PYG{c+cm}{                if found\PYGZus{}x:}
+\PYG{c+cm}{                    \PYGZsh{} If a buffered shadow image was used, delete it.}
+\PYG{c+cm}{                    if os.path.exists(img\PYGZus{}buff\PYGZus{}str):}
+\PYG{c+cm}{                        os.remove(img\PYGZus{}buff\PYGZus{}str)}
+
+\PYG{c+cm}{                    \PYGZsh{} If there is a buffered frame for the block use it as the starting frame.}
+\PYG{c+cm}{                    img\PYGZus{}buff\PYGZus{}str = \PYGZsq{}./images/blocks/buffer/frames/block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}.jpg\PYGZsq{}}
+\PYG{c+cm}{                    if os.path.exists(img\PYGZus{}buff\PYGZus{}str):}
+\PYG{c+cm}{                        \PYGZsh{} Setup storage.}
+\PYG{c+cm}{                        img\PYGZus{}out\PYGZus{}str = \PYGZsq{}./images/blocks/pairs/block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}/frame\PYGZsq{} + str(frame\PYGZus{}index + 1)}
+\PYG{c+cm}{                        if not os.path.exists(img\PYGZus{}out\PYGZus{}str):}
+\PYG{c+cm}{                            os.mkdir(img\PYGZus{}out\PYGZus{}str)}
+
+\PYG{c+cm}{                        \PYGZsh{} Move and rename file.}
+\PYG{c+cm}{                        os.rename(img\PYGZus{}buff\PYGZus{}str, img\PYGZus{}out\PYGZus{}str + \PYGZsq{}/start.jpg\PYGZsq{})}
+
+\PYG{c+cm}{                    \PYGZsh{} Otherwise export the ROI of the first image as the starting frame.}
+\PYG{c+cm}{                    else:}
+\PYG{c+cm}{                        \PYGZsh{} Setup storage.}
+\PYG{c+cm}{                        img\PYGZus{}out\PYGZus{}str = \PYGZsq{}./images/blocks/pairs/block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}/frame\PYGZsq{} + str(frame\PYGZus{}index + 1)}
+\PYG{c+cm}{                        if not os.path.exists(img\PYGZus{}out\PYGZus{}str):}
+\PYG{c+cm}{                            os.mkdir(img\PYGZus{}out\PYGZus{}str)}
+
+\PYG{c+cm}{                        \PYGZsh{} Store window contents as image.}
+\PYG{c+cm}{                        img\PYGZus{}roi = img\PYGZus{}1[top:bottom, left:right]}
+\PYG{c+cm}{                        cv2.imwrite(img\PYGZus{}out\PYGZus{}str + \PYGZsq{}/start.jpg\PYGZsq{}, img\PYGZus{}roi)}
+
+\PYG{c+cm}{                \PYGZsh{} Otherwise export the shadow and frame ROI to be used next time.}
+\PYG{c+cm}{                else:}
+\PYG{c+cm}{                    \PYGZsh{} Draw Shadow ROI on clone image.}
+\PYG{c+cm}{                    cv2.rectangle(img\PYGZus{}roi\PYGZus{}all, (left + 1, top + 1), (right \PYGZhy{} 1, bottom \PYGZhy{} 1), (0, 0, 255), 1)}
+\PYG{c+cm}{                    cv2.putText(img\PYGZus{}roi\PYGZus{}all, str(block\PYGZus{}index), (left + 3, bottom \PYGZhy{} 3), cv2.FONT\PYGZus{}HERSHEY\PYGZus{}PLAIN, 0.75, (0, 0, 255), 1, 1)}
+
+\PYG{c+cm}{                    \PYGZsh{} If the shadow image already exists, update it using a linear add.}
+\PYG{c+cm}{                    img\PYGZus{}buff\PYGZus{}str = \PYGZsq{}./images/blocks/buffer/shadows/block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}.jpg\PYGZsq{}}
+\PYG{c+cm}{                    if os.path.exists(img\PYGZus{}buff\PYGZus{}str):}
+\PYG{c+cm}{                        \PYGZsh{} Add the values of the current shadow image and previous shadow image.}
+\PYG{c+cm}{                        img\PYGZus{}prev\PYGZus{}buff = cv2.imread(img\PYGZus{}buff\PYGZus{}str)}
+\PYG{c+cm}{                        cv2.addWeighted(img\PYGZus{}prev\PYGZus{}buff, 1.0, img\PYGZus{}buff, 1.0, 0.0, img\PYGZus{}buff)}
+
+\PYG{c+cm}{                        \PYGZsh{} Store updated shadow image (don\PYGZsq{}t update the old frame ROI).}
+\PYG{c+cm}{                        cv2.imwrite(img\PYGZus{}buff\PYGZus{}str, img\PYGZus{}buff)}
+\PYG{c+cm}{                        print(\PYGZsq{}Updated shadow image, \PYGZbs{}\PYGZsq{}block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}.jpg\PYGZbs{}\PYGZsq{}\PYGZsq{})}
+
+\PYG{c+cm}{                    \PYGZsh{} Else if a black pixel was found write a new shadow image.}
+\PYG{c+cm}{                    elif dirty:}
+\PYG{c+cm}{                        cv2.imwrite(img\PYGZus{}buff\PYGZus{}str, img\PYGZus{}buff)}
+\PYG{c+cm}{                        print(\PYGZsq{}Wrote new shadow image, \PYGZbs{}\PYGZsq{}block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}.jpg\PYGZbs{}\PYGZsq{}\PYGZsq{})}
+
+\PYG{c+cm}{                        \PYGZsh{} Store frame ROI image.}
+\PYG{c+cm}{                        img\PYGZus{}buff\PYGZus{}str = \PYGZsq{}./images/blocks/buffer/frames/block\PYGZsq{} + str(block\PYGZus{}index) + \PYGZsq{}.jpg\PYGZsq{}}
+\PYG{c+cm}{                        img\PYGZus{}roi = img\PYGZus{}1[top:bottom, left:right]}
+\PYG{c+cm}{                        cv2.imwrite(img\PYGZus{}buff\PYGZus{}str, img\PYGZus{}roi)}
+
+\PYG{c+cm}{                    \PYGZsh{} Otherwise notify that the block has been processed with no export.}
+\PYG{c+cm}{                    else:}
+\PYG{c+cm}{                        print(str(block\PYGZus{}index) + \PYGZdq{}. No export\PYGZdq{})}
+
+\PYG{c+cm}{                \PYGZsh{} Increase frameblock index.}
+\PYG{c+cm}{                block\PYGZus{}index += 1}
+
+\PYG{c+cm}{                \PYGZsh{} Shift horizontally.}
+\PYG{c+cm}{                left += int(block\PYGZus{}dim / block\PYGZus{}offset)}
+\PYG{c+cm}{                right += int(block\PYGZus{}dim / block\PYGZus{}offset)}
+
+\PYG{c+cm}{            \PYGZsh{} Shift vertically.}
+\PYG{c+cm}{            top += int(block\PYGZus{}dim / block\PYGZus{}offset)}
+\PYG{c+cm}{            bottom += int(block\PYGZus{}dim / block\PYGZus{}offset)}
+\PYG{c+cm}{            left = 0}
+\PYG{c+cm}{            right = block\PYGZus{}dim}
+
+\PYG{c+cm}{        \PYGZsh{} Write image.}
+\PYG{c+cm}{        cv2.imwrite(img\PYGZus{}str\PYGZus{}roi, img\PYGZus{}roi\PYGZus{}all)}
+\end{Verbatim}
