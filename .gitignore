@@ -1,5 +1,6 @@
-/docs/refs/
-/docs/reports/CS5970/output/
+/docs/technical_papers/
+/docs/*/references/
+/docs/reports/*/output/
 /jupyter/images/*
 /python/images/*
 /python/training/blurred

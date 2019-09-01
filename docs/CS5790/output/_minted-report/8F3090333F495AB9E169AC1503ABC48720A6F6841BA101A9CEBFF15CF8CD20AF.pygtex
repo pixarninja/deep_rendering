@@ -1,0 +1,257 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import} \PYG{n+nn}{os} \PYG{k+kn}{as} \PYG{n+nn}{os}
+\PYG{k+kn}{import} \PYG{n+nn}{cv2} \PYG{k+kn}{as} \PYG{n+nn}{cv2}
+\PYG{k+kn}{import} \PYG{n+nn}{numpy} \PYG{k+kn}{as} \PYG{n+nn}{np}
+
+\PYG{n}{block\PYGZus{}dim} \PYG{o}{=} \PYG{l+m+mi}{32}
+\PYG{n}{block\PYGZus{}offset} \PYG{o}{=} \PYG{l+m+mi}{1}
+
+\PYG{c+c1}{\PYGZsh{} Delete previously output frameblocks, and buffer shadows and buffer frames.}
+\PYG{n}{os}\PYG{o}{.}\PYG{n}{system}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}rm \PYGZhy{}rf }\PYG{l+s+si}{\PYGZpc{}s}\PYG{l+s+s1}{\PYGZsq{}} \PYG{o}{\PYGZpc{}} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/pairs/*\PYGZsq{}}\PYG{p}{)}
+\PYG{n}{os}\PYG{o}{.}\PYG{n}{system}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}rm \PYGZhy{}rf }\PYG{l+s+si}{\PYGZpc{}s}\PYG{l+s+s1}{\PYGZsq{}} \PYG{o}{\PYGZpc{}} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/buffer/shadows/*\PYGZsq{}}\PYG{p}{)}
+\PYG{n}{os}\PYG{o}{.}\PYG{n}{system}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}rm \PYGZhy{}rf }\PYG{l+s+si}{\PYGZpc{}s}\PYG{l+s+s1}{\PYGZsq{}} \PYG{o}{\PYGZpc{}} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/buffer/frames/*\PYGZsq{}}\PYG{p}{)}
+
+\PYG{c+c1}{\PYGZsh{} Setup main loop to process all frames in an animation.}
+\PYG{n}{frames} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{listdir}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}./images/frames/\PYGZsq{}}\PYG{p}{)}
+\PYG{n}{frames}\PYG{o}{.}\PYG{n}{sort}\PYG{p}{()}
+
+\PYG{c+c1}{\PYGZsh{} Process each frame.}
+\PYG{k}{for} \PYG{n}{frame\PYGZus{}index} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{frames}\PYG{p}{),} \PYG{l+m+mi}{2}\PYG{p}{):}
+    \PYG{n}{frame} \PYG{o}{=} \PYG{n}{frames}\PYG{p}{[}\PYG{n}{frame\PYGZus{}index}\PYG{p}{]}
+
+    \PYG{c+c1}{\PYGZsh{} If the frame index is 0, store all frameblocks.}
+    \PYG{k}{if} \PYG{n}{frame\PYGZus{}index} \PYG{o}{\PYGZlt{}} \PYG{l+m+mi}{1}\PYG{p}{:}
+        \PYG{c+c1}{\PYGZsh{} Initialize seed variables.}
+        \PYG{n}{img\PYGZus{}str\PYGZus{}1} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/frames/\PYGZsq{}} \PYG{o}{+} \PYG{n}{frames}\PYG{p}{[}\PYG{n}{frame\PYGZus{}index}\PYG{p}{]}
+
+        \PYG{c+c1}{\PYGZsh{} Choose smallest boundaries.}
+        \PYG{n}{img\PYGZus{}1} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{cvtColor}\PYG{p}{(}\PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imread}\PYG{p}{(}\PYG{n}{img\PYGZus{}str\PYGZus{}1}\PYG{p}{),} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{COLOR\PYGZus{}BGR2RGB}\PYG{p}{)}
+        \PYG{n}{img\PYGZus{}1} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{resize}\PYG{p}{(}\PYG{n}{img\PYGZus{}1}\PYG{p}{,} \PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{n}{fx}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{,} \PYG{n}{fy}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{)}
+        \PYG{n}{height}\PYG{p}{,} \PYG{n}{width} \PYG{o}{=} \PYG{n}{img\PYGZus{}1}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[:}\PYG{l+m+mi}{2}\PYG{p}{]}
+
+        \PYG{c+c1}{\PYGZsh{} Create sliding window.}
+        \PYG{n}{left} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n}{right} \PYG{o}{=} \PYG{n}{block\PYGZus{}dim}
+        \PYG{n}{top} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n}{bottom} \PYG{o}{=} \PYG{n}{block\PYGZus{}dim}
+        \PYG{n}{block\PYGZus{}index} \PYG{o}{=} \PYG{l+m+mi}{1}
+
+        \PYG{c+c1}{\PYGZsh{} Find the Region Of Interest (ROI).}
+        \PYG{k}{while} \PYG{n}{bottom} \PYG{o}{\PYGZlt{}=} \PYG{n}{height}\PYG{p}{:}
+            \PYG{k}{if} \PYG{n}{bottom} \PYG{o}{==} \PYG{n}{height}\PYG{p}{:}
+                \PYG{n}{bottom} \PYG{o}{\PYGZhy{}=} \PYG{l+m+mi}{1}
+            \PYG{k}{while} \PYG{n}{right} \PYG{o}{\PYGZlt{}=} \PYG{n}{width}\PYG{p}{:}
+                \PYG{k}{if} \PYG{n}{right} \PYG{o}{==} \PYG{n}{width}\PYG{p}{:}
+                    \PYG{n}{right} \PYG{o}{\PYGZhy{}=} \PYG{l+m+mi}{1}
+
+                \PYG{c+c1}{\PYGZsh{} ROI pixel processing}
+                \PYG{k}{print}\PYG{p}{(}\PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}. Frameblock: (\PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{left}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}, \PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{top}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}), (\PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{right}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}, \PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{bottom}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}))\PYGZdq{}}\PYG{p}{)}
+
+                \PYG{c+c1}{\PYGZsh{} Setup storage.}
+                \PYG{n}{img\PYGZus{}out\PYGZus{}str} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/pairs/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}/frame\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{frame\PYGZus{}index} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{)}
+                \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str}\PYG{p}{):}
+                    \PYG{n}{os}\PYG{o}{.}\PYG{n}{mkdir}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}./images/blocks/pairs/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{))}
+                    \PYG{n}{os}\PYG{o}{.}\PYG{n}{mkdir}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str}\PYG{p}{)}
+
+                \PYG{c+c1}{\PYGZsh{} Store window contents as image.}
+                \PYG{n}{img\PYGZus{}roi} \PYG{o}{=} \PYG{n}{img\PYGZus{}1}\PYG{p}{[}\PYG{n}{top}\PYG{p}{:}\PYG{n}{bottom}\PYG{p}{,} \PYG{n}{left}\PYG{p}{:}\PYG{n}{right}\PYG{p}{]}
+                \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}/end.jpg\PYGZsq{}}\PYG{p}{,} \PYG{n}{img\PYGZus{}roi}\PYG{p}{)}
+
+                \PYG{c+c1}{\PYGZsh{} Increase frameblock index.}
+                \PYG{n}{block\PYGZus{}index} \PYG{o}{+=} \PYG{l+m+mi}{1}
+
+                \PYG{c+c1}{\PYGZsh{} Shift horizontally.}
+                \PYG{n}{left} \PYG{o}{+=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim} \PYG{o}{/} \PYG{n}{block\PYGZus{}offset}\PYG{p}{)}
+                \PYG{n}{right} \PYG{o}{+=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim} \PYG{o}{/} \PYG{n}{block\PYGZus{}offset}\PYG{p}{)}
+
+            \PYG{c+c1}{\PYGZsh{} Shift vertically.}
+            \PYG{n}{top} \PYG{o}{+=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim} \PYG{o}{/} \PYG{n}{block\PYGZus{}offset}\PYG{p}{)}
+            \PYG{n}{bottom} \PYG{o}{+=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim} \PYG{o}{/} \PYG{n}{block\PYGZus{}offset}\PYG{p}{)}
+            \PYG{n}{left} \PYG{o}{=} \PYG{l+m+mi}{0}
+            \PYG{n}{right} \PYG{o}{=} \PYG{n}{block\PYGZus{}dim}
+
+    \PYG{c+c1}{\PYGZsh{} Otherwise process as normal.}
+    \PYG{k}{else}\PYG{p}{:}
+        \PYG{c+c1}{\PYGZsh{} Initialize seed variables.}
+        \PYG{n}{img\PYGZus{}str\PYGZus{}1} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/frames/\PYGZsq{}} \PYG{o}{+} \PYG{n}{frames}\PYG{p}{[}\PYG{n}{frame\PYGZus{}index} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{2}\PYG{p}{]}
+        \PYG{n}{img\PYGZus{}str\PYGZus{}2} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/frames/\PYGZsq{}} \PYG{o}{+} \PYG{n}{frames}\PYG{p}{[}\PYG{n}{frame\PYGZus{}index}\PYG{p}{]}
+        \PYG{n}{img\PYGZus{}str\PYGZus{}shd} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/shadow/frame\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{frame\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}.jpg\PYGZsq{}}
+        \PYG{n}{img\PYGZus{}str\PYGZus{}roi} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/roi/frame\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{frame\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}.jpg\PYGZsq{}}
+
+        \PYG{n}{img\PYGZus{}1} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{cvtColor}\PYG{p}{(}\PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imread}\PYG{p}{(}\PYG{n}{img\PYGZus{}str\PYGZus{}1}\PYG{p}{),} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{COLOR\PYGZus{}BGR2RGB}\PYG{p}{)}
+        \PYG{n}{img\PYGZus{}1} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{resize}\PYG{p}{(}\PYG{n}{img\PYGZus{}1}\PYG{p}{,} \PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{n}{fx}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{,} \PYG{n}{fy}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{)}
+        \PYG{n}{height\PYGZus{}1}\PYG{p}{,} \PYG{n}{width\PYGZus{}1} \PYG{o}{=} \PYG{n}{img\PYGZus{}1}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[:}\PYG{l+m+mi}{2}\PYG{p}{]}
+
+        \PYG{n}{img\PYGZus{}2} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{cvtColor}\PYG{p}{(}\PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imread}\PYG{p}{(}\PYG{n}{img\PYGZus{}str\PYGZus{}2}\PYG{p}{),} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{COLOR\PYGZus{}BGR2RGB}\PYG{p}{)}
+        \PYG{n}{img\PYGZus{}2} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{resize}\PYG{p}{(}\PYG{n}{img\PYGZus{}2}\PYG{p}{,} \PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{n}{fx}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{,} \PYG{n}{fy}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{)}
+        \PYG{n}{height\PYGZus{}2}\PYG{p}{,} \PYG{n}{width\PYGZus{}2} \PYG{o}{=} \PYG{n}{img\PYGZus{}2}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[:}\PYG{l+m+mi}{2}\PYG{p}{]}
+
+        \PYG{c+c1}{\PYGZsh{} Choose smallest boundaries.}
+        \PYG{n}{height} \PYG{o}{=} \PYG{n}{height\PYGZus{}1}
+        \PYG{n}{width} \PYG{o}{=} \PYG{n}{width\PYGZus{}1}
+        \PYG{k}{if} \PYG{n}{height\PYGZus{}1} \PYG{o}{\PYGZgt{}} \PYG{n}{height\PYGZus{}2}\PYG{p}{:}
+            \PYG{n}{height} \PYG{o}{=} \PYG{n}{height\PYGZus{}2}
+        \PYG{k}{if} \PYG{n}{width\PYGZus{}1} \PYG{o}{\PYGZgt{}} \PYG{n}{width\PYGZus{}2}\PYG{p}{:}
+            \PYG{n}{width} \PYG{o}{=} \PYG{n}{width\PYGZus{}2}
+
+        \PYG{n}{img\PYGZus{}out} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ones}\PYG{p}{((}\PYG{n}{height}\PYG{p}{,} \PYG{n}{width}\PYG{p}{,} \PYG{l+m+mi}{3}\PYG{p}{),} \PYG{n}{np}\PYG{o}{.}\PYG{n}{uint8}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} Calculate XOR image and pixel sum.}
+        \PYG{k}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Processing pixels of images, }\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s2}{\PYGZdq{}} \PYG{o}{+} \PYG{n}{img\PYGZus{}str\PYGZus{}1} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s2}{ and }\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s2}{\PYGZdq{}} \PYG{o}{+} \PYG{n}{img\PYGZus{}str\PYGZus{}2} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+        \PYG{n}{img\PYGZus{}xor} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{bitwise\PYGZus{}xor}\PYG{p}{(}\PYG{n}{img\PYGZus{}1}\PYG{p}{,} \PYG{n}{img\PYGZus{}2}\PYG{p}{)}
+        \PYG{n}{pixel\PYGZus{}sum} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{sum}\PYG{p}{(}\PYG{n}{img\PYGZus{}xor}\PYG{p}{)}
+        \PYG{n}{img\PYGZus{}out} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{bitwise\PYGZus{}not}\PYG{p}{(}\PYG{n}{cv2}\PYG{o}{.}\PYG{n}{cvtColor}\PYG{p}{(}\PYG{n}{img\PYGZus{}xor}\PYG{p}{,} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{COLOR\PYGZus{}BGR2GRAY}\PYG{p}{))}
+
+        \PYG{c+c1}{\PYGZsh{} Continue to next frame if no changes were found.}
+        \PYG{k}{if} \PYG{n}{pixel\PYGZus{}sum} \PYG{o}{==} \PYG{l+m+mi}{0}\PYG{p}{:}
+            \PYG{k}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}No changes found, continuing to next image.\PYGZdq{}}\PYG{p}{)}
+            \PYG{k}{continue}
+
+        \PYG{c+c1}{\PYGZsh{} Write image.}
+        \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{img\PYGZus{}str\PYGZus{}shd}\PYG{p}{,} \PYG{n}{img\PYGZus{}out}\PYG{p}{)}
+        \PYG{k}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Wrote shadow image, }\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s2}{\PYGZdq{}} \PYG{o}{+} \PYG{n}{img\PYGZus{}str\PYGZus{}shd} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} Calculate the pixel\PYGZus{}ratio.}
+        \PYG{k}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Total pixel sum: \PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{pixel\PYGZus{}sum}\PYG{p}{))}
+        \PYG{n}{pixel\PYGZus{}ratio} \PYG{o}{=} \PYG{n}{pixel\PYGZus{}sum} \PYG{o}{*} \PYG{l+m+mf}{1.0} \PYG{o}{/} \PYG{p}{(}\PYG{l+m+mi}{255} \PYG{o}{*} \PYG{n}{width} \PYG{o}{*} \PYG{n}{height}\PYG{p}{)}
+        \PYG{k}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Pixel ratio: \PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{pixel\PYGZus{}ratio}\PYG{p}{))}
+
+        \PYG{c+c1}{\PYGZsh{} Create a clone of input image and draw ROIs on top of it.}
+        \PYG{n}{img\PYGZus{}roi\PYGZus{}all} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imread}\PYG{p}{(}\PYG{n}{img\PYGZus{}str\PYGZus{}shd}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} Create sliding window.}
+        \PYG{n}{left} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n}{right} \PYG{o}{=} \PYG{n}{block\PYGZus{}dim}
+        \PYG{n}{top} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n}{bottom} \PYG{o}{=} \PYG{n}{block\PYGZus{}dim}
+        \PYG{n}{block\PYGZus{}index} \PYG{o}{=} \PYG{l+m+mi}{1}
+        \PYG{n}{pixel\PYGZus{}sum} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n}{cap} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{power}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim}\PYG{p}{,} \PYG{l+m+mi}{2}\PYG{p}{)} \PYG{o}{*} \PYG{l+m+mi}{255} \PYG{o}{*} \PYG{n}{pixel\PYGZus{}ratio}
+        \PYG{k}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Cap found: \PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{cap}\PYG{p}{))}
+
+        \PYG{c+c1}{\PYGZsh{} Find the Region Of Interest (ROI).}
+        \PYG{k}{while} \PYG{n}{bottom} \PYG{o}{\PYGZlt{}=} \PYG{n}{height}\PYG{p}{:}
+            \PYG{k}{if} \PYG{n}{bottom} \PYG{o}{==} \PYG{n}{height}\PYG{p}{:}
+                \PYG{n}{bottom} \PYG{o}{\PYGZhy{}=} \PYG{l+m+mi}{1}
+            \PYG{k}{while} \PYG{n}{right} \PYG{o}{\PYGZlt{}=} \PYG{n}{width}\PYG{p}{:}
+                \PYG{k}{if} \PYG{n}{right} \PYG{o}{==} \PYG{n}{width}\PYG{p}{:}
+                    \PYG{n}{right} \PYG{o}{\PYGZhy{}=} \PYG{l+m+mi}{1}
+                \PYG{n}{found\PYGZus{}x} \PYG{o}{=} \PYG{n+nb+bp}{False}
+                \PYG{n}{dirty} \PYG{o}{=} \PYG{n+nb+bp}{False}
+                \PYG{n}{pixel\PYGZus{}sum} \PYG{o}{=} \PYG{l+m+mi}{0}
+                \PYG{n}{img\PYGZus{}buff\PYGZus{}str} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/buffer/shadows/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}.jpg\PYGZsq{}}
+                \PYG{n}{img\PYGZus{}buff} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imread}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{)}
+                \PYG{k}{if} \PYG{n}{img\PYGZus{}buff} \PYG{o+ow}{is} \PYG{n+nb+bp}{None}\PYG{p}{:}
+                    \PYG{n}{img\PYGZus{}buff} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{((}\PYG{n}{block\PYGZus{}dim}\PYG{p}{,} \PYG{n}{block\PYGZus{}dim}\PYG{p}{,} \PYG{l+m+mi}{3}\PYG{p}{),} \PYG{n}{np}\PYG{o}{.}\PYG{n}{uint8}\PYG{p}{)}
+
+                \PYG{c+c1}{\PYGZsh{} ROI pixel processing}
+                \PYG{k}{for} \PYG{n}{y} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{top}\PYG{p}{,} \PYG{n}{bottom} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{):}
+                    \PYG{k}{for} \PYG{n}{x} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{left}\PYG{p}{,} \PYG{n}{right} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{):}
+
+                        \PYG{c+c1}{\PYGZsh{} Store buffer pixel and calculate pixel\PYGZus{}sum.}
+                        \PYG{n}{img\PYGZus{}buff}\PYG{p}{[}\PYG{n}{y} \PYG{o}{\PYGZhy{}} \PYG{n}{top} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{x} \PYG{o}{\PYGZhy{}} \PYG{n}{left} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{]} \PYG{o}{+=} \PYG{l+m+mi}{255} \PYG{o}{\PYGZhy{}} \PYG{n}{img\PYGZus{}out}\PYG{p}{[}\PYG{n}{y}\PYG{p}{,} \PYG{n}{x}\PYG{p}{]}
+
+                        \PYG{k}{if} \PYG{n}{img\PYGZus{}buff}\PYG{p}{[}\PYG{n}{y} \PYG{o}{\PYGZhy{}} \PYG{n}{top} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{x} \PYG{o}{\PYGZhy{}} \PYG{n}{left} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}\PYG{p}{:}
+                            \PYG{n}{dirty} \PYG{o}{=} \PYG{n+nb+bp}{True}
+                            \PYG{k}{if} \PYG{n}{img\PYGZus{}buff}\PYG{p}{[}\PYG{n}{y} \PYG{o}{\PYGZhy{}} \PYG{n}{top} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{x} \PYG{o}{\PYGZhy{}} \PYG{n}{left} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{255}\PYG{p}{:}
+                                \PYG{n}{img\PYGZus{}buff}\PYG{p}{[}\PYG{n}{y} \PYG{o}{\PYGZhy{}} \PYG{n}{top} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{x} \PYG{o}{\PYGZhy{}} \PYG{n}{left} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{]} \PYG{o}{=} \PYG{l+m+mi}{255}
+                        \PYG{n}{pixel\PYGZus{}sum} \PYG{o}{+=} \PYG{n}{img\PYGZus{}buff}\PYG{p}{[}\PYG{n}{y} \PYG{o}{\PYGZhy{}} \PYG{n}{top} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{x} \PYG{o}{\PYGZhy{}} \PYG{n}{left} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{]}
+
+                        \PYG{c+c1}{\PYGZsh{} Test if the cap was met.}
+                        \PYG{k}{if} \PYG{n}{pixel\PYGZus{}sum} \PYG{o}{\PYGZgt{}=} \PYG{n}{cap}\PYG{p}{:}
+
+                            \PYG{c+c1}{\PYGZsh{} Draw ROI on clone image.}
+                            \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{rectangle}\PYG{p}{(}\PYG{n}{img\PYGZus{}roi\PYGZus{}all}\PYG{p}{,} \PYG{p}{(}\PYG{n}{left} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{top} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{),} \PYG{p}{(}\PYG{n}{right} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{bottom} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{),} \PYG{p}{(}\PYG{l+m+mi}{255}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{)}
+                            \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{putText}\PYG{p}{(}\PYG{n}{img\PYGZus{}roi\PYGZus{}all}\PYG{p}{,} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{),} \PYG{p}{(}\PYG{n}{left} \PYG{o}{+} \PYG{l+m+mi}{3}\PYG{p}{,} \PYG{n}{bottom} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{3}\PYG{p}{),} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{FONT\PYGZus{}HERSHEY\PYGZus{}PLAIN}\PYG{p}{,} \PYG{l+m+mf}{0.75}\PYG{p}{,} \PYG{p}{(}\PYG{l+m+mi}{255}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{)}
+                            \PYG{k}{print}\PYG{p}{(}\PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}. Sum: \PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{pixel\PYGZus{}sum}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}, Frameblock: (\PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{left}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}, \PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{top}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}), (\PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{right}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}, \PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{bottom}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}))\PYGZdq{}}\PYG{p}{)}
+
+                            \PYG{c+c1}{\PYGZsh{} Setup storage.}
+                            \PYG{n}{img\PYGZus{}out\PYGZus{}str} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/pairs/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}/frame\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{frame\PYGZus{}index} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{)}
+                            \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str}\PYG{p}{):}
+                                \PYG{n}{os}\PYG{o}{.}\PYG{n}{mkdir}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str}\PYG{p}{)}
+
+                            \PYG{c+c1}{\PYGZsh{} Store window contents as image.}
+                            \PYG{n}{img\PYGZus{}roi} \PYG{o}{=} \PYG{n}{img\PYGZus{}2}\PYG{p}{[}\PYG{n}{top}\PYG{p}{:}\PYG{n}{bottom}\PYG{p}{,} \PYG{n}{left}\PYG{p}{:}\PYG{n}{right}\PYG{p}{]}
+                            \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}/end.jpg\PYGZsq{}}\PYG{p}{,} \PYG{n}{img\PYGZus{}roi}\PYG{p}{)}
+
+                            \PYG{c+c1}{\PYGZsh{} Exit both for loops.}
+                            \PYG{n}{found\PYGZus{}x} \PYG{o}{=} \PYG{n+nb+bp}{True}
+                            \PYG{k}{break}
+                    \PYG{k}{if} \PYG{n}{found\PYGZus{}x}\PYG{p}{:}
+                        \PYG{k}{break}
+
+                \PYG{c+c1}{\PYGZsh{} If frameblock was used delete buffer shadow.}
+                \PYG{k}{if} \PYG{n}{found\PYGZus{}x}\PYG{p}{:}
+                    \PYG{c+c1}{\PYGZsh{} If a buffered shadow image was used, delete it.}
+                    \PYG{k}{if} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{):}
+                        \PYG{n}{os}\PYG{o}{.}\PYG{n}{remove}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{)}
+
+                    \PYG{c+c1}{\PYGZsh{} If there is a buffered frame for the block use it as the starting frame.}
+                    \PYG{n}{img\PYGZus{}buff\PYGZus{}str} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/buffer/frames/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}.jpg\PYGZsq{}}
+                    \PYG{k}{if} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{):}
+                        \PYG{c+c1}{\PYGZsh{} Setup storage.}
+                        \PYG{n}{img\PYGZus{}out\PYGZus{}str} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/pairs/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}/frame\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{frame\PYGZus{}index} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{)}
+                        \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str}\PYG{p}{):}
+                            \PYG{n}{os}\PYG{o}{.}\PYG{n}{mkdir}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str}\PYG{p}{)}
+
+                        \PYG{c+c1}{\PYGZsh{} Move and rename file.}
+                        \PYG{n}{os}\PYG{o}{.}\PYG{n}{rename}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{,} \PYG{n}{img\PYGZus{}out\PYGZus{}str} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}/start.jpg\PYGZsq{}}\PYG{p}{)}
+
+                    \PYG{c+c1}{\PYGZsh{} Otherwise export the ROI of the first image as the starting frame.}
+                    \PYG{k}{else}\PYG{p}{:}
+                        \PYG{c+c1}{\PYGZsh{} Setup storage.}
+                        \PYG{n}{img\PYGZus{}out\PYGZus{}str} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/pairs/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}/frame\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{frame\PYGZus{}index} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{)}
+                        \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str}\PYG{p}{):}
+                            \PYG{n}{os}\PYG{o}{.}\PYG{n}{mkdir}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str}\PYG{p}{)}
+
+                        \PYG{c+c1}{\PYGZsh{} Store window contents as image.}
+                        \PYG{n}{img\PYGZus{}roi} \PYG{o}{=} \PYG{n}{img\PYGZus{}1}\PYG{p}{[}\PYG{n}{top}\PYG{p}{:}\PYG{n}{bottom}\PYG{p}{,} \PYG{n}{left}\PYG{p}{:}\PYG{n}{right}\PYG{p}{]}
+                        \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{img\PYGZus{}out\PYGZus{}str} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}/start.jpg\PYGZsq{}}\PYG{p}{,} \PYG{n}{img\PYGZus{}roi}\PYG{p}{)}
+
+                \PYG{c+c1}{\PYGZsh{} Otherwise export the shadow and frame ROI to be used next time.}
+                \PYG{k}{else}\PYG{p}{:}
+                    \PYG{c+c1}{\PYGZsh{} Draw Shadow ROI on clone image.}
+                    \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{rectangle}\PYG{p}{(}\PYG{n}{img\PYGZus{}roi\PYGZus{}all}\PYG{p}{,} \PYG{p}{(}\PYG{n}{left} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{top} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{),} \PYG{p}{(}\PYG{n}{right} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{bottom} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{),} \PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{255}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{)}
+                    \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{putText}\PYG{p}{(}\PYG{n}{img\PYGZus{}roi\PYGZus{}all}\PYG{p}{,} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{),} \PYG{p}{(}\PYG{n}{left} \PYG{o}{+} \PYG{l+m+mi}{3}\PYG{p}{,} \PYG{n}{bottom} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{3}\PYG{p}{),} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{FONT\PYGZus{}HERSHEY\PYGZus{}PLAIN}\PYG{p}{,} \PYG{l+m+mf}{0.75}\PYG{p}{,} \PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{255}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{)}
+
+                    \PYG{c+c1}{\PYGZsh{} If the shadow image already exists, update it using a linear add.}
+                    \PYG{n}{img\PYGZus{}buff\PYGZus{}str} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/buffer/shadows/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}.jpg\PYGZsq{}}
+                    \PYG{k}{if} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{):}
+                        \PYG{c+c1}{\PYGZsh{} Add the values of the current shadow image and previous shadow image.}
+                        \PYG{n}{img\PYGZus{}prev\PYGZus{}buff} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imread}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{)}
+                        \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{addWeighted}\PYG{p}{(}\PYG{n}{img\PYGZus{}prev\PYGZus{}buff}\PYG{p}{,} \PYG{l+m+mf}{1.0}\PYG{p}{,} \PYG{n}{img\PYGZus{}buff}\PYG{p}{,} \PYG{l+m+mf}{1.0}\PYG{p}{,} \PYG{l+m+mf}{0.0}\PYG{p}{,} \PYG{n}{img\PYGZus{}buff}\PYG{p}{)}
+
+                        \PYG{c+c1}{\PYGZsh{} Store updated shadow image (don\PYGZsq{}t update the old frame ROI).}
+                        \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{,} \PYG{n}{img\PYGZus{}buff}\PYG{p}{)}
+                        \PYG{k}{print}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}Updated shadow image, }\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s1}{block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}.jpg}\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s1}{\PYGZsq{}}\PYG{p}{)}
+
+                    \PYG{c+c1}{\PYGZsh{} Else if a black pixel was found write a new shadow image.}
+                    \PYG{k}{elif} \PYG{n}{dirty}\PYG{p}{:}
+                        \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{,} \PYG{n}{img\PYGZus{}buff}\PYG{p}{)}
+                        \PYG{k}{print}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}Wrote new shadow image, }\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s1}{block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}.jpg}\PYG{l+s+se}{\PYGZbs{}\PYGZsq{}}\PYG{l+s+s1}{\PYGZsq{}}\PYG{p}{)}
+
+                        \PYG{c+c1}{\PYGZsh{} Store frame ROI image.}
+                        \PYG{n}{img\PYGZus{}buff\PYGZus{}str} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}./images/blocks/buffer/frames/block\PYGZsq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s1}{\PYGZsq{}.jpg\PYGZsq{}}
+                        \PYG{n}{img\PYGZus{}roi} \PYG{o}{=} \PYG{n}{img\PYGZus{}1}\PYG{p}{[}\PYG{n}{top}\PYG{p}{:}\PYG{n}{bottom}\PYG{p}{,} \PYG{n}{left}\PYG{p}{:}\PYG{n}{right}\PYG{p}{]}
+                        \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{img\PYGZus{}buff\PYGZus{}str}\PYG{p}{,} \PYG{n}{img\PYGZus{}roi}\PYG{p}{)}
+
+                    \PYG{c+c1}{\PYGZsh{} Otherwise notify that the block has been processed with no export.}
+                    \PYG{k}{else}\PYG{p}{:}
+                        \PYG{k}{print}\PYG{p}{(}\PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{block\PYGZus{}index}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}. No export\PYGZdq{}}\PYG{p}{)}
+
+                \PYG{c+c1}{\PYGZsh{} Increase frameblock index.}
+                \PYG{n}{block\PYGZus{}index} \PYG{o}{+=} \PYG{l+m+mi}{1}
+
+                \PYG{c+c1}{\PYGZsh{} Shift horizontally.}
+                \PYG{n}{left} \PYG{o}{+=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim} \PYG{o}{/} \PYG{n}{block\PYGZus{}offset}\PYG{p}{)}
+                \PYG{n}{right} \PYG{o}{+=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim} \PYG{o}{/} \PYG{n}{block\PYGZus{}offset}\PYG{p}{)}
+
+            \PYG{c+c1}{\PYGZsh{} Shift vertically.}
+            \PYG{n}{top} \PYG{o}{+=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim} \PYG{o}{/} \PYG{n}{block\PYGZus{}offset}\PYG{p}{)}
+            \PYG{n}{bottom} \PYG{o}{+=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{block\PYGZus{}dim} \PYG{o}{/} \PYG{n}{block\PYGZus{}offset}\PYG{p}{)}
+            \PYG{n}{left} \PYG{o}{=} \PYG{l+m+mi}{0}
+            \PYG{n}{right} \PYG{o}{=} \PYG{n}{block\PYGZus{}dim}
+
+        \PYG{c+c1}{\PYGZsh{} Write image.}
+        \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{img\PYGZus{}str\PYGZus{}roi}\PYG{p}{,} \PYG{n}{img\PYGZus{}roi\PYGZus{}all}\PYG{p}{)}
+\end{Verbatim}

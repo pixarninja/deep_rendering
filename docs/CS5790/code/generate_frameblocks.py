@@ -9,8 +9,6 @@ block_offset = 1
 os.system('rm -rf %s' % './images/blocks/pairs/*')
 os.system('rm -rf %s' % './images/blocks/buffer/shadows/*')
 os.system('rm -rf %s' % './images/blocks/buffer/frames/*')
-os.system('rm -rf %s' % './images/shadow/*')
-os.system('rm -rf %s' % './images/roi/*')
 
 # Setup main loop to process all frames in an animation.
 frames = os.listdir('./images/frames/')
@@ -211,6 +209,10 @@ for frame_index in range(0, len(frames), 2):
 
                 # Otherwise export the shadow and frame ROI to be used next time.
                 else:
+                    # Draw Shadow ROI on clone image.
+                    cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1), (0, 0, 255), 1)
+                    cv2.putText(img_roi_all, str(block_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (0, 0, 255), 1, 1)
+
                     # If the shadow image already exists, update it using a linear add.
                     img_buff_str = './images/blocks/buffer/shadows/block' + str(block_index) + '.jpg'
                     if os.path.exists(img_buff_str):
@@ -222,10 +224,6 @@ for frame_index in range(0, len(frames), 2):
                         cv2.imwrite(img_buff_str, img_buff)
                         print('Updated shadow image, \'block' + str(block_index) + '.jpg\'')
 
-                        # Draw Shadow ROI on clone image.
-                        cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1), (255, 0, 255), 1)
-                        cv2.putText(img_roi_all, str(block_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (255, 0, 255), 1, 1)
-
                     # Else if a black pixel was found write a new shadow image.
                     elif dirty:
                         cv2.imwrite(img_buff_str, img_buff)
@@ -236,17 +234,9 @@ for frame_index in range(0, len(frames), 2):
                         img_roi = img_1[top:bottom, left:right]
                         cv2.imwrite(img_buff_str, img_roi)
 
-                        # Draw Shadow ROI on clone image.
-                        cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1), (0, 0, 0), 1)
-                        cv2.putText(img_roi_all, str(block_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (0, 0, 0), 1, 1)
-
                     # Otherwise notify that the block has been processed with no export.
                     else:
                         print(str(block_index) + ". No export")
-
-                        # Draw Shadow ROI on clone image.
-                        cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1), (0, 0, 255), 1)
-                        cv2.putText(img_roi_all, str(block_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (0, 0, 255), 1, 1)
 
                 # Increase frameblock index.
                 block_index += 1
