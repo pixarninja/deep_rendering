@@ -1,5 +1,5 @@
 /docs/*/references/
-/docs/reports/*/output/
+/docs/*/output/
 /jupyter/images/*
 /python/images/*
 /python/training/blurred
