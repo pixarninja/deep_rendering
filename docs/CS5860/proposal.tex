@@ -13,11 +13,12 @@
 \setlength{\pdfpagewidth}{8.5in}  % DO NOT CHANGE THIS
 \setlength{\pdfpageheight}{11in}  % DO NOT CHANGE THIS
 \nocopyright
+\graphicspath{{images/}}
 %PDF Info Is REQUIRED.
 % For /Author, add all authors within the parentheses, separated by commas. No accents or commands.
 % For /Title, add Title in Mixed Case. No accents or commands. Retain the parentheses.
 \pdfinfo{
-/Title (Proposal)
+/Title (Enhancing Images with Deep Convolutional Generative Adversarial Networks)
 /Author (Mark Wesley Harris)
 } %Leave this	
 % /Title ()
@@ -77,7 +78,7 @@
 %
 \setlength\titlebox{2.5in} % If your paper contains an overfull \vbox too high warning at the beginning of the document, use this
 % command to correct it. You may not alter the value below 2.5 in
-\title{Proposal}
+\title{Enhancing Images with Deep Convolutional Generative Adversarial Networks}
 %Your title must be in mixed case, not sentence case. 
 % That means all verbs (including short verbs like be, is, using,and go), 
 % nouns, adverbs, adjectives should be capitalized, including both words in hyphenated terms, while
@@ -86,8 +87,7 @@
 \author{Mark Wesley Harris\\ % All authors must be in the same font size and format. Use \Large and \textbf to achieve this result when breaking a line
 % If you have multiple authors and multiple affiliations
 % use superscripts in text and roman font to identify them. For example, Sunil Issar,\textsuperscript{\rm 2} J. Scott Penberthy\textsuperscript{\rm 3} George Ferguson,\textsuperscript{\rm 4} Hans Guesgen\textsuperscript{\rm 5}. Note that the comma should be placed BEFORE the superscript for optimum readability
-9200 Berryessa Rd Ne\\
-Albuquerque, New Mexico 87122\\
+University of Colorado Colorado Springs\\
 wharris2@uccs.edu % email address must be in roman text type, not monospace or sans serif
 }
 \begin{document}
@@ -100,15 +100,54 @@ Abstract.
 
 \section{Introduction}
 \label{sec:introduction}
+Rendering full-length feature films is burdensome for current technologies.
+Rendering a single frame of an animation is highly dependent upon the rendering software
+and scene complexity,
+but for the most part the rendering process is completely dependent upon the renderer.
+There are no shortcuts to be made.
+
+This research is focused on studying how to generate renderings for animations using
+Machine Learning.
 
 \section{Related Work}
 \label{sec:related_work}
+The Generative Adversarial Network (GAN) was first proposed by
+\cite{generative_adversarial_networks}
+as a way to
+train a model to produce more realistic images. The network is made up of two architectures:
+a generator, G, and a disciminator, D.
+
+The Deep Convolutional Generative Adversarial Network (DCGAN) was first proposed by
+\cite{unsupervised_learning}. The architecture is similar to a GAN,
+but uses convolutional and convolutional-transpose layers in D and G, respectively.
 
 \section{Proposed Work}
 \label{sec:proposed_work}
+Foundational example DCGAN repository titled ``Deep Convolution Generative Adversarial Networks''
+, created by Pytorch \cite{dcgan_git}. This repository is explained in a walkthrough
+by Pytorch \cite{dcgan_example}.
 
-\section{Methods/Evaluation}
+\subsection{Dataset Creation}
+\label{subsec:data}
+Create a dataset of 10,000 32 x 32 pixel images based off of previous research.
+Images are blurred and small anomolies are added.
+The original images are kept to form an image pair with the altered images.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{training_pair.png}}
+\caption{Example of input (left) and expected output (right).}
+\label{fig:training_pair}
+\end{figure}
+
+\subsection{Model Construction}
+\label{subsec:model}
+
+\section{Evaluation}
 \label{sec:methods/evaluation}
+The architecture will be evaluated on how well it is able to learn how to
+enhance an altered image. After optimization and training has taken place,
+an unknown altered image will be input into the algorithm, and the output
+will be compared to the original, unaltered image.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -125,6 +164,7 @@ Abstract.
 \cite{pose_cnn}
 \cite{pose_guided_image_generation}
 \cite{unsupervised_learning}
+\cite{dcgan_git}
 
 \bibliography{proposal}
 \bibliographystyle{aaai}
