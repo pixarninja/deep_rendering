@@ -111,6 +111,28 @@ Machine Learning.
 
 \section{Related Work}
 \label{sec:related_work}
+Reza \textit{et al.} \cite{ref:frame_prediction} (``Geometry-Based Next Frame Prediction From
+focus on generating the
+next frame of a monocular (i.e. single-view) video 
+given the video's previous frames. They deployed
+an LSTM machine learning model in order to generate a depth map representing the next frame.
+Another machine learning model was then applied to convert the generated depth
+map into the pixels of the predicted frame. The largest deficiency of their
+project was the poorness of the output frame's quality, as shown in Figure
+\ref{fig:frame_prediction}; in order to use their
+application for production-quality outputs, more steps would have
+to be taken to ensure the quality is comparable to the quality of the original input frames.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{frame_prediction.png}}
+\caption{Example of output frame and depth map of \cite{ref:frame_prediction}.}
+\label{fig:frame_prediction}
+\end{figure}
+
+The use of the LSTM model in order to
+collect changes from all previous frames instead of just one previous frame
+was most noteworthy.
+
 The Generative Adversarial Network (GAN) was first proposed by
 \cite{generative_adversarial_networks}
 as a way to
@@ -120,6 +142,19 @@ a generator, G, and a disciminator, D.
 The Deep Convolutional Generative Adversarial Network (DCGAN) was first proposed by
 \cite{unsupervised_learning}. The architecture is similar to a GAN,
 but uses convolutional and convolutional-transpose layers in D and G, respectively.
+
+2D Capsule Networks have been used to segment ``Unfortunately they often discard
+spatial arrangements in data, hence falling short of respecting
+the parts-to-whole relationship, which is critical to explain
+and describe 3D shapes'' \cite{point_capsule}.
+
+``Sabour et al. \cite{dynamic_routing_capsules} introduced capsule networks (CapsNets) as a powerful
+alternative to CNNs, which learn a more
+equivariant
+representation of images
+that is more robust to changes in pose and spatial relationships of parts of objects
+in images'' \cite{transforming_auto-encoders}.
+
 
 \section{Proposed Work}
 \label{sec:proposed_work}
