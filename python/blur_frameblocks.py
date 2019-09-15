@@ -4,20 +4,21 @@ import numpy as np
 
 home_dir = './images/'
 blocks_dir = 'blocks/pairs/'
-orig_dir = './training/validation/'
+vald_dir = './training/validation/'
 blur_dir = './training/blurred/'
-keep_dir = './training/testset/'
+test_dir = './training/testset/'
 blur_count = 1
 keep_count = 1
 
 # Delete previously output blurred frameblocks.
-os.system('rm -rf %s' % orig_dir + '*')
+os.system('rm -rf %s' % vald_dir + '*')
 os.system('rm -rf %s' % blur_dir + '*')
-os.system('rm -rf %s' % keep_dir + '*')
+os.system('rm -rf %s' % test_dir + '*')
 
 # Setup main loop to process all frameblocks.
 blocks = os.listdir(home_dir + blocks_dir)
 blocks.sort()
+print(blocks)
 
 # Process each block.
 for block_index in range(0, len(blocks)):
@@ -39,7 +40,7 @@ for block_index in range(0, len(blocks)):
             img = cv2.cvtColor(cv2.imread(img_in_str), cv2.COLOR_BGR2RGB)
 
             # Save original end.jpg image for validation.
-            img_org_str = orig_dir + block + frame + '.jpg'
+            img_org_str = vald_dir + block + frame + '.jpg'
             cv2.imwrite(img_org_str, img)
 
             # Blur image.
@@ -54,7 +55,7 @@ for block_index in range(0, len(blocks)):
         else:
             # Copy end.jpg image to testset.
             img = cv2.cvtColor(cv2.imread(img_in_str), cv2.COLOR_BGR2RGB)
-            img_out_str = keep_dir + block + frame + '.jpg'
+            img_out_str = test_dir + block + frame + '.jpg'
             cv2.imwrite(img_out_str, img)
             print(str(keep_count) + ': 1 Kept ' + img_out_str)
             keep_count += 1
