@@ -241,12 +241,13 @@ for frame_index in range(0, len(frames), 2):
                         cv2.putText(img_roi_all, str(block_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (0, 0, 0), 1, 1)
 
                     # Otherwise notify that the block has been processed with no export.
-                    else:
-                        print(str(block_index) + ". No export")
+                    # Commented out for now to save time printing.
+                    #else:
+                    #    print(str(block_index) + ". No export")
 
-                        # Draw Shadow ROI on clone image.
-                        cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1), (0, 0, 255), 1)
-                        cv2.putText(img_roi_all, str(block_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (0, 0, 255), 1, 1)
+                    #    Draw Shadow ROI on clone image.
+                    #    cv2.rectangle(img_roi_all, (left + 1, top + 1), (right - 1, bottom - 1), (0, 0, 255), 1)
+                    #    cv2.putText(img_roi_all, str(block_index), (left + 3, bottom - 3), cv2.FONT_HERSHEY_PLAIN, 0.75, (0, 0, 255), 1, 1)
 
                 # Increase frameblock index.
                 block_index += 1

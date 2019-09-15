@@ -18,7 +18,7 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
-\title{Semantics Generation For A 3D Scene Using Raytracing and RenderMan}
+\title{Semantics Generation For A 3D Environment Using Ray Tracing and RenderMan}
 
 \author{\IEEEauthorblockN{Mark Wesley Harris}
 \IEEEauthorblockA{\textit{CS5800 Computer Graphics, Fall 2019} \\
@@ -29,46 +29,70 @@ wharris2@uccs.edu}}
 \maketitle
 
 \begin{abstract}
+Here is proposed a study of scene semantics
+using ray tracing and current rendering techologies.
+Not only the relationships of objects to each other important,
+but the relationship of objects to the rendered frame.
+This research will be applied to a broader machine learning
+architecture for dynamically generating frames
+given scene and render data.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
-
+The generation of training data is essential
+for the application of machine learning.
+One such data to be generated are semantics of a 3D scene,
+the description of the scene and its complexity.
+Knowing scene semantics at rendertime is key to understanding and perhaps improving the render
+pipeline.
+The principles behind rendering a scene is fundamental to the
+render pipeline, however
+extracting this process into non-graphical sematic data is not as straightforward.
+Ultimately the inputs of machine learning algorithms must be in the format of vector of values.
+It is therefore important to study not only how scene semantics,
+but also how to store them in easily understood formats for later machine learning development.
+This document is a proposal for the study of scene semantics, ray tracing, and the development of a
+usable algorithm to generate usable semantic data from 3D environments.
 
 \section{Related Work}
 \label{sec:related_work}
-Schied \textit{et al.} \cite{spatiotemporal}
-generated high quality outputs given very low quality input
-frames. The inputs to the algorithm are rendered frames using one path-per-pixel global
-illumination. As shown in Figure \ref{fig:spatiotemporal}, they are able to
-transform very crude, noisy frames into production-grade outputs comparable to
-the frames rendered at full resolution. Their algorithm is essentially a
-multi-pass filter which the inputs are fed into, making it very fast and
-reliable.
 
-The proposed thesis work requires frame generation given scene data that has not yet been rendered,
-while \cite{spatiotemporal} depends on the input of entire rendered frames.
-However, there may be other components of the research that can be extracted.
+\subsection{Ray Tracing}
+Ray tracing is the study of how light behaves in a given environment.
+Figure \ref{fig:raytrace} from \cite{backwards_raytrace}
+shows a ray tracing problem studied in 1986, where light rays are mapped from
+the viewer to a light source. Avro \textit{et al.}
+\cite{backwards_raytrace} discuss the difficulty of this problem,
+as it involves taking into consideration material properties, light sources,
+and where the view is looking.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=8cm]{spatiotemporal.png}}
-\caption{Example input and output frame of \cite{spatiotemporal}.}
-\label{fig:spatiotemporal}
+\centerline{\includegraphics[width=5cm]{raytrace.png}}
+\caption{Example of a problem in ray tracing \cite{backwards_raytrace}.}
+\label{fig:raytrace}
 \end{figure}
 
-\cite{backwards_raytrace}
-\cite{arnold}
-\cite{renderman}
+Technological advancements have greatly improved ray tracing capabilities.
+The ray tracing basics described by Scratchapixel \cite{raytrace_walkthrough}
+provides a walkthrough with code samples for casting rays from the camera.
 
+\subsection{Rendering Technologies}
+Two renderers that are now highly developed are the Arnold Renderer \cite{arnold}
+and the RenderMan renderer \cite{renderman}. Each of these renderers
+function differently.
+RenderMan was chosen to be the renderer software for the purposes of this project,
+since it is arguably the most advanced renderer under development to date.
+
+\section{Proposed Work}
+\label{sec:proposed_work}
 \subsection{Architectural Overview}
-\label{sec:architecture}
-The proposed focus for this work is based off of the research presented in
-\cite{pose_guided}.
-See Figure \ref{fig:block_diagram} for a basic block diagram of the proposed architecture.
-The most important component
-is Generator I, which uses a combination of machine learning models to generate a
-low resolution image containing global structures found in the
-source data.
+\label{subsec:architecture}
+The foundation of this work is based off of Ma \textit{et al.} \cite{pose_guided_image_generation}.
+Their research showed that a 2-stage generator-discriminator architecture worked well for generating
+and refining images from one pose to another.
+See Figure \ref{fig:block_diagram} for a basic block diagram of the adapted architecture
+proposed for this project.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{block_diagram.png}}
@@ -76,43 +100,98 @@ source data.
 \label{fig:block_diagram}
 \end{figure}
 
-\section{Proposed Work}
-\label{sec:proposed_work}
-Discussed in \cite{renderman_opengl} is a walkthrough comparison of OpenGL to RenderMan.
-RenderMan documentation is found in \cite{renderman_docs}.
-Raytracing walkthrough is found in \cite{raytrace_walkthrough}.
+The most important component to the architecture as a whole
+is Generator I, which uses a combination of machine learning models to generate a
+low resolution image containing global structures found in the
+source data. As discussed previously, the semantic data must be extracted from
+the scene in order to use as input into this machine learning model.
+The focus of this proposed project is to generate these semantics and study
+what other information is important when considering the
+``meaning'' behind a 3D scene.
 
-\subsection{Semester Plan}
+\subsection{Development and Expectations}
+Most of the development for this project will be in RenderMan and Autodesk Maya,
+with some pre/post-processing to occur intermittently in Python.
+
+\subsubsection{RenderMan}
+RenderMan will be used to build a render pipeline that will not only render advanced images
+of 3D scenes, but also calculate and export scene semantics.
+It is predicted that this will be possible throught he use of raytracing or ray sampling.
+The walkthrough comparison of OpenGL to RenderMan found in \cite{renderman_opengl}
+may prove useful for development.
+It is also expected that the RenderMan documentation found in \cite{renderman_docs}
+will be referred to as well.
+
+\subsubsection{Autodesk Maya}
+Autodesk Maya (Maya for short) is a 3D animation and modeling software that will be utilized
+for creating the 3D scenes to use as input to the render pipeline.
+The scenes created will be of varying complexity to ensure that all aspects of a
+render will be taken into account. May Embedded Language (MEL) or Python scripting
+will be utilized within Maya in order to produce some semantic data, such as neighboring
+objects and tree heirarchy. The export functions (OBJ, FBX, etc.) will also be explored
+as sources of further semantic data that can be preprocessed from the scene.
+
+\section{Semester Plan}
 \label{subsec:semester_plan}
 \begin{enumerate}
-\item \textbf{Environment Setup, \textit{9/8 -- 9/17}}
+\item \textbf{\textit{9/10 -- 9/17} Documentation for Proposal Presentation (1 week)}
 \begin{itemize}
-\item Maya -- Source 3D animation and modeling software.
-\item RenderMan -- Download and install. Integrate with Maya.
+\item Past research -- Collect more research for ray tracing, RenderMan, and Autodesk Maya pipeline.
+\item Documentation -- Slides and other documentation, including citing.
 \end{itemize}
-\item \textbf{Test Render Pipeline, \textit{}}
+\item \textbf{\textit{9/17 -- 9/24} Environment Setup (1 week)}
 \begin{itemize}
-\item Basic working scene -- Work from animation file used in \cite{thesis_harris}.
+\item Fundamentals -- Computer build and setup.
+\item Maya -- Source 3D animation and modeling software.
+\item RenderMan -- Download and install.
+\end{itemize}
+\item \textbf{\textit{9/24 -- 10/3} Project 1 (1 and a half weeks)}
+\begin{itemize}
+\item Test Render Pipeline -- Create an export rendered in RenderMan for Project 1.
+\end{itemize}
+\item \textbf{\textit{10/3 -- 10/8} Documentation for Midterm Presentation (1 week)}
+\begin{itemize}
+\item Documentation -- Slides and other documentation.
+\end{itemize}
+\item \textbf{\textit{10/8 -- 10/22} Explore RenderMan (2 weeks)}
+\begin{itemize}
+\item Basic working pipeline -- Work from animation file used in \cite{thesis_harris}.
 \item Basic working script -- Using RenderMan documentation \cite{renderman_docs}.
 \end{itemize}
-\item \textbf{Explore RenderMan, \textit{9/17 -- 10/1}}
+\item \textbf{\textit{10/22 -- 10/29} Midterms Wiggle Room (1 week)}
+\item \textbf{\textit{10/29 -- 11/12} Explore RenderMan (2 weeks)}
 \begin{itemize}
-\item Program Raycasting -- Using OpenGL to RenderMan discussion \cite{renderman_opengl}
-and Raytrace Walkthrough \cite{raytrace_walkthrough} as references.
+\item Program Ray Tracing -- Using OpenGL to RenderMan discussion \cite{renderman_opengl}
+and Ray Trace Walkthrough \cite{raytrace_walkthrough} as references.
 \end{itemize}
-\item \textbf{Export Object Semantics, \textit{10/8 -- 10/22}}
+\item \textbf{\textit{11/12 -- 11/26} Export Object Semantics (2 weeks)}
 \begin{itemize}
 \item Find objects associated with each pixel.
 \item Export in a parsable format for ML processing.
 \end{itemize}
+\item \textbf{\textit{11/26 -- 12/3} Thanksgiving Break (1 week)}
+\begin{itemize}
+\item Complete Work -- Final completion of work.
+\item Clean Up -- Code and repository clean up.
+\end{itemize}
+\item \textbf{\textit{12/3 -- 12/10} Documentation for Final Presentation (1 week)}
+\begin{itemize}
+\item Documentation -- Slides and other documentation.
+\item 12/10 -- Last day to present.
+\end{itemize}
+\item \textbf{\textit{12/10 -- 12/17} Finals Wiggle Room (last week)}
 \end{enumerate}
-
-\section{Evaluation}
-\label{sec:methods/evaluation}
-
 
 \section{Conclusion}
 \label{sec:conclusion}
+Here is proposed a project to benefit ongoing research in the field of Computer Graphics.
+Not only will the project development benefit my thesis work, but it is also a study of
+generating semantic data from 3D scenes. Many of these data are easily recognizable to humans,
+however automating the process is a complicated task that will involve much consideration over
+scene dynamics and the relationship of objects to what is rendered. Ray tracing is also a concept
+key to many other computational tasks in Computer Graphics, and through working on this
+project I will be able to explore the implementation of ray tracing and its application
+to difficult problems.
 
 \bibliographystyle{IEEEtran}
 \bibliography{proposal}
