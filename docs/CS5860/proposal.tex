@@ -266,9 +266,9 @@ Ma \textit{et al.} were successful in using
 a variant conditional DCGAN as their G2 model, which is similar to the work proposed here
 \cite{pose_guided_image_generation}.
 See Figure \ref{fig:pg2_results} for example outputs of their algorithm.
-A Pytorch implementation for the DCGAN is stored on GitHub
-\cite{dcgan_git}. This repository is explained thoroughly in a walkthrough
-in Pytorch documentation \cite{dcgan_example}.
+A Pytorch implementation for the DCGAN is stored on GitHub.
+This repository is explained thoroughly in a walkthrough
+in Pytorch documentation.
 
 \subsubsection{PixelCNN++}
 PixelCNN is a Convolutional Neural Network that is conditioned on an input image
@@ -277,7 +277,7 @@ The architecture uses the input image vector to generate output images similar t
 PixelCNN++ \cite{pixelcnn++} is a project developed by researching the
 PixelCNN architecture with improvements made
 for system efficiency and image output.
-Implementation for the PixelCNN++ architecture can be found on GitHub \cite{pixelcnn++_git}.
+Implementation for the PixelCNN++ architecture can be found on GitHub.
 Example outputs of their implementation are shown in Figure \ref{fig:pixelcnn++}.
 
 \begin{figure}[htbp]
@@ -294,8 +294,7 @@ They found their model worked well in synthesizing, reconstructing, and colorizi
 input images, as shown in Figure \ref{fig:image_to_image}.
 The architecture is a conditional GAN (cGAN) which is similar to the DCGAN above, however
 the input vector is random noise instead of a condition image.
-Implemenation for the Pix2Pix architecture can be found on GitHub
-\cite{pix2pix_git}.
+Implemenation for the Pix2Pix architecture can be found on GitHub.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{image_to_image.png}}
@@ -308,8 +307,7 @@ Sequence to sequence \cite{generative_transformers}.
 The Sparse Attention results (shown in Figure \ref{fig:sparse_attention}) are
 much higher quality than the PixelCNN++ results and possibly
 the DCGAN results.
-Implementation for the Sparse Attention system can be found on GitHub
-\cite{sparse_attention_git}.
+Implementation for the Sparse Attention system can be found on GitHub.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{sparse_attention.png}}
@@ -380,15 +378,15 @@ against. The conclusion of this project will be an explanation of which architec
 for the given problem.
 \begin{enumerate}
 \item \textbf{DCGAN} --
-Rate, dataset, \cite{dcgan_git}.
+Rate, dataset.
 \item \textbf{Pix2Pix} --
-Rate, dataset, \cite{pix2pix_git}.
+Rate, dataset.
 \item \textbf{Sparse Attention} --
-Rate, dataset, \cite{sparse_attention_git}.
+Rate, dataset.
 \item \textbf{PixelCNN++} --
 The PixelCNN++ architecture will be looked at last, since it has the expected lowest
 quality outputs after training.
-Rate, dataset, \cite{pixelcnn++_git}.
+Rate, dataset.
 \end{enumerate}
 
 \section{Evaluation}
@@ -465,7 +463,7 @@ by comparing the outputs of these models.
 
 \nocite{pixel_recurrent}
 \nocite{parallel_density}
-\nocite{pixel_snail}
+%\nocite{pixel_snail}
 \nocite{pixel_subscale}
 %\nocite{next_frame_prediction}
 %\nocite{combining_multiple_cnn}
