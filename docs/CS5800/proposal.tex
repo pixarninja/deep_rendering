@@ -29,6 +29,7 @@ wharris2@uccs.edu}}
 \maketitle
 
 \begin{abstract}
+
 Here is proposed a study of scene semantics
 using ray tracing and current rendering techologies.
 Not only the relationships of objects to each other important,
@@ -40,20 +41,17 @@ given scene and render data.
 
 \section{Introduction}
 \label{sec:introduction}
-The generation of training data is essential
-for the application of machine learning.
-One such data to be generated are semantics of a 3D scene,
-the description of the scene and its complexity.
-Knowing scene semantics at rendertime is key to understanding and perhaps improving the render
+Access to good training data is necessary
+in order to harness the power of machine learning.
+One such data to be studied is the semantics of a 3D scene at rendertime,
+i.e. the description of the 3D environment and its complexity.
+This study is key to understanding and perhaps improving the render
 pipeline.
-The principles behind rendering a scene is fundamental to the
-render pipeline, however
+The principles behind rendering a scene is fundamental to
+render software, however
 extracting this process into non-graphical sematic data is not as straightforward.
-Ultimately the inputs of machine learning algorithms must be in the format of vector of values.
-It is therefore important to study not only how scene semantics,
-but also how to store them in easily understood formats for later machine learning development.
 This document is a proposal for the study of scene semantics, ray tracing, and the development of a
-usable algorithm to generate usable semantic data from 3D environments.
+usable algorithm to generate relevant semantic data from 3D environments.
 
 \section{Related Work}
 \label{sec:related_work}
@@ -61,11 +59,11 @@ usable algorithm to generate usable semantic data from 3D environments.
 \subsection{Ray Tracing}
 Ray tracing is the study of how light behaves in a given environment.
 Figure \ref{fig:raytrace} from \cite{backwards_raytrace}
-shows a ray tracing problem studied in 1986, where light rays are mapped from
+shows a ray tracing problem studied in 1986, where light rays were mapped from
 the viewer to a light source. Avro \textit{et al.}
 \cite{backwards_raytrace} discuss the difficulty of this problem,
 as it involves taking into consideration material properties, light sources,
-and where the view is looking.
+and where the viewer is looking.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=5cm]{raytrace.png}}
@@ -73,7 +71,7 @@ and where the view is looking.
 \label{fig:raytrace}
 \end{figure}
 
-Technological advancements have greatly improved ray tracing capabilities.
+Technological advancements since 1986 have greatly improved ray tracing capabilities.
 The ray tracing basics described by Scratchapixel \cite{raytrace_walkthrough}
 provides a walkthrough with code samples for casting rays from the camera.
 
@@ -81,15 +79,17 @@ provides a walkthrough with code samples for casting rays from the camera.
 Two renderers that are now highly developed are the Arnold Renderer \cite{arnold}
 and the RenderMan renderer \cite{renderman}. Each of these renderers
 function differently.
-RenderMan was chosen to be the renderer software for the purposes of this project,
-since it is arguably the most advanced renderer under development to date.
+RenderMan -- which is maintained by Pixar Animation Studios --
+was chosen to be the renderer software for the purposes of this project,
+since it is arguably the most advanced renderer developed to date.
 
 \section{Proposed Work}
 \label{sec:proposed_work}
 \subsection{Architectural Overview}
 \label{subsec:architecture}
-The foundation of this work is based off of Ma \textit{et al.} \cite{pose_guided_image_generation}.
-Their research showed that a 2-stage generator-discriminator architecture worked well for generating
+The foundation of this work is based off of the architecture
+developed by Ma \textit{et al.} \cite{pose_guided_image_generation}.
+Their research showed that a 2-stage generator-discriminator system worked well for generating
 and refining images from one pose to another.
 See Figure \ref{fig:block_diagram} for a basic block diagram of the adapted architecture
 proposed for this project.
@@ -106,8 +106,7 @@ low resolution image containing global structures found in the
 source data. As discussed previously, the semantic data must be extracted from
 the scene in order to use as input into this machine learning model.
 The focus of this proposed project is to generate these semantics and study
-what other information is important when considering the
-``meaning'' behind a 3D scene.
+how they might influence a machine learning architecture.
 
 \subsection{Development and Expectations}
 Most of the development for this project will be in RenderMan and Autodesk Maya,
@@ -116,7 +115,7 @@ with some pre/post-processing to occur intermittently in Python.
 \subsubsection{RenderMan}
 RenderMan will be used to build a render pipeline that will not only render advanced images
 of 3D scenes, but also calculate and export scene semantics.
-It is predicted that this will be possible throught he use of raytracing or ray sampling.
+It is predicted that this will be possible through the use of raytracing or ray sampling.
 The walkthrough comparison of OpenGL to RenderMan found in \cite{renderman_opengl}
 may prove useful for development.
 It is also expected that the RenderMan documentation found in \cite{renderman_docs}
@@ -124,74 +123,75 @@ will be referred to as well.
 
 \subsubsection{Autodesk Maya}
 Autodesk Maya (Maya for short) is a 3D animation and modeling software that will be utilized
-for creating the 3D scenes to use as input to the render pipeline.
+for creating the 3D animated scenes to use as input to the render pipeline.
 The scenes created will be of varying complexity to ensure that all aspects of a
-render will be taken into account. May Embedded Language (MEL) or Python scripting
-will be utilized within Maya in order to produce some semantic data, such as neighboring
-objects and tree heirarchy. The export functions (OBJ, FBX, etc.) will also be explored
-as sources of further semantic data that can be preprocessed from the scene.
+render will be taken into account.
+Scenes will involve dynamic camera movement, lighting, and material attributes, in order
+to represent the complicated use-cases for this project.
 
-\section{Semester Plan}
-\label{subsec:semester_plan}
-\begin{enumerate}
-\item \textbf{\textit{9/10 -- 9/17} Documentation for Proposal Presentation (1 week)}
+May Embedded Language (MEL) or Python scripting
+will be utilized within Maya in order to produce some semantic data, such as finding neighboring
+objects and generating a heirarchical tree. The export functions (OBJ, FBX, etc.) will also be explored
+as sources of further semantic data that can be preprocessed from within the software.
+
+\section{Semester Timeline}
+\label{subsec:semester_timeline}
+\textbf{\textit{9/10 -- 9/17} Documentation for Proposal Presentation (1 week)}
 \begin{itemize}
-\item Past research -- Collect more research for ray tracing, RenderMan, and Autodesk Maya pipeline.
-\item Documentation -- Slides and other documentation, including citing.
+\item Research -- Collect more research for ray tracing, RenderMan, and Autodesk Maya pipeline.
 \end{itemize}
-\item \textbf{\textit{9/17 -- 9/24} Environment Setup (1 week)}
+\textbf{\textit{9/17 -- 9/24} Environment Setup (1 week)}
 \begin{itemize}
-\item Fundamentals -- Computer build and setup.
-\item Maya -- Source 3D animation and modeling software.
+\item Fundamentals -- Build computer and setup environment.
+\item Maya -- Setup a basic scene.
 \item RenderMan -- Download and install.
 \end{itemize}
-\item \textbf{\textit{9/24 -- 10/3} Project 1 (1 and a half weeks)}
+\textbf{\textit{9/24 -- 10/3} Project 1 (1 and a half weeks)}
 \begin{itemize}
-\item Test Render Pipeline -- Create an export rendered in RenderMan for Project 1.
+\item Test Render Pipeline -- Create a dynamic export rendered in RenderMan for Project 1.
 \end{itemize}
-\item \textbf{\textit{10/3 -- 10/8} Documentation for Midterm Presentation (1 week)}
+\textbf{\textit{10/3 -- 10/22} Explore RenderMan (3 weeks)}
 \begin{itemize}
-\item Documentation -- Slides and other documentation.
-\end{itemize}
-\item \textbf{\textit{10/8 -- 10/22} Explore RenderMan (2 weeks)}
-\begin{itemize}
+\item Research -- Further research and analysis into ray tracing in RenderMan.
 \item Basic working pipeline -- Work from animation file used in \cite{thesis_harris}.
-\item Basic working script -- Using RenderMan documentation \cite{renderman_docs}.
+\item Basic working script -- Source RenderMan documentation \cite{renderman_docs}.
 \end{itemize}
-\item \textbf{\textit{10/22 -- 10/29} Midterms Wiggle Room (1 week)}
-\item \textbf{\textit{10/29 -- 11/12} Explore RenderMan (2 weeks)}
+\textbf{\textit{10/22 -- 10/29} Midterms Wiggle Room (1 week)}
+\textbf{\textit{10/29 -- 11/12} Ray Tracing (2 weeks)}
 \begin{itemize}
-\item Program Ray Tracing -- Using OpenGL to RenderMan discussion \cite{renderman_opengl}
-and Ray Trace Walkthrough \cite{raytrace_walkthrough} as references.
+\item Program ray tracing -- Use OpenGL to RenderMan discussion \cite{renderman_opengl}
+and ray trace walkthrough \cite{raytrace_walkthrough} as references.
 \end{itemize}
-\item \textbf{\textit{11/12 -- 11/26} Export Object Semantics (2 weeks)}
+\textbf{\textit{11/12 -- 11/26} Export Object Semantics (2 weeks)}
 \begin{itemize}
 \item Find objects associated with each pixel.
-\item Export in a parsable format for ML processing.
+\item Export in a parsable format for (optional) postprocessing.
 \end{itemize}
-\item \textbf{\textit{11/26 -- 12/3} Thanksgiving Break (1 week)}
+\textbf{\textit{11/26 -- 12/3} Thanksgiving Break (1 week)}
 \begin{itemize}
 \item Complete Work -- Final completion of work.
 \item Clean Up -- Code and repository clean up.
 \end{itemize}
-\item \textbf{\textit{12/3 -- 12/10} Documentation for Final Presentation (1 week)}
+\textbf{\textit{12/3 -- 12/10} Documentation for Final Presentation (1 week)}
 \begin{itemize}
 \item Documentation -- Slides and other documentation.
 \item 12/10 -- Last day to present.
 \end{itemize}
-\item \textbf{\textit{12/10 -- 12/17} Finals Wiggle Room (last week)}
-\end{enumerate}
+\textbf{\textit{12/10 -- 12/17} Finals Wiggle Room (last week)}
 
 \section{Conclusion}
 \label{sec:conclusion}
-Here is proposed a project to benefit ongoing research in the field of Computer Graphics.
-Not only will the project development benefit my thesis work, but it is also a study of
-generating semantic data from 3D scenes. Many of these data are easily recognizable to humans,
-however automating the process is a complicated task that will involve much consideration over
-scene dynamics and the relationship of objects to what is rendered. Ray tracing is also a concept
-key to many other computational tasks in Computer Graphics, and through working on this
-project I will be able to explore the implementation of ray tracing and its application
-to difficult problems.
+We propose a project to benefit ongoing research in the field of Computer Graphics.
+Not only will the project benefit my thesis work \cite{thesis_harris},
+but it will also stand as a separate body of wory from which further research can sprout from.
+Semantics data is easily recognizable by humans, but much harder for machines.
+Automating the process is a complicated task that will involve much consideration over
+scene dynamics and the relationship of objects to what is rendered.
+
+Ray tracing is also a concept
+key to many difficult tasks, and this project is an
+opportunity to explore the implementation of ray tracing and its application
+to difficult problems in Computer Graphics.
 
 \bibliographystyle{IEEEtran}
 \bibliography{proposal}
