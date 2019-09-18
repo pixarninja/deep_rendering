@@ -14,6 +14,7 @@
 \setlength{\pdfpageheight}{11in}  % DO NOT CHANGE THIS
 \nocopyright
 \graphicspath{{images/}}
+\usepackage{array}
 %PDF Info Is REQUIRED.
 % For /Author, add all authors within the parentheses, separated by commas. No accents or commands.
 % For /Title, add Title in Mixed Case. No accents or commands. Retain the parentheses.
@@ -103,10 +104,10 @@ One of the most applicable areas of machine learning to Computer Graphics is in 
 generation of images. Image processing is very useful for graphics artists and
 researchers, and may involve labeled or unlabeled data. We propose
 a study of how machine learning can be applied to enahance the quality of an image.
-4 different architectures are proposed to be studied, in the hopes of comparing
+Four different architectures are proposed to be studied, in the hopes of comparing
 their results and finding the best possible architecture for enchancing images.
-This research will be applied to a larger machine learning architecture that will be used to
-speed up rendering of 3D animated feature films.
+This research will be applied to a larger machine learning framework that will be used to
+speed up rendering 3D animated feature films.
 \end{abstract}
 
 \section{Introduction}
@@ -125,7 +126,7 @@ rendering and image processing performance.
 However, there are many factors which make image generation difficult, including
 the complexity of the image, the image context, and how the image will be used.
 Recent research shows that we are able to obtain higher quality images by giving
-an algorithm non-random seed data, such as a low-quality image, to generate from.
+an algorithm non-random seed data -- such as a low-quality image -- to generate from.
 Proposed in this document is a study
 on how to enhance low quality images using machine learning
 as an application to image processing research in the field of Computer Graphics.
@@ -136,26 +137,24 @@ as an application to image processing research in the field of Computer Graphics
 
 \section{Related Work}
 \label{sec:related_work}
-%\subsection{Image Processing}
-%\subsubsection{Next Frame Prediction}
-%Mahjourian \textit{et al.} \cite{next_frame_prediction}
-%focus on generating the
-%next frame of a monocular (i.e. single-view) video 
-%given the video's previous frames. They deployed
-%an LSTM machine learning model in order to generate a depth map representing the next frame.
-%Another machine learning model was then applied to convert the generated depth
-%map into the pixels of the predicted frame. The largest deficiency of the
-%project was the poorness of the output frame's quality, as shown in Figure
-%\ref{fig:frame_prediction}; in order to use their
-%application for production-quality outputs, more steps would have
-%to be taken to ensure the quality is comparable to the original input frames.
-%
-%\begin{figure}[htbp]
-%\centerline{\includegraphics[width=8cm]{frame_prediction.png}}
-%\caption{Example input (bottom) and output (top) of frame prediction algorithm
-%\cite{next_frame_prediction}.}
-%\label{fig:frame_prediction}
-%\end{figure}
+\subsection{Image Processing}
+\subsubsection{Next Frame Prediction}
+Mahjourian \textit{et al.} \cite{next_frame_prediction}
+focus on generating the
+next frame of a monocular (i.e. single-view) video 
+given the video's previous frames. They deployed
+an LSTM machine learning model in order to generate a depth map representing the next frame.
+Another machine learning model was then applied to convert the generated depth
+map into the pixels of the predicted frame. The largest deficiency of the
+project was the poorness of the output frame's quality, as shown in Figure
+\ref{fig:frame_prediction}.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{frame_prediction.png}}
+\caption{Example input (bottom) and output (top) of frame prediction algorithm
+\cite{next_frame_prediction}.}
+\label{fig:frame_prediction}
+\end{figure}
 %
 %The use of the LSTM model in order to
 %collect changes from all previous frames instead of just one previous frame
@@ -175,19 +174,18 @@ as an application to image processing research in the field of Computer Graphics
 %that is more robust to changes in pose and spatial relationships of parts of objects
 %in images'' \cite{transforming_auto_encoders}.
 
-\subsubsection{PG\textsuperscript{2}}
+\subsection{PG\textsuperscript{2}}
 \label{subsubsec:pg2}
 Ma \textit{et al.} 
 present a system entitled
 ``Pose Guided Person Generation Network'', or PG\textsuperscript{2}
 \cite{pose_guided_image_generation}.
-This system takes as input a condition image, and a target image representing the pose
-to be translated into (the choice of the representation for pose data is explained further in the
-paper). Using a system of two generative models,
-the algorithm produces as intermediate output a low-resolution
+This system takes as input a condition image and a target pose
+(the choice of the representation for pose data is explained further in the
+paper). Their architecture produces as intermediate output a low-resolution
 image that defines global structure and features, as well as a final refined
-image of the person in the new pose. See Figure \ref{fig:pose_guided} for
-a block diagram of their architecture.
+image showing the input person translated to the target pose.
+See Figure \ref{fig:pose_guided} for a block diagram of the developed architecture.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{pose_guided.png}}
@@ -195,21 +193,22 @@ a block diagram of their architecture.
 \label{fig:pose_guided}
 \end{figure}
 
-the final stage of PG\textsuperscript{2} \cite{pose_guided_image_generation}
-takes as input a low quality structural image and
-outputs a high resolution image of comparable quality to the target
-(see G2 of Figure \ref{fig:pose_guided}).
-They used a modified DCGAN \cite{unsupervised_learning}, which included
+%The final stage of PG\textsuperscript{2} \cite{pose_guided_image_generation}
+%takes as input a low quality structural image and
+%outputs a high resolution image of comparable quality to the target
+%(see G2 of Figure \ref{fig:pose_guided}).
+For the second generator architecture (G2 of Figure \ref{fig:pose_guided}),
+Ma \textit{et al.} used a modified DCGAN, which included
 a generator and discriminator for training the model to export
-high resolution versions of low quality images.
-Example output of their architecture given the condition image and a new pose
-is shown in Figure \ref{fig:pg2_results}.
-
-\begin{figure}[htbp]
-\centerline{\includegraphics[width=8cm]{pg2_results.png}}
-\caption{PG\textsuperscript{2} Example Output \cite{pose_guided_image_generation}.}
-\label{fig:pg2_results}
-\end{figure}
+high resolution versions of low quality images \cite{unsupervised_learning}.
+%Example outputs of their architecture given the condition image and a new pose
+%are shown more clearly in Figure \ref{fig:pg2_results}.
+%
+%\begin{figure}[htbp]
+%\centerline{\includegraphics[width=8cm]{pg2_results.png}}
+%\caption{PG\textsuperscript{2} Example Output \cite{pose_guided_image_generation}.}
+%\label{fig:pg2_results}
+%\end{figure}
 
 %\subsection{Image Enhancement}
 %\label{subsec:image_enhancement}
@@ -267,9 +266,11 @@ but uses convolutional and convolutional-transpose layers in D and G, respective
 \cite{unsupervised_learning}.
 
 Ma \textit{et al.} were successful in using
-a variant conditional DCGAN as their G2 model, which is similar to the work proposed here
+a variant conditional DCGAN as their G2 model.
+There results show that the DCGAN could work well
+for enhancing images
 \cite{pose_guided_image_generation}.
-See Figure \ref{fig:pg2_results} for example outputs of their algorithm.
+%See Figure \ref{fig:pg2_results} for example outputs of their algorithm.
 A Pytorch implementation for the DCGAN is stored on GitHub.
 This repository is explained thoroughly in a walkthrough
 in Pytorch documentation.
@@ -278,20 +279,20 @@ in Pytorch documentation.
 PixelCNN is a Convolutional Neural Network that is conditioned on an input image
 \cite{conditional_image_generation}.
 The architecture uses the input image vector to generate output images similar to it.
-PixelCNN++ \cite{pixelcnn++} is a project developed by researching the
-PixelCNN architecture with improvements made
+PixelCNN++ \cite{pixelcnn++} provides improvements on the
+PixelCNN architecture
 for system efficiency and image output.
 Implementation for the PixelCNN++ architecture can be found on GitHub.
-Example outputs of their implementation are shown in Figure \ref{fig:pixelcnn++}.
+Example outputs of the PixelCNN++ implementation are shown in Figure \ref{fig:pixelcnn++}.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{pixelcnn++.png}}
-\caption{PixelCNN++ Example Outputs \cite{pixelcnn++}.}
+\caption{PixelCNN++ Trained on the CIFAR-10 Dataset\cite{pixelcnn++}.}
 \label{fig:pixelcnn++}
 \end{figure}
 
 \subsubsection{Pix2Pix}
-Pix2Pix was a system designed by Isola \textit{et al.} 
+Pix2Pix is a system designed by Isola \textit{et al.} 
 as a tool to help artists and designers take advantage of processing images with machine learning
 \cite{image_to_image}.
 They found their model worked well in synthesizing, reconstructing, and colorizing
@@ -302,20 +303,35 @@ Implemenation for the Pix2Pix architecture can be found on GitHub.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{image_to_image.png}}
-\caption{Image-to-Image Translation Example Outputs \cite{image_to_image}.}
+\caption{Image-to-Image Translation Trained on Various Datasets \cite{image_to_image}.}
 \label{fig:image_to_image}
 \end{figure}
 
 \subsubsection{Sparse Attention}
-Sequence to sequence \cite{generative_transformers}.
+Vaswani \textit{et al.} first proposed the Transformer
+as a way to use attention mechanisms more efficiently
+\cite{attention_need}.
+Transformers are able to
+``\dots model arbitrary dependencies
+in a constant number of layers''
+and have proven useful for natural language processing \cite{generative_transformers}.
+For the development of their Sparse Attention architecture,
+Child \textit{et al.} introduced sparse factorizations on the attention matrix
+of a Transformer in order to speed up processing for long sequences of
+data.
+
+Essentially, they implimented an approximation of the dense attention
+opertation by combining several cheaper attention operations.
+The result was a faster and better attention-based architecture
+that could be trained on longer sequences of data.
 The Sparse Attention results (shown in Figure \ref{fig:sparse_attention}) are
 much higher quality than the PixelCNN++ results and possibly
-the DCGAN results.
+the DCGAN results as well.
 Implementation for the Sparse Attention system can be found on GitHub.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{sparse_attention.png}}
-\caption{Sparse Attention Example Outputs \cite{generative_transformers}.}
+\caption{Sparse Attention Trained on the CIFAR-10 Dataset \cite{generative_transformers}.}
 \label{fig:sparse_attention}
 \end{figure}
 
@@ -324,19 +340,20 @@ Implementation for the Sparse Attention system can be found on GitHub.
 \subsection{Dataset Creation}
 \label{subsec:data}
 We have developed an algorithm to deconstruct frames from an animated sequence
-and compile them into a database of image blocks to be processed for the
-training dataset.
-A frame is first broken into
-small (32 x 32 pixel) sections, referred to as ``frameblocks''.
+into a database of image blocks from which the
+training dataset may be created.
+As an overview of the deconstruction process,
+an input frame (1920 x 1080 pixels) is first broken into
+32 x 32 pixel sections, referred to as ``frameblocks''.
 Frameblocks representing a majority of change between two frames
 are selected as part of the base dataset.
 This process ensures that all images generated for the dataset
-are representative of what is animated and that they are generally unique
+are representative of scene dynamics and that they are generally unique
 in comparison to each other.
 Figure \ref{fig:frameblock_generation} compares how material attributes
 (such as transparency and reflection) may alter which frameblocks are selected.
-The frameblocks outlined in red are
-included in the dataset while frameblocks outlined in blue are not.
+For the two cases shown in the diagram, the frameblocks outlined in red are
+included in the respective datasets while frameblocks outlined in blue are not.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{frameblock_generation.png}}
@@ -344,60 +361,80 @@ included in the dataset while frameblocks outlined in blue are not.
 \label{fig:frameblock_generation}
 \end{figure}
 
-A 13 second long animation (300 frames each with 1920 x 1080 pixels) was fed into the program,
-resulting in a collection of 14,330 frameblocks (32 x 32 pixels).
+A 13 second long animation (300 frames total) was fed into the program,
+resulting in a collection of 14,330 frameblocks.
 In order to create the training dataset, these images will be
 made into similar quality
-to the intermediate output of Generator I 
+as the intermediate output of G1
 in the PG\textsuperscript{2} architecture
-(Figure \ref{fig:pose_guided}) \cite{pose_guided_image_generation}.
-The training dataset will be blurred and small anomolies will be added uniformly
+\cite{pose_guided_image_generation}.
+The training dataset will be blurred, and small anomolies will be added uniformly
 such that a general structure can be seen but no details are visible.
 Copies of the original frameblocks are kept to form an image pair that can be used
-as validation for the discriminator.
+as means for evaluating results of the architectures.
 See Figure \ref{fig:training_pair} for examples of structural images
 compared to their full-resolution counterparts.
 
-\subsubsection{Dataset Validation}
-Since this dataset has not been previously tested, one may conjecture that there are
-concerns of over-fitting; as discussed by Radford \textit{et al.},
+\subsection{Dataset Validation}
+Since this dataset has not been previously tested, there are
+concerns of over-fitting or poor performance; as discussed by Radford \textit{et al.},
 ``as visual quality of samples from generative image models has improved, concerns of
 over-fitting and memorization of training samples have risen''
 \cite{unsupervised_learning}.
-However, the dataset creation algorithm was created with overfitting in mind.
-The algorithm only exports frameblocks which exceed a certain threshold in change
-between frames or frame sets. Thus, it is unlikely similar frameblocks will be exported,
-and generally each frame block is unique to its position relative to other objects in the scene.
+If the generated dataset does perform poorly,
+the creation algorithm can be altered to produce better results.
 
-If over-fitting does occur,
-the dataset algorithm can be altered.
 We also plan to test with other datasets in order to verify the results with applicable benchmarks
-and improve the evaluation of the developed architecture.
+and improve the evaluation of the developed architectures.
+The CIFAR-10 dataset was very popular among image generation architectures
+found in the literature.
+CIFAR-10 is made up of 60,000 32 x 32 pixel images.
+Another dataset used was ImageNet, which has 14 million 32 x 32 pixel images of 20 categories.
+One or both of these datasets will be used to evaluate the developed
+machine learning models.
 
 \subsection{Model Construction}
 \label{subsec:model}
-The architectures applicable to this project are enumerated below.
+Four architectures applicable to this project are listed below.
 As time allows, each architecture will be implemented, evaluated, and compared
-against. The conclusion of this project will be an explanation of which architectures performed the best
-for the given problem.
+against. This research will conclude with an explanation of which architectures performed the best
+for the given problem and why.
 \begin{enumerate}
 \item \textbf{DCGAN} --
-Rate, dataset.
-\item \textbf{Pix2Pix} --
-Rate, dataset.
-\item \textbf{Sparse Attention} --
-Rate, dataset.
-\item \textbf{PixelCNN++} --
-The PixelCNN++ architecture will be looked at last, since it has the expected lowest
+The DCGAN is proven to enhance images a considerable degree.
+Ma \textit{et al.} used their own dataset in order to train their G2 model,
+produced by the first generator of their framework (see G1 of Figure \ref{fig:pose_guided}).
+The base datasets they tested with were the DeepFashion and Market-1501 datasets.
+The DCGAN is expected to be the easiest architecture to implement and have average quality outputs.
+\item \textbf{Transformer} --
+The Sparse Attention architecture has the best results for image generation
+on common datasets, however it is unknown how the model will fare with
+image enhancement.
+Child \textit{et al.} used CIFAR-10 and ImageNet for testing,
+and their model performed well for generating both small (32 x 32 pixel) and large (64 x 64 pixel)
+images.
+It will necessary to compare the training time and efficiency of this architecture on larger sequences
+of data.
+\item \textbf{cGAN} --
+Pix2Pix is an architecture covering a broad range of image processing problems.
+It is expected the model will be able to enhance images, however
+the quality of the enhancements will need to be focused on when comparing to
+the other architectures.
+Isola \textit{et al.} used 10 datasets for their training,
+one for each type of image processing applied to their architecture.
+\item \textbf{CNN} --
+The PixelCNN++ architecture will be looked at last, since it expected to have the lowest
 quality outputs after training.
-Rate, dataset.
+Salimans \textit{et al.} used the CIFAR-10 dataset for training and
+evaluation, but did not obtain results as good as the
+DCGAN, cGAN, or Transformer based architectures.
 \end{enumerate}
 
 \section{Evaluation}
 \label{sec:methods/evaluation}
 The implemented architectures will be evaluated on how well they are able to learn how to
 enhance an altered image. After optimization and training have taken place,
-an altered image within the unknown test dataset will be input into the algorithm, and the output
+an altered image within a test dataset will be input into the algorithm, and the output
 will be compared to the original image. An example input data and the expected output
 of the algorithm is shown in Figure \ref{fig:training_pair}.
 
@@ -410,66 +447,60 @@ of the algorithm is shown in Figure \ref{fig:training_pair}.
 
 A difference map (XOR) will be taken between the image output of the algorithm
 and original image, in order to calculate a percentage difference between them.
-Various frameblocks will be tested to determine how well the architecture fairs for the frame
-as a whole.
+Various frameblocks will be tested to determine how well the architectures fare over
+an entire frame.
 
 \section{Semester Timeline}
 \label{subsec:semester_plan}
-\textbf{\textit{9/16 -- 9/23} Environment Setup (1 week)}
-\begin{itemize}
-\item Get PyTorch working.
-\item Test on sample code architectures (DCGAN, cGAN, CNN, and Transformer).
-\end{itemize}
-\textbf{\textit{9/23 -- 10/7} DCGAN Architecture (2 weeks)}
-\begin{itemize}
-\item Run the sample code.
-\item Make edits.
-\end{itemize}
-\textbf{\textit{10/7 -- 10/21} Documentation for Midterm Presentation (2 weeks)}
-\begin{itemize}
-\item 7 - 10 references, 4 - 5 pages, 7 - 10 minutes.
-\end{itemize}
-\textbf{\textit{10/21 -- 10/28} Midterms Wiggle Room (1 week)}
-\textbf{\textit{10/28 -- 11/11} Transformer Architecture (2 weeks)}
-\begin{itemize}
-\item Run the sample code.
-\item Make edits.
-\end{itemize}
-\textbf{\textit{11/11 -- 11/25} cGAN Architecture (2 weeks)}
-\begin{itemize}
-\item Run the sample code.
-\item Make edits.
-\end{itemize}
-\textbf{\textit{11/25 -- 12/2} Thanksgiving Break (1 week)}
-\begin{itemize}
-\item Make comparisons based on previous work and start drawing conclusions.
-\end{itemize}
-\textbf{\textit{12/2 -- 12/9} Documentation for Final Presentation (1 week)}
-\begin{itemize}
-\item 6 - 8 pages, 10 - 15 minutes.
-\end{itemize}
-\textbf{\textit{12/9 -- 12/16} Finals Wiggle Room (last week)}
+\bgroup
+\def\arraystretch{1.5}
+\begin{tabular}{| m{0.15\textwidth} m{0.05\textwidth} m{0.2\textwidth}|} 
+\hline
+Dates Proposed & Weeks & Task(s) \\ 
+\hline
+\hline
+\textit{9/16 -- 9/23} & 1 & Environment Setup \\ 
+\hline
+\textit{9/23 -- 10/7} & 2 & DCGAN Architecture \\ 
+\hline
+\textit{10/7 -- 10/21} & 2 & Documentation for Mid-term Presentation \\ 
+\hline
+\textit{10/21 -- 10/28} & 1 & Midterms Wiggle Room \\ 
+\hline
+\textit{10/28 -- 11/11} & 2 & Transformer Architecture \\ 
+\hline
+\textit{11/11 -- 11/25} & 2 & cGAN Architecture \\ 
+\hline
+\textit{11/25 -- 12/2} & 1 & Thanksgiving Break \\ 
+\hline
+\textit{12/2 -- 12/9} & 1 & Documentation for Final Presentation \\ 
+\hline
+\textit{12/9 -- 12/16} & 1 & Finals Wiggle Room \\ 
+\hline
+\end{tabular}
+\egroup
 
 \section{Conclusion}
 \label{sec:conclusion}
 In this document is proposed work on an image enhancement algorithm as
-part of an overall machine learning architecture for dynamically
+part of an overall machine learning framework for dynamically
 generating rendered frames. The architecture is modeled off of work from
-Ma \textit{et al.} and their PG\textsuperscript{2} system
+Ma \textit{et al.} and their PG\textsuperscript{2} framework
 \cite{pose_guided_image_generation}.
 The proposed model construction and evaluation is taken from
 the DCGAN \cite{unsupervised_learning},
-CNN \cite{pixelcnn++},
+Transformer \cite{generative_transformers},
 cGAN \cite{image_to_image},
-and Transformer \cite{generative_transformers} architectures.
+and
+CNN \cite{pixelcnn++}
+architectures.
 The best solution for the presented problem will be found
 by comparing the outputs of these models.
 
 \nocite{pixel_recurrent}
 \nocite{parallel_density}
+%\nocite{pixel_subscale}
 %\nocite{pixel_snail}
-\nocite{pixel_subscale}
-%\nocite{next_frame_prediction}
 %\nocite{combining_multiple_cnn}
 %\nocite{deep_video_prediction}
 %\nocite{fusionnet}
