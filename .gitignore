@@ -1,7 +1,6 @@
 /docs/*/references/
 /docs/*/output/
-/jupyter/images/*
-/python/images/*
-/python/training/blurred
-/python/training/validation
-/python/training/testset
+/jupyter/images/
+/jupyter/.ipynb_checkpoints/
+/python/images/
+/python/training/
