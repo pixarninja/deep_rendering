@@ -58,8 +58,12 @@ This study is key to understanding and perhaps improving the
 render pipeline and current rendering techologies.
 However, extracting this data from the render process into a usable
 format is not straightforward.
+
 In this document is proposed a study of scene semantics and the development of a
 usable algorithm to generate relevant semantic data from 3D environments.
+We will focus on generating these semantics and study
+how they may influence developments of
+machine learning models in Computer Graphics.
 
 \section{Related Work}
 \label{sec:related_work}
@@ -123,13 +127,6 @@ source data.
 \label{fig:block_diagram}
 \end{figure}
 
-The results of this research project will allow semantic data to be
-extracted from a 3D scene in order to use as input into
-the target machine learning architecture.
-We will focus on generating these semantics and study
-how they might influence developments of
-machine learning models in Computer Graphics.
-
 \section{Proposed Work}
 \label{sec:proposed_work}
 \subsection{Development and Expectations}
@@ -141,18 +138,17 @@ rendered with RenderMan.
 
 \subsubsection{Autodesk Maya}
 Autodesk Maya (Maya for short) is a 3D animation and modeling software that will be utilized
-for creating the 3D animated scenes to use as input to the render pipeline.
+for creating the 3D animated scenes input into the render pipeline.
 The scenes created will be of varying complexity to ensure that all aspects of a
 render will be taken into account.
 Scenes will involve dynamic camera movement, lighting, and material attributes, in order
 to represent the complicated use-cases for this project.
 
-May Embedded Language (MEL) or Python scripting
+Maya Embedded Language (MEL) or Python scripting
 will be utilized within Maya in order to produce some semantic data, such as finding neighboring
-objects and generating a heirarchical tree. The export functions (OBJ, FBX, etc.) will also be explored
+objects and generating a heirarchical tree. Export functions (OBJ, FBX, etc.) will also be explored
 as sources of further semantic data that can be preprocessed from within the software.
-Figure \ref{fig:maya} shows one of the foundational Maya scenes that will be used
-while working on the project.
+Figure \ref{fig:maya} shows an example of the GUI for Maya 2019 software.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{maya.png}}
@@ -168,7 +164,7 @@ The walkthrough comparison of OpenGL to RenderMan found in \cite{renderman_openg
 may prove useful for development.
 It is also expected that the RenderMan documentation found in \cite{renderman_docs}
 will be referred to as well.
-See Figure \ref{fig:renderman} for example rendering of dynamic scenes.
+See Figure \ref{fig:renderman} for examples of dynamic scenes rendered with RenderMan.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{renderman.png}}
@@ -178,9 +174,9 @@ See Figure \ref{fig:renderman} for example rendering of dynamic scenes.
 
 \section{Semester Timeline}
 \label{subsec:semester_timeline}
-\textbf{\textit{9/10 -- 9/17} Documentation for Proposal Presentation (1 week)}
+\textbf{\textit{9/10 -- 9/17} Documentation for Proposal (1 week)}
 \begin{itemize}
-\item Research -- Collect more research for ray tracing, RenderMan, and Autodesk Maya pipeline.
+\item Research -- Collect research for ray tracing, RenderMan, and Autodesk Maya pipeline.
 \end{itemize}
 \textbf{\textit{9/17 -- 9/24} Environment Setup (1 week)}
 \begin{itemize}
@@ -208,8 +204,8 @@ and ray trace walkthrough \cite{raytrace_walkthrough} as references.
 \end{itemize}
 \textbf{\textit{11/12 -- 11/26} Export Object Semantics (2 weeks)}
 \begin{itemize}
-\item Find objects associated with each pixel.
-\item Export in a parsable format for (optional) postprocessing.
+\item Generate Semantics -- Find semantic information associated with each pixel.
+\item Export -- Save semantics in a parsable format for (optional) postprocessing.
 \end{itemize}
 \textbf{\textit{11/26 -- 12/3} Thanksgiving Break (1 week)}
 \begin{itemize}
