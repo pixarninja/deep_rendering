@@ -1,6 +1,6 @@
 /docs/*/references/
 /docs/*/output/
 /jupyter/images/
-/jupyter/.ipynb_checkpoints/
+*.ipynb_checkpoints*
 /python/images/
 /python/training/
