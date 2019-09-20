@@ -4,3 +4,6 @@
 *.ipynb_checkpoints*
 /python/images/
 /python/training/
+/source/datasets
+/source/animations/glass_full/
+/source/animations/glass_half/

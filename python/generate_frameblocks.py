@@ -8,7 +8,8 @@ block_dim = 32
 block_offset = 1
 
 # Initialize path prefixes.
-path_prefix = '../jupyter/images/'
+path_prefix = './images/'
+src_prefix = '../source/animations/glass/'
 buffer_prefix = path_prefix + 'buffer/'
 
 # Initialize path variables.
@@ -49,12 +50,13 @@ else:
 # Setup main loop to process all frames in an animation.
 frames = os.listdir(frames_path)
 frames.sort()
-block_index = 1
 
 # Process each frame.
 for frame_index in range(0, len(frames), 2):
     frame = frames[frame_index]
-    img_str_out = training_path + 'block' + str(block_index) + 'frame' + str(frame_index + 1)
+    frame_str_out = 'frame' + str(frame_index + 1)
+    block_index = 1
+    block_str_out = 'block' + str(block_index + 1)
 
     # If the frame index is 0, store all frameblocks.
     if frame_index < 1:
@@ -71,7 +73,6 @@ for frame_index in range(0, len(frames), 2):
         right = block_dim
         top = 0
         bottom = block_dim
-        block_index = 1
 
         # Find the Region Of Interest (ROI).
         while bottom <= height:
@@ -85,11 +86,13 @@ for frame_index in range(0, len(frames), 2):
                 print(str(block_index) + ". Frameblock: (" + str(left) + ", " + str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
 
                 # Store window contents as image.
+                img_str_out = training_path + frame_str_out + block_str_out
                 img_roi = img_1[top:bottom, left:right]
                 cv2.imwrite(img_str_out + '_end.jpg', img_roi)
 
                 # Increase frameblock index.
                 block_index += 1
+                block_str_out = 'block' + str(block_index + 1)
                 
                 # Shift horizontally.
                 left += int(block_dim / block_offset)
@@ -155,7 +158,6 @@ for frame_index in range(0, len(frames), 2):
         right = block_dim
         top = 0
         bottom = block_dim
-        block_index = 1
         pixel_sum = 0
         cap = np.power(block_dim, 2) * 255 * pixel_ratio
         print("Cap found: " + str(cap))
@@ -197,6 +199,7 @@ for frame_index in range(0, len(frames), 2):
                             print(str(block_index) + ". Sum: " + str(pixel_sum) + ", Frameblock: (" + str(left) + ", " + str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
                             
                             # Store window contents as image.
+                            img_str_out = training_path + frame_str_out + block_str_out
                             img_roi = img_2[top:bottom, left:right]
                             cv2.imwrite(img_str_out + '_end.jpg', img_roi)
                             
@@ -267,6 +270,7 @@ for frame_index in range(0, len(frames), 2):
 
                 # Increase frameblock index.
                 block_index += 1
+                block_str_out = 'block' + str(block_index + 1)
                 
                 # Shift horizontally.
                 left += int(block_dim / block_offset)
