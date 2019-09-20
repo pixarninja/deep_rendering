@@ -14,7 +14,7 @@ src_prefix = '../source/animations/'
 buffer_prefix = path_prefix + 'buffer/'
 
 # Initialize path variables.
-frames_path = src_prefix + 'glass_quarter/'
+frames_path = src_prefix + 'glass_full/'
 training_path = path_prefix + 'blocks/'
 shadow_img_path = path_prefix + 'shadow/'
 roi_img_path = path_prefix + 'roi/'
@@ -144,8 +144,8 @@ for frame_index in range(0, len(frames), 2):
         img_out = cv2.bitwise_not(cv2.cvtColor(img_xor, cv2.COLOR_BGR2GRAY))
 
         # Continue to next frame if no changes were found.
-        if pixel_sum == 0:
-            print("No changes found, continuing to next image.")
+        if pixel_sum <= 255:
+            print("No major changes found, continuing to next image.")
             continue
 
         # Write image.
