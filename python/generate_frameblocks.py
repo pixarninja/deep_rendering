@@ -6,14 +6,15 @@ import numpy as np
 # Initialize seed variables.
 block_dim = 32
 block_offset = 1
+start_and_end = False
 
 # Initialize path prefixes.
 path_prefix = './images/'
-src_prefix = '../source/animations/glass/'
+src_prefix = '../source/animations/'
 buffer_prefix = path_prefix + 'buffer/'
 
 # Initialize path variables.
-frames_path = path_prefix + 'glass/'
+frames_path = src_prefix + 'glass_full/'
 training_path = path_prefix + 'blocks/'
 shadow_img_path = path_prefix + 'shadow/'
 roi_img_path = path_prefix + 'roi/'
@@ -26,6 +27,8 @@ if os.path.exists(training_path):
     for file in filelist:
         os.remove(file)
 else:
+    if not os.path.exists(path_prefix):
+        os.mkdir(path_prefix)
     os.mkdir(training_path)
 
 if not os.path.exists(buffer_prefix):
@@ -59,12 +62,12 @@ for frame_index in range(0, len(frames), 2):
     block_str_out = 'block' + str(block_index + 1)
 
     # If the frame index is 0, store all frameblocks.
-    if frame_index < 1:
+    if frame_index < 1 and start_and_end:
         # Initialize seed variables.
         img_str_1 = frames_path + frames[frame_index]
 
         # Choose smallest boundaries.
-        img_1 = cv2.cvtColor(cv2.imread(img_str_1), cv2.COLOR_BGR2RGB)
+        img_1 = cv2.imread(img_str_1)
         img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
         height, width = img_1.shape[:2]
 
@@ -88,7 +91,11 @@ for frame_index in range(0, len(frames), 2):
                 # Store window contents as image.
                 img_str_out = training_path + frame_str_out + block_str_out
                 img_roi = img_1[top:bottom, left:right]
-                cv2.imwrite(img_str_out + '_end.jpg', img_roi)
+                if start_and_end:
+                    suffix = '_end.jpg'
+                else:
+                    suffix = '.jpg'
+                cv2.imwrite(img_str_out + suffix, img_roi)
 
                 # Increase frameblock index.
                 block_index += 1
@@ -112,11 +119,11 @@ for frame_index in range(0, len(frames), 2):
         img_str_shd = shadow_img_path + 'frame' + str(frame_index) + '.jpg'
         img_str_roi = roi_img_path + 'frame' + str(frame_index) + '.jpg'
 
-        img_1 = cv2.cvtColor(cv2.imread(img_str_1), cv2.COLOR_BGR2RGB)
+        img_1 = cv2.imread(img_str_1)
         img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
         height_1, width_1 = img_1.shape[:2]
 
-        img_2 = cv2.cvtColor(cv2.imread(img_str_2), cv2.COLOR_BGR2RGB)
+        img_2 = cv2.imread(img_str_2)
         img_2 = cv2.resize(img_2, (0,0), fx=0.5, fy=0.5) 
         height_2, width_2 = img_2.shape[:2]
 
@@ -137,8 +144,8 @@ for frame_index in range(0, len(frames), 2):
         img_out = cv2.bitwise_not(cv2.cvtColor(img_xor, cv2.COLOR_BGR2GRAY))
 
         # Continue to next frame if no changes were found.
-        if pixel_sum == 0:
-            print("No changes found, continuing to next image.")
+        if pixel_sum <= 255:
+            print("No major changes found, continuing to next image.")
             continue
 
         # Write image.
@@ -201,7 +208,11 @@ for frame_index in range(0, len(frames), 2):
                             # Store window contents as image.
                             img_str_out = training_path + frame_str_out + block_str_out
                             img_roi = img_2[top:bottom, left:right]
-                            cv2.imwrite(img_str_out + '_end.jpg', img_roi)
+                            if start_and_end:
+                                suffix = '_end.jpg'
+                            else:
+                                suffix = '.jpg'
+                            cv2.imwrite(img_str_out + suffix, img_roi)
                             
                             # Exit both for loops.
                             found_x = True
@@ -219,13 +230,16 @@ for frame_index in range(0, len(frames), 2):
                     img_buff_str = frame_buff_path + 'block' + str(block_index) + '.jpg'
                     if os.path.exists(img_buff_str):
                         # Move and rename file.
-                        os.rename(img_buff_str, img_str_out + '_start.jpg')
+                        if start_and_end:
+                            suffix = '_start.jpg'
+                            os.rename(img_buff_str, img_str_out + suffix)
 
                     # Otherwise export the ROI of the first image as the starting frame.
-                    else:
+                    elif start_and_end:
                         # Store window contents as image.
                         img_roi = img_1[top:bottom, left:right]
-                        cv2.imwrite(img_str_out + '_start.jpg', img_roi)
+                        suffix = '_start.jpg'
+                        cv2.imwrite(img_str_out + suffix, img_roi)
 
                 # Otherwise export the shadow and frame ROI to be used next time.
                 else:
