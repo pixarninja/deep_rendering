@@ -2,6 +2,10 @@
 /docs/*/output/
 /jupyter/images/
 *.ipynb_checkpoints*
+/python/dcgan/fake_samples_*
+/python/dcgan/netD_*
+/python/dcgan/netG_*
+/python/dcgan/real_samples.png
 /python/images/
 /python/training/
 /source/datasets
