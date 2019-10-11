@@ -152,14 +152,6 @@ class Generator(nn.Module):
             output = self.main(input)
         return output
 
-
-netG = Generator(ngpu).to(device)
-netG.apply(weights_init)
-if opt.netG != '':
-    netG.load_state_dict(torch.load(opt.netG))
-print(netG)
-
-
 class Discriminator(nn.Module):
     def __init__(self, ngpu):
         super(Discriminator, self).__init__()
@@ -194,6 +186,12 @@ class Discriminator(nn.Module):
         return output.view(-1, 1).squeeze(1)
 
 if __name__ == '__main__':
+    netG = Generator(ngpu).to(device)
+    netG.apply(weights_init)
+    if opt.netG != '':
+        netG.load_state_dict(torch.load(opt.netG))
+    print(netG)
+    
     netD = Discriminator(ngpu).to(device)
     netD.apply(weights_init)
     if opt.netD != '':
