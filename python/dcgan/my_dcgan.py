@@ -1,4 +1,5 @@
 # Taken from: https://github.com/pytorch/examples/blob/master/dcgan/
+# python my_dcgan.py --dataset folder --dataroot C:/Users/wesha/Git/dynamic_frame_generator/python/images/32/ --niter 100 --outf ./output_32x1 --cuda
 
 from __future__ import print_function
 import argparse
@@ -199,8 +200,26 @@ if __name__ == '__main__':
     print(netD)
 
     criterion = nn.BCELoss()
-
-    fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
+    
+    testset = dset.ImageFolder(root='C:/Users/wesha/Git/dynamic_frame_generator/python/training/32/altered',
+                               transform=transforms.Compose([
+                                   transforms.Resize(opt.imageSize),
+                                   transforms.CenterCrop(opt.imageSize),
+                                   transforms.ToTensor(),
+                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                               ]))
+    testloader = torch.utils.data.DataLoader(testset, batch_size=opt.batchSize,
+                                         shuffle=True, num_workers=int(opt.workers))
+                                         
+    for images, labels in testloader:  
+        my_noise = images[0:opt.batchSize]
+        vutils.save_image(my_noise,
+                        '%s/my_noise.png' % opt.outf,
+                        normalize=True)
+        break
+    
+    fixed_noise = my_noise
+    #print(fixed_noise)
     real_label = 1
     fake_label = 0
 

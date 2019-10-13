@@ -6,17 +6,30 @@ import numpy as np
 # Initialize variables.
 alter_count = 1
 keep_count = 1
+block_dim = 64
 
 # Initialize path prefixes.
-training_prefix = './training/'
+source_prefix = './images/' + str(block_dim) + '/'
+training_prefix = './training/' + str(block_dim) + '/'
 
 # Initialize path variables.
-blocks_path = training_prefix + 'blocks/'
+blocks_path = source_prefix + 'blocks/'
 validation_path = training_prefix + 'validation/'
 altered_path = training_prefix + 'altered/'
 testing_path = training_prefix + 'testset/'
 
+
+# Setup main loop to process all frameblocks.
+if not os.path.exists(blocks_path):
+    print('No inputs found, exiting program.')
+    exit()
+blocks = os.listdir(blocks_path)
+blocks.sort()
+
 # Delete previously output altered frameblocks.
+if not os.path.exists(training_prefix):
+    os.mkdir(training_prefix)
+
 if os.path.exists(validation_path):
     filelist = glob.glob(validation_path + '*')
     for file in filelist:
@@ -37,10 +50,6 @@ if os.path.exists(testing_path):
         os.remove(file)
 else:
     os.mkdir(testing_path)
-
-# Setup main loop to process all frameblocks.
-blocks = os.listdir(blocks_path)
-blocks.sort()
 
 # Process each block.
 for block_index in range(0, len(blocks)):

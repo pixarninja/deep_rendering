@@ -4,14 +4,14 @@ import cv2 as cv2
 import numpy as np
 
 # Initialize seed variables.
-block_dim = 32
+block_dim = 64
 block_offset = 1
 start_and_end = False
 
 # Initialize path prefixes.
-path_prefix = './images/'
+path_prefix = './images/' + block_dim + '/'
 src_prefix = '../source/animations/'
-buffer_prefix = path_prefix + 'buffer/'
+buffer_prefix = path_prefix
 
 # Initialize path variables.
 frames_path = src_prefix + 'glass_full/'
