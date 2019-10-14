@@ -1,10 +1,11 @@
 # Taken from: https://github.com/aitorzip/PyTorch-SRGAN
-# python test.py --cuda
+# python test.py --blockDim 32 --cuda
 
 import argparse
-import sys
-import os
+import os as os
 import numpy as np
+import sys as sys
+import utils as utils
 
 import torch
 import torch.nn as nn
@@ -20,6 +21,8 @@ from models import Generator, Discriminator, FeatureExtractor
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
+    parser.add_argument('--alpha', type=float, default=0.75, help='noise contant to use')
+    parser.add_argument('--beta', type=int, default=7, help='blur contant to use')
     parser.add_argument('--workers', type=int, default=2, help='number of data loading workers')
     parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
     parser.add_argument('--imageSize', type=int, default=15, help='the low resolution image size')
@@ -115,7 +118,7 @@ if __name__ == '__main__':
 
         # Downsample images to low resolution
         for j in range(opt.batchSize):
-            low_res[j] = scale(high_res_real[j])
+            low_res[j] = utils.alter_image(high_res_real[j].numpy().transpose(1, 2, 0), opt.alpha, opt.beta)
             high_res_real[j] = normalize(high_res_real[j])
 
         # Generate real and fake inputs

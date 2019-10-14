@@ -2,10 +2,11 @@
 # python train.py --blockDim 32 --cuda
 
 import argparse
+import cv2 as cv2
+import numpy as np
 import os as os
 import sys as sys
-import numpy as np
-import cv2 as cv2
+import utils as utils
 
 import torch
 import torch.optim as optim
@@ -25,6 +26,8 @@ from models import Generator, Discriminator, FeatureExtractor
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
+    parser.add_argument('--alpha', type=float, default=0.75, help='noise contant to use')
+    parser.add_argument('--beta', type=int, default=7, help='blur contant to use')
     parser.add_argument('--generation', type=int, default=100, help='epochs to wait between writing images')
     parser.add_argument('--workers', type=int, default=2, help='number of data loading workers')
     parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
@@ -57,6 +60,8 @@ if __name__ == '__main__':
                                     std = [0.229, 0.224, 0.225])
 
     # Replace loader with hardcoded values.
+    utils.clear_dir(opt.out)
+    utils.clear_dir(opt.outf)
     data_prefix = 'C:/Users/wesha/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
     dataset = datasets.ImageFolder(root=data_prefix + 'validation/', transform=transform)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
@@ -110,16 +115,7 @@ if __name__ == '__main__':
 
             # Downsample images to low resolution
             for j in range(opt.batchSize):
-                img = high_res_real[j].numpy().transpose(1, 2, 0)
-                
-                # Add noise.
-                img_noise = np.random.normal(loc=0, scale=1, size=img.shape).astype('float32')
-                img = cv2.addWeighted(img, 0.9, img_noise, 0.1, 0)
-
-                # Gaussian blur.
-                img = cv2.GaussianBlur(img, (7, 7), 0)
-
-                low_res[j] = torch.from_numpy(np.asarray(img).transpose(2, 0, 1))
+                low_res[j] = utils.alter_image(high_res_real[j].numpy().transpose(1, 2, 0), opt.alpha, opt.beta)
                 high_res_real[j] = normalize(high_res_real[j])
 
             # Generate real and fake inputs
@@ -178,16 +174,7 @@ if __name__ == '__main__':
 
             # Downsample images to low resolution
             for j in range(opt.batchSize):
-                img = high_res_real[j].numpy().transpose(1, 2, 0)
-                
-                # Add noise.
-                img_noise = np.random.normal(loc=0, scale=1, size=img.shape).astype('float32')
-                img = cv2.addWeighted(img, 0.9, img_noise, 0.1, 0)
-
-                # Gaussian blur.
-                img = cv2.GaussianBlur(img, (7, 7), 0)
-
-                low_res[j] = torch.from_numpy(np.asarray(img).transpose(2, 0, 1))
+                low_res[j] = utils.alter_image(high_res_real[j].numpy().transpose(1, 2, 0), opt.alpha, opt.beta)
                 high_res_real[j] = normalize(high_res_real[j])
 
             # Generate real and fake inputs

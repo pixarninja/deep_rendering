@@ -1,9 +1,9 @@
 import argparse
-import os as os
-import glob as glob
 import cv2 as cv2
+import glob as glob
 import numpy as np
-import utilities as utils
+import os as os
+import utils as utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--blockDim', type=int, default=64, help='dimension of frameblocks')

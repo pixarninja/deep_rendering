@@ -3,10 +3,10 @@
 
 from __future__ import print_function
 import argparse
-import os
-import numpy as np
 import cv2 as cv2
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 import random
 import torch
 import torch.nn as nn
@@ -17,7 +17,7 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-import utilities as utils
+import utils as utils
 
 
 parser = argparse.ArgumentParser()
