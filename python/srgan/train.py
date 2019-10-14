@@ -1,10 +1,11 @@
 # Taken from: https://github.com/aitorzip/PyTorch-SRGAN
-# python train.py --batchSize 64  --imageSize 16 --cuda
+# python train.py --blockDim 32 --cuda
 
 import argparse
 import os as os
 import sys as sys
 import numpy as np
+import cv2 as cv2
 
 import torch
 import torch.optim as optim
@@ -20,15 +21,14 @@ import torchvision.utils as vutils
 from tensorboard_logger import configure, log_value
 
 from models import Generator, Discriminator, FeatureExtractor
-from utils import Visualizer
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
+    parser.add_argument('--generation', type=int, default=100, help='epochs to wait between writing images')
     parser.add_argument('--workers', type=int, default=2, help='number of data loading workers')
     parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
-    parser.add_argument('--imageSize', type=int, default=15, help='the low resolution image size')
-    parser.add_argument('--upSampling', type=int, default=2, help='low to high resolution scaling factor')
+    parser.add_argument('--upSampling', type=int, default=1, help='low to high resolution scaling factor')
     parser.add_argument('--nEpochs', type=int, default=100, help='number of epochs to train for')
     parser.add_argument('--generatorLR', type=float, default=0.0001, help='learning rate for generator')
     parser.add_argument('--discriminatorLR', type=float, default=0.0001, help='learning rate for discriminator')
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('--generatorWeights', type=str, default='', help="path to generator weights (to continue training)")
     parser.add_argument('--discriminatorWeights', type=str, default='', help="path to discriminator weights (to continue training)")
     parser.add_argument('--out', type=str, default='checkpoints', help='folder to output model checkpoints')
-    parser.add_argument('--outf', type=str, default='output', help='folder to output model checkpoints')
+    parser.add_argument('--outf', type=str, default='output', help='folder to output images')
 
     opt = parser.parse_args()
     print(opt)
@@ -50,29 +50,15 @@ if __name__ == '__main__':
     if torch.cuda.is_available() and not opt.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-    transform = transforms.Compose([transforms.RandomCrop(opt.imageSize*opt.upSampling),
+    transform = transforms.Compose([transforms.RandomCrop(opt.blockDim),
                                     transforms.ToTensor()])
 
     normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
                                     std = [0.229, 0.224, 0.225])
 
-    scale = transforms.Compose([transforms.ToPILImage(),
-                                transforms.Scale(opt.imageSize),
-                                transforms.ToTensor(),
-                                transforms.Normalize(mean = [0.485, 0.456, 0.406],
-                                                    std = [0.229, 0.224, 0.225])
-                                ])
-
     # Replace loader with hardcoded values.
     data_prefix = 'C:/Users/wesha/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
     dataset = datasets.ImageFolder(root=data_prefix + 'validation/', transform=transform)
-    # dataset = datasets.ImageFolder(root=data_prefix + 'validation/',
-                                   # transform=transforms.Compose([
-                                       # transforms.Resize(opt.blockDim),
-                                       # transforms.CenterCrop(opt.blockDim),
-                                       # transforms.ToTensor(),
-                                       # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                                   # ]))
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
                                              shuffle=True, num_workers=int(opt.workers))
 
@@ -107,9 +93,8 @@ if __name__ == '__main__':
     optim_discriminator = optim.Adam(discriminator.parameters(), lr=opt.discriminatorLR)
 
     configure('logs/' + '-' + str(opt.batchSize) + '-' + str(opt.generatorLR) + '-' + str(opt.discriminatorLR), flush_secs=5)
-    visualizer = Visualizer(image_size=opt.imageSize*opt.upSampling)
 
-    low_res = torch.FloatTensor(opt.batchSize, 3, opt.imageSize, opt.imageSize)
+    low_res = torch.FloatTensor(opt.batchSize, 3, opt.blockDim, opt.blockDim)
 
     # Pre-train generator using raw MSE loss
     print('Generator pre-training')
@@ -125,7 +110,16 @@ if __name__ == '__main__':
 
             # Downsample images to low resolution
             for j in range(opt.batchSize):
-                low_res[j] = scale(high_res_real[j])
+                img = high_res_real[j].numpy().transpose(1, 2, 0)
+                
+                # Add noise.
+                img_noise = np.random.normal(loc=0, scale=1, size=img.shape).astype('float32')
+                img = cv2.addWeighted(img, 0.9, img_noise, 0.1, 0)
+
+                # Gaussian blur.
+                img = cv2.GaussianBlur(img, (7, 7), 0)
+
+                low_res[j] = torch.from_numpy(np.asarray(img).transpose(2, 0, 1))
                 high_res_real[j] = normalize(high_res_real[j])
 
             # Generate real and fake inputs
@@ -138,13 +132,6 @@ if __name__ == '__main__':
 
             ######### Train generator #########
             generator.zero_grad()
-            
-            vutils.save_image(high_res_fake,
-                    '%s/high_res_fake.png' % opt.outf,
-                    normalize=True)
-            vutils.save_image(high_res_real,
-                    '%s/high_res_real.png' % opt.outf,
-                    normalize=True)
 
             generator_content_loss = content_criterion(high_res_fake, high_res_real)
             mean_generator_content_loss += generator_content_loss.data
@@ -153,10 +140,19 @@ if __name__ == '__main__':
             optim_generator.step()
 
             ######### Status and display #########
-            sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f' % (epoch, 2, i, len(dataloader), generator_content_loss.data))
-            visualizer.show(low_res, high_res_real.cpu().data, high_res_fake.cpu().data)
+            sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f' % (epoch + 1, 2, i, len(dataloader), generator_content_loss.data))
+            if i % opt.generation == 0:
+                vutils.save_image(low_res,
+                        '%s/low_res.png' % opt.outf,
+                        normalize=True)
+                vutils.save_image(high_res_real,
+                        '%s/high_res_real.png' % opt.outf,
+                        normalize=True)
+                vutils.save_image(high_res_fake,
+                        '%s/high_res_fake.png' % opt.outf,
+                        normalize=True)
 
-        sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f\n' % (epoch, 2, i, len(dataloader), mean_generator_content_loss/len(dataloader)))
+        sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f\n' % (epoch + 1, 2, i, len(dataloader), mean_generator_content_loss/len(dataloader)))
         log_value('generator_mse_loss', mean_generator_content_loss/len(dataloader), epoch)
 
     # Do checkpointing
@@ -182,7 +178,16 @@ if __name__ == '__main__':
 
             # Downsample images to low resolution
             for j in range(opt.batchSize):
-                low_res[j] = scale(high_res_real[j])
+                img = high_res_real[j].numpy().transpose(1, 2, 0)
+                
+                # Add noise.
+                img_noise = np.random.normal(loc=0, scale=1, size=img.shape).astype('float32')
+                img = cv2.addWeighted(img, 0.9, img_noise, 0.1, 0)
+
+                # Gaussian blur.
+                img = cv2.GaussianBlur(img, (7, 7), 0)
+
+                low_res[j] = torch.from_numpy(np.asarray(img).transpose(2, 0, 1))
                 high_res_real[j] = normalize(high_res_real[j])
 
             # Generate real and fake inputs
@@ -225,11 +230,20 @@ if __name__ == '__main__':
             optim_generator.step()   
             
             ######### Status and display #########
-            sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f' % (epoch, opt.nEpochs, i, len(dataloader),
+            sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f' % (epoch + 1, opt.nEpochs, i, len(dataloader),
             discriminator_loss.data, generator_content_loss.data, generator_adversarial_loss.data, generator_total_loss.data))
-            visualizer.show(low_res, high_res_real.cpu().data, high_res_fake.cpu().data)
+            if i % opt.generation == 0:
+                vutils.save_image(low_res,
+                        '%s/low_res.png' % opt.outf,
+                        normalize=True)
+                vutils.save_image(high_res_real,
+                        '%s/high_res_real.png' % opt.outf,
+                        normalize=True)
+                vutils.save_image(high_res_fake,
+                        '%s/high_res_fake.png' % opt.outf,
+                        normalize=True)
 
-        sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f\n' % (epoch, opt.nEpochs, i, len(dataloader),
+        sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f\n' % (epoch + 1, opt.nEpochs, i, len(dataloader),
         mean_discriminator_loss/len(dataloader), mean_generator_content_loss/len(dataloader), 
         mean_generator_adversarial_loss/len(dataloader), mean_generator_total_loss/len(dataloader)))
 
@@ -241,7 +255,3 @@ if __name__ == '__main__':
         # Do checkpointing
         torch.save(generator.state_dict(), '%s/generator_final.pth' % opt.out)
         torch.save(discriminator.state_dict(), '%s/discriminator_final.pth' % opt.out)
-
-    # Avoid closing
-    while True:
-        pass
