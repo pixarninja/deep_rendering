@@ -2,7 +2,7 @@
 /docs/*/output/
 /jupyter/images/
 *.ipynb_checkpoints*
-/python/dcgan/output*
+/python/*/output*
 /python/images/
 /python/training/
 /python/__pycache__/

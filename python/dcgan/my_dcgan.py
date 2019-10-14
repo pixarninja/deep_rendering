@@ -1,5 +1,5 @@
 # Taken from: https://github.com/pytorch/examples/blob/master/dcgan/
-# python my_dcgan.py --niter 100 --outf ./output_32x1 --cuda
+# python main.py --niter 100 --outf ./output_32x1 --cuda
 
 from __future__ import print_function
 import argparse
