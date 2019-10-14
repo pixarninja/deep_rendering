@@ -1,5 +1,5 @@
 # Taken from: https://github.com/aitorzip/PyTorch-SRGAN
-# python test.py --blockDim 32 --cuda
+# python test.py --blockDim 32 --alpha 0.9 --beta 3 --cuda
 
 import argparse
 import os as os
@@ -14,7 +14,7 @@ from torch.autograd import Variable
 import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
-from torchvision.utils import save_image
+import torchvision.utils as vutils
 
 from models import Generator, Discriminator, FeatureExtractor
 
@@ -25,39 +25,33 @@ if __name__ == '__main__':
     parser.add_argument('--beta', type=int, default=7, help='blur contant to use')
     parser.add_argument('--workers', type=int, default=2, help='number of data loading workers')
     parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
-    parser.add_argument('--imageSize', type=int, default=15, help='the low resolution image size')
-    parser.add_argument('--upSampling', type=int, default=2, help='low to high resolution scaling factor')
+    parser.add_argument('--upSampling', type=int, default=1, help='low to high resolution scaling factor')
     parser.add_argument('--cuda', action='store_true', help='enables cuda')
     parser.add_argument('--nGPU', type=int, default=1, help='number of GPUs to use')
-    parser.add_argument('--generatorWeights', type=str, default='checkpoints/generator_final.pth', help="path to generator weights (to continue training)")
-    parser.add_argument('--discriminatorWeights', type=str, default='checkpoints/discriminator_final.pth', help="path to discriminator weights (to continue training)")
+    parser.add_argument('--generatorWeights', type=str, default='generator_final.pth', help="path to generator weights (to continue training)")
+    parser.add_argument('--discriminatorWeights', type=str, default='discriminator_final.pth', help="path to discriminator weights (to continue training)")
 
     opt = parser.parse_args()
     print(opt)
-
-    try:
-        os.makedirs('output/high_res_fake')
-        os.makedirs('output/high_res_real')
-        os.makedirs('output/low_res')
-    except OSError:
-        pass
-
+    
+    inc_path = ('checkpointsx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
+    outf_path = ('outputx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
+    if not os.path.exists(inc_path):
+        print('Error: input checkpoint path %s does not exist. First generate the files using train.py.' % inc_path)
+        exit()
+    
+    utils.clear_dir(outf_path + 'high_res_fake/')
+    utils.clear_dir(outf_path + 'high_res_real/')
+    utils.clear_dir(outf_path + 'low_res/')
 
     if torch.cuda.is_available() and not opt.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-    transform = transforms.Compose([transforms.RandomCrop(opt.imageSize*opt.upSampling),
+    transform = transforms.Compose([transforms.RandomCrop(opt.blockDim),
                                     transforms.ToTensor()])
 
     normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
                                     std = [0.229, 0.224, 0.225])
-
-    scale = transforms.Compose([transforms.ToPILImage(),
-                                transforms.Scale(opt.imageSize),
-                                transforms.ToTensor(),
-                                transforms.Normalize(mean = [0.485, 0.456, 0.406],
-                                                    std = [0.229, 0.224, 0.225])
-                                ])
 
     # Equivalent to un-normalizing ImageNet (for correct visualization)
     unnormalize = transforms.Normalize(mean = [-2.118, -2.036, -1.804], std = [4.367, 4.464, 4.444])
@@ -70,12 +64,12 @@ if __name__ == '__main__':
 
     generator = Generator(16, opt.upSampling)
     if opt.generatorWeights != '':
-        generator.load_state_dict(torch.load(opt.generatorWeights))
+        generator.load_state_dict(torch.load(inc_path + opt.generatorWeights))
     print(generator)
 
     discriminator = Discriminator()
     if opt.discriminatorWeights != '':
-        discriminator.load_state_dict(torch.load(opt.discriminatorWeights))
+        discriminator.load_state_dict(torch.load(inc_path + opt.discriminatorWeights))
     print(discriminator)
 
     # For the content loss
@@ -97,7 +91,7 @@ if __name__ == '__main__':
         target_real = target_real.cuda()
         target_fake = target_fake.cuda()
 
-    low_res = torch.FloatTensor(opt.batchSize, 3, opt.imageSize, opt.imageSize)
+    low_res = torch.FloatTensor(opt.batchSize, 3, opt.blockDim, opt.blockDim)
 
     print('Test started...')
     mean_generator_content_loss = 0.0
@@ -112,7 +106,7 @@ if __name__ == '__main__':
     for i, data in enumerate(dataloader):
         # Generate data
         high_res_real = data[0]
-        print('... ' + str(np.shape(high_res_real)))
+        print(' ... ' + str(np.shape(high_res_real)))
         if np.shape(high_res_real)[0] != opt.batchSize:
             continue
 
@@ -153,9 +147,15 @@ if __name__ == '__main__':
         discriminator_loss.data, generator_content_loss.data, generator_adversarial_loss.data, generator_total_loss.data))
 
         for j in range(opt.batchSize):
-            save_image(unnormalize(high_res_real.data[j]), 'output/high_res_real/' + str(i*opt.batchSize + j) + '.png')
-            save_image(unnormalize(high_res_fake.data[j]), 'output/high_res_fake/' + str(i*opt.batchSize + j) + '.png')
-            save_image(unnormalize(low_res[j]), 'output/low_res/' + str(i*opt.batchSize + j) + '.png')
+            vutils.save_image(unnormalize(high_res_fake[j]),
+                    '%shigh_res_fake/%d.png' % (outf_path, i*opt.batchSize + j),
+                    normalize=False)
+            vutils.save_image(unnormalize(high_res_real[j]),
+                    '%shigh_res_real/%d.png' % (outf_path, i*opt.batchSize + j),
+                    normalize=False)
+            vutils.save_image(low_res[j],
+                    '%slow_res/%d.png' % (outf_path, i*opt.batchSize + j),
+                    normalize=False)
 
     sys.stdout.write('\r[%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f\n' % (i, len(dataloader),
     mean_discriminator_loss/len(dataloader), mean_generator_content_loss/len(dataloader), 

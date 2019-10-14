@@ -1,5 +1,5 @@
 # Taken from: https://github.com/aitorzip/PyTorch-SRGAN
-# python train.py --blockDim 32 --cuda
+# python train.py --blockDim 32 --alpha 0.9 --beta 3 --cuda
 
 import argparse
 import cv2 as cv2
@@ -39,16 +39,14 @@ if __name__ == '__main__':
     parser.add_argument('--nGPU', type=int, default=1, help='number of GPUs to use')
     parser.add_argument('--generatorWeights', type=str, default='', help="path to generator weights (to continue training)")
     parser.add_argument('--discriminatorWeights', type=str, default='', help="path to discriminator weights (to continue training)")
-    parser.add_argument('--out', type=str, default='checkpoints', help='folder to output model checkpoints')
-    parser.add_argument('--outf', type=str, default='output', help='folder to output images')
 
     opt = parser.parse_args()
     print(opt)
-
-    try:
-        os.makedirs(opt.out)
-    except OSError:
-        pass
+    
+    outc_path = ('checkpointsx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
+    outf_path = ('outputx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
+    utils.clear_dir(outc_path)
+    utils.clear_dir(outf_path)
 
     if torch.cuda.is_available() and not opt.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
@@ -60,8 +58,6 @@ if __name__ == '__main__':
                                     std = [0.229, 0.224, 0.225])
 
     # Replace loader with hardcoded values.
-    utils.clear_dir(opt.out)
-    utils.clear_dir(opt.outf)
     data_prefix = 'C:/Users/wesha/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
     dataset = datasets.ImageFolder(root=data_prefix + 'validation/', transform=transform)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
@@ -109,7 +105,6 @@ if __name__ == '__main__':
         for i, data in enumerate(dataloader, 0):
             # Generate data
             high_res_real = data[0]
-            print('... ' + str(np.shape(high_res_real)))
             if np.shape(high_res_real)[0] != opt.batchSize:
                 continue
 
@@ -139,20 +134,20 @@ if __name__ == '__main__':
             sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f' % (epoch + 1, 2, i, len(dataloader), generator_content_loss.data))
             if i % opt.generation == 0:
                 vutils.save_image(low_res,
-                        '%s/low_res.png' % opt.outf,
+                        '%slow_res.png' % outf_path,
                         normalize=True)
                 vutils.save_image(high_res_real,
-                        '%s/high_res_real.png' % opt.outf,
+                        '%shigh_res_real.png' % outf_path,
                         normalize=True)
                 vutils.save_image(high_res_fake,
-                        '%s/high_res_fake.png' % opt.outf,
+                        '%shigh_res_fake.png' % outf_path,
                         normalize=True)
 
         sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f\n' % (epoch + 1, 2, i, len(dataloader), mean_generator_content_loss/len(dataloader)))
         log_value('generator_mse_loss', mean_generator_content_loss/len(dataloader), epoch)
 
     # Do checkpointing
-    torch.save(generator.state_dict(), '%s/generator_pretrain.pth' % opt.out)
+    torch.save(generator.state_dict(), '%s/generator_pretrain.pth' % outc_path)
 
     # SRGAN training
     optim_generator = optim.Adam(generator.parameters(), lr=opt.generatorLR*0.1)
@@ -221,13 +216,13 @@ if __name__ == '__main__':
             discriminator_loss.data, generator_content_loss.data, generator_adversarial_loss.data, generator_total_loss.data))
             if i % opt.generation == 0:
                 vutils.save_image(low_res,
-                        '%s/low_res.png' % opt.outf,
+                        '%slow_res.png' % outf_path,
                         normalize=True)
                 vutils.save_image(high_res_real,
-                        '%s/high_res_real.png' % opt.outf,
+                        '%shigh_res_real.png' % outf_path,
                         normalize=True)
                 vutils.save_image(high_res_fake,
-                        '%s/high_res_fake.png' % opt.outf,
+                        '%shigh_res_fake.png' % outf_path,
                         normalize=True)
 
         sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f\n' % (epoch + 1, opt.nEpochs, i, len(dataloader),
@@ -240,5 +235,5 @@ if __name__ == '__main__':
         log_value('discriminator_loss', mean_discriminator_loss/len(dataloader), epoch)
 
         # Do checkpointing
-        torch.save(generator.state_dict(), '%s/generator_final.pth' % opt.out)
-        torch.save(discriminator.state_dict(), '%s/discriminator_final.pth' % opt.out)
+        torch.save(generator.state_dict(), '%s/generator_final.pth' % outc_path)
+        torch.save(discriminator.state_dict(), '%s/discriminator_final.pth' % outc_path)
