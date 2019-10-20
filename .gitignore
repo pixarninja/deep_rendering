@@ -2,12 +2,11 @@
 /docs/*/output/
 /jupyter/images/
 *.ipynb_checkpoints*
-/python/dcgan/fake_samples_*
-/python/dcgan/netD_*
-/python/dcgan/netG_*
-/python/dcgan/real_samples.png
+/python/*/output*
 /python/images/
 /python/training/
+/python/__pycache__/
+/python/*/__pycache__/
+/python/srgan/original/output/
+/python/srgan/logs/
 /source/datasets
-/source/animations/glass_half/
-/source/animations/glass_quarter/

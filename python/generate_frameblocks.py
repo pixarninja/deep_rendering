@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os as os
 import glob as glob
 import cv2 as cv2
@@ -16,12 +17,44 @@ buffer_prefix = path_prefix + 'buffer/'
 # Initialize path variables.
 frames_path = src_prefix + 'glass_full/'
 training_path = path_prefix + 'blocks/'
+=======
+import argparse
+import cv2 as cv2
+import glob as glob
+import numpy as np
+import os as os
+import utils as utils
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--blockDim', type=int, default=64, help='dimension of frameblocks')
+parser.add_argument('--blockOffset', type=int, default=1, help='offset for blocks, > 1 blocks will overlap')
+parser.add_argument('--startBlock', type=bool, default=False, help='whether to record the start block as well')
+
+opt = parser.parse_args()
+print(opt)
+
+# Initialize seed variables.
+block_dim = opt.blockDim
+block_offset = opt.blockOffset
+start_and_end = opt.startBlock
+
+# Initialize path prefixes.
+path_prefix = './images/' + str(block_dim) + '/'
+training_prefix = './training/' + str(block_dim) + '/'
+src_prefix = '../source/animations/'
+buffer_prefix = path_prefix
+
+# Initialize path variables.
+frames_path = src_prefix + 'glass_full/'
+training_path = training_prefix + 'blocks/'
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 shadow_img_path = path_prefix + 'shadow/'
 roi_img_path = path_prefix + 'roi/'
 shadow_buff_path = buffer_prefix + 'shadows/'
 frame_buff_path = buffer_prefix + 'frames/'
 
 # Delete previously output frameblocks, and buffer shadows and buffer frames.
+<<<<<<< HEAD
 if os.path.exists(training_path):
     filelist = glob.glob(training_path + '*')
     for file in filelist:
@@ -49,6 +82,14 @@ else:
             os.remove(file)
     else:
         os.mkdir(frame_buff_path)
+=======
+utils.make_dir(training_prefix)
+utils.clear_dir(training_path)
+
+utils.make_dir(buffer_prefix)
+utils.clear_dir(shadow_buff_path)
+utils.clear_dir(frame_buff_path)
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 
 # Setup main loop to process all frames in an animation.
 frames = os.listdir(frames_path)

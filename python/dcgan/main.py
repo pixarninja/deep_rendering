@@ -1,7 +1,17 @@
 # Taken from: https://github.com/pytorch/examples/blob/master/dcgan/
+<<<<<<< HEAD
 
 from __future__ import print_function
 import argparse
+=======
+# python main.py --niter 100 --outf ./output_32x1 --cuda
+
+from __future__ import print_function
+import argparse
+import cv2 as cv2
+import matplotlib.pyplot as plt
+import numpy as np
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 import os
 import random
 import torch
@@ -13,12 +23,21 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
+<<<<<<< HEAD
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', required=True, help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
 parser.add_argument('--dataroot', required=True, help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
+=======
+import utils as utils
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
+parser.add_argument('--workers', type=int, default=2, help='number of data loading workers')
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
@@ -31,18 +50,25 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
+<<<<<<< HEAD
 parser.add_argument('--outf', default='.', help='folder to output images and model checkpoints')
+=======
+parser.add_argument('--outf', default='./output', help='folder to output images and model checkpoints')
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 parser.add_argument('--classes', default='bedroom', help='comma separated list of classes for the lsun data set')
 
 opt = parser.parse_args()
 print(opt)
 
+<<<<<<< HEAD
 try:
     os.makedirs(opt.outf)
 except OSError:
     pass
 
+=======
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 if opt.manualSeed is None:
     opt.manualSeed = random.randint(1, 10000)
 print("Random Seed: ", opt.manualSeed)
@@ -54,15 +80,22 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
+<<<<<<< HEAD
 if opt.dataset in ['imagenet', 'folder', 'lfw']:
     # folder dataset
     dataset = dset.ImageFolder(root=opt.dataroot,
+=======
+data_prefix = 'C:/Users/wesha/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
+
+blk_dataset = dset.ImageFolder(root=data_prefix + 'validation/',
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
                                transform=transforms.Compose([
                                    transforms.Resize(opt.imageSize),
                                    transforms.CenterCrop(opt.imageSize),
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                                ]))
+<<<<<<< HEAD
     nc=3
 elif opt.dataset == 'lsun':
     classes = [ c + '_train' for c in opt.classes.split(',')]
@@ -100,6 +133,11 @@ elif opt.dataset == 'fake':
 assert dataset
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
                                          shuffle=True, num_workers=int(opt.workers))
+=======
+blk_dataloader = torch.utils.data.DataLoader(blk_dataset, batch_size=opt.batchSize,
+                                             shuffle=True, num_workers=int(opt.workers))
+nc=3
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 ngpu = int(opt.ngpu)
@@ -152,6 +190,7 @@ class Generator(nn.Module):
             output = self.main(input)
         return output
 
+<<<<<<< HEAD
 
 netG = Generator(ngpu).to(device)
 netG.apply(weights_init)
@@ -160,6 +199,8 @@ if opt.netG != '':
 print(netG)
 
 
+=======
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 class Discriminator(nn.Module):
     def __init__(self, ngpu):
         super(Discriminator, self).__init__()
@@ -194,6 +235,16 @@ class Discriminator(nn.Module):
         return output.view(-1, 1).squeeze(1)
 
 if __name__ == '__main__':
+<<<<<<< HEAD
+=======
+    utils.clear_dir(opt.outf)
+    netG = Generator(ngpu).to(device)
+    netG.apply(weights_init)
+    if opt.netG != '':
+        netG.load_state_dict(torch.load(opt.netG))
+    print(netG)
+    
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
     netD = Discriminator(ngpu).to(device)
     netD.apply(weights_init)
     if opt.netD != '':
@@ -201,8 +252,14 @@ if __name__ == '__main__':
     print(netD)
 
     criterion = nn.BCELoss()
+<<<<<<< HEAD
 
     fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
+=======
+    
+    fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
+    fixed_pair = None
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
     real_label = 1
     fake_label = 0
 
@@ -211,7 +268,37 @@ if __name__ == '__main__':
     optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
     for epoch in range(opt.niter):
+<<<<<<< HEAD
         for i, data in enumerate(dataloader, 0):
+=======
+        for i, data in enumerate(blk_dataloader, 0):
+            alt = []
+            for j, img in enumerate(data[0], 0):
+                alt_img = img.numpy().transpose(1, 2, 0)
+                
+                # Add noise.
+                img_noise = np.random.normal(loc=0, scale=1, size=alt_img.shape).astype('float32')
+                alt_img = cv2.addWeighted(alt_img, 0.7, img_noise, 0.3, 0)
+
+                # Gaussian blur.
+                alt_img = cv2.GaussianBlur(alt_img, (7, 7), 0)
+                
+                # print(j)
+                # plt.imshow(alt_img)
+                # plt.show()
+                alt.append(alt_img)
+                
+            alt_pair = torch.from_numpy(np.asarray(alt).transpose(0, 3, 1, 2)).float().to(device)
+            if fixed_pair is None:
+                fixed_pair = alt_pair
+                vutils.save_image(fixed_pair,
+                        '%s/samples_fixed.png' % opt.outf,
+                        normalize=True)
+                vutils.save_image(data[0].to(device),
+                        '%s/samples_validation.png' % opt.outf,
+                        normalize=True)
+            
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
@@ -249,11 +336,25 @@ if __name__ == '__main__':
             optimizerG.step()
 
             print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
+<<<<<<< HEAD
                   % (epoch, opt.niter, i, len(dataloader),
                      errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
             if i % 100 == 0:
                 vutils.save_image(real_cpu,
                         '%s/real_samples.png' % opt.outf,
+=======
+                  % (epoch, opt.niter, i, len(blk_dataloader),
+                     errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+            if i % opt.nz == 0:
+                vutils.save_image(real_cpu,
+                        '%s/samples_real.png' % opt.outf,
+                        normalize=True)
+                vutils.save_image(alt_pair,
+                        '%s/samples_altered.png' % opt.outf,
+                        normalize=True)
+                vutils.save_image(netG(fixed_noise),
+                        '%s/samples_gout.png' % opt.outf,
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
                         normalize=True)
                 fake = netG(fixed_noise)
                 vutils.save_image(fake.detach(),
