@@ -37,11 +37,18 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
+parser.add_argument('--outf', default='./output', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 parser.add_argument('--classes', default='bedroom', help='comma separated list of classes for the lsun data set')
 
 opt = parser.parse_args()
 print(opt)
+
+try:
+    os.makedirs(opt.outf)
+except OSError:
+    pass
+
 
 if opt.manualSeed is None:
     opt.manualSeed = random.randint(1, 10000)
@@ -54,18 +61,53 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-data_prefix = 'C:/Users/wesha/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
 
-blk_dataset = dset.ImageFolder(root=data_prefix + 'validation/',
-                               transform=transforms.Compose([
-                                   transforms.Resize(opt.imageSize),
-                                   transforms.CenterCrop(opt.imageSize),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                               ]))
-blk_dataloader = torch.utils.data.DataLoader(blk_dataset, batch_size=opt.batchSize,
-                                             shuffle=True, num_workers=int(opt.workers))
-nc=3
+    data_prefix = 'C:/Users/wesha/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
+
+    dataset = dset.ImageFolder(root=data_prefix + 'validation/',
+                                   transform=transforms.Compose([
+                                       transforms.Resize(opt.imageSize),
+                                       transforms.CenterCrop(opt.imageSize),
+                                       transforms.ToTensor(),
+                                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                                   ]))
+    nc=3
+elif opt.dataset == 'lsun':
+    classes = [ c + '_train' for c in opt.classes.split(',')]
+    dataset = dset.LSUN(root=opt.dataroot, classes=classes,
+                        transform=transforms.Compose([
+                            transforms.Resize(opt.imageSize),
+                            transforms.CenterCrop(opt.imageSize),
+                            transforms.ToTensor(),
+                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                        ]))
+    nc=3
+elif opt.dataset == 'cifar10':
+    dataset = dset.CIFAR10(root=opt.dataroot, download=True,
+                           transform=transforms.Compose([
+                               transforms.Resize(opt.imageSize),
+                               transforms.ToTensor(),
+                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                           ]))
+    nc=3
+
+elif opt.dataset == 'mnist':
+        dataset = dset.MNIST(root=opt.dataroot, download=True,
+                           transform=transforms.Compose([
+                               transforms.Resize(opt.imageSize),
+                               transforms.ToTensor(),
+                               transforms.Normalize((0.5,), (0.5,)),
+                           ]))
+        nc=1
+
+elif opt.dataset == 'fake':
+    dataset = dset.FakeData(image_size=(3, opt.imageSize, opt.imageSize),
+                            transform=transforms.ToTensor())
+    nc=3
+
+assert dataset
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
+                                         shuffle=True, num_workers=int(opt.workers))
 
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 ngpu = int(opt.ngpu)
@@ -157,7 +199,7 @@ if __name__ == '__main__':
     outf_path = ('outputx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
     utils.clear_dir(outc_path)
     utils.clear_dir(outf_path)
-    
+
     netG = Generator(ngpu).to(device)
     netG.apply(weights_init)
     if opt.netG != '':
@@ -171,7 +213,7 @@ if __name__ == '__main__':
     print(netD)
 
     criterion = nn.BCELoss()
-    
+
     fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
     fixed_pair = None
     real_label = 1
@@ -182,7 +224,7 @@ if __name__ == '__main__':
     optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
     for epoch in range(opt.niter):
-        for i, data in enumerate(blk_dataloader, 0):
+        for i, data in enumerate(dataloader, 0):
             alt = []
             for j, img in enumerate(data[0], 0):
                 alt_img = img.numpy().transpose(1, 2, 0)
@@ -246,9 +288,9 @@ if __name__ == '__main__':
             optimizerG.step()
 
             print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
-                  % (epoch, opt.niter, i, len(blk_dataloader),
+                  % (epoch, opt.niter, i, len(dataloader),
                      errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
-            if i % opt.nz == 0:
+            if i % 100 == 0:
                 vutils.save_image(real_cpu,
                         '%s/real_%03d.png' % (outf_path, epoch),
                         normalize=True)
@@ -257,7 +299,6 @@ if __name__ == '__main__':
                         normalize=True)
                 vutils.save_image(alt_pair,
                         '%s/alt_%03d.png' % (outf_path, epoch),
-                        normalize=True)
                 fake = alt_pair - netG(fixed_noise)
                 vutils.save_image(fake.detach(),
                         '%s/fake_%03d.png' % (outf_path, epoch),

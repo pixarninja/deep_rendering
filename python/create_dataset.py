@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+import os as os
+import glob as glob
+import cv2 as cv2
+import numpy as np
+=======
 import argparse
 import cv2 as cv2
 import glob as glob
@@ -11,10 +17,49 @@ parser.add_argument('--probability', type=float, default=0.75, help='probability
 
 opt = parser.parse_args()
 print(opt)
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 
 # Initialize variables.
 alter_count = 1
 keep_count = 1
+<<<<<<< HEAD
+
+# Initialize path prefixes.
+training_prefix = './training/'
+
+# Initialize path variables.
+blocks_path = training_prefix + 'blocks/'
+validation_path = training_prefix + 'validation/'
+altered_path = training_prefix + 'altered/'
+testing_path = training_prefix + 'testset/'
+
+# Delete previously output altered frameblocks.
+if os.path.exists(validation_path):
+    filelist = glob.glob(validation_path + '*')
+    for file in filelist:
+        os.remove(file)
+else:
+    os.mkdir(validation_path)
+
+if os.path.exists(altered_path):
+    filelist = glob.glob(altered_path + '*')
+    for file in filelist:
+        os.remove(file)
+else:
+    os.mkdir(altered_path)
+
+if os.path.exists(testing_path):
+    filelist = glob.glob(testing_path + '*')
+    for file in filelist:
+        os.remove(file)
+else:
+    os.mkdir(testing_path)
+
+# Setup main loop to process all frameblocks.
+blocks = os.listdir(blocks_path)
+blocks.sort()
+
+=======
 block_dim = opt.blockDim
 prob = opt.probability
 
@@ -50,6 +95,7 @@ utils.clear_dir(altered_path)
 utils.make_dir(testing_prefix)
 utils.clear_dir(testing_path)
 
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
 # Process each block.
 for block_index in range(0, len(blocks)):
     block = blocks[block_index]
@@ -59,7 +105,11 @@ for block_index in range(0, len(blocks)):
 
     # Decide if image will be altered or kept.
     flip = np.random.uniform(0, 1)
+<<<<<<< HEAD
+    if flip < 0.75:
+=======
     if flip < prob:
+>>>>>>> b01d3b46eddf6099278773795edd739282c4ff6e
         # Store end.jpg image to be altered.
         img = cv2.imread(img_in_str)
 
