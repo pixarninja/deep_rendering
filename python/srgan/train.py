@@ -26,8 +26,8 @@ from models import Generator, Discriminator, FeatureExtractor
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
-    parser.add_argument('--alpha', type=float, default=0.75, help='noise contant to use')
-    parser.add_argument('--beta', type=int, default=7, help='blur contant to use')
+    parser.add_argument('--alpha', type=float, default=0.75, help='noise constant to use')
+    parser.add_argument('--beta', type=int, default=7, help='blur constant to use')
     parser.add_argument('--generation', type=int, default=100, help='epochs to wait between writing images')
     parser.add_argument('--workers', type=int, default=2, help='number of data loading workers')
     parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
@@ -132,16 +132,16 @@ if __name__ == '__main__':
 
             ######### Status and display #########
             sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f' % (epoch + 1, 2, i, len(dataloader), generator_content_loss.data))
-            if i % opt.generation == 0:
-                vutils.save_image(low_res,
-                        '%slow_res.png' % outf_path,
-                        normalize=True)
-                vutils.save_image(high_res_real,
-                        '%shigh_res_real.png' % outf_path,
-                        normalize=True)
-                vutils.save_image(high_res_fake,
-                        '%shigh_res_fake.png' % outf_path,
-                        normalize=True)
+            # if i % opt.generation == 0:
+                # vutils.save_image(low_res,
+                        # '%slow_res.png' % outf_path,
+                        # normalize=True)
+                # vutils.save_image(high_res_real,
+                        # '%shigh_res_real.png' % outf_path,
+                        # normalize=True)
+                # vutils.save_image(high_res_fake,
+                        # '%shigh_res_fake.png' % outf_path,
+                        # normalize=True)
 
         sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f\n' % (epoch + 1, 2, i, len(dataloader), mean_generator_content_loss/len(dataloader)))
         log_value('generator_mse_loss', mean_generator_content_loss/len(dataloader), epoch)
@@ -163,7 +163,6 @@ if __name__ == '__main__':
         for i, data in enumerate(dataloader):
             # Generate data
             high_res_real, _ = data
-            print('... ' + str(np.shape(high_res_real)))
             if np.shape(high_res_real)[0] != opt.batchSize:
                 continue
 
@@ -216,13 +215,13 @@ if __name__ == '__main__':
             discriminator_loss.data, generator_content_loss.data, generator_adversarial_loss.data, generator_total_loss.data))
             if i % opt.generation == 0:
                 vutils.save_image(low_res,
-                        '%slow_res.png' % outf_path,
+                        '%s/alt_%03d.png' % (outf_path, epoch),
                         normalize=True)
                 vutils.save_image(high_res_real,
-                        '%shigh_res_real.png' % outf_path,
+                        '%s/real_%03d.png' % (outf_path, epoch),
                         normalize=True)
                 vutils.save_image(high_res_fake,
-                        '%shigh_res_fake.png' % outf_path,
+                        '%s/fake_%03d.png' % (outf_path, epoch),
                         normalize=True)
 
         sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f\n' % (epoch + 1, opt.nEpochs, i, len(dataloader),

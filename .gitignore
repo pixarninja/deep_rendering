@@ -2,6 +2,9 @@
 /docs/*/output/
 /jupyter/images/
 *.ipynb_checkpoints*
+/python/*/checkpoints*
+/python/evaluation/dcgan/
+/python/evaluation/srgan/
 /python/*/output*
 /python/images/
 /python/training/
