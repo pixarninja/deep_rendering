@@ -1,5 +1,5 @@
 # Taken from: https://github.com/pytorch/examples/blob/master/dcgan/
-# python main.py --niter 100 --outf ./output_32x1 --cuda
+# python main.py --batchSize 16 --blockDim 32 --niter 100 --alpha 0.9 --beta 3 --cuda
 
 from __future__ import print_function
 import argparse
@@ -22,6 +22,8 @@ import utils as utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
+parser.add_argument('--alpha', type=float, default=0.75, help='noise constant to use')
+parser.add_argument('--beta', type=int, default=7, help='blur constant to use')
 parser.add_argument('--workers', type=int, default=2, help='number of data loading workers')
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
@@ -35,7 +37,6 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
-parser.add_argument('--outf', default='./output', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 parser.add_argument('--classes', default='bedroom', help='comma separated list of classes for the lsun data set')
 
@@ -151,7 +152,12 @@ class Discriminator(nn.Module):
         return output.view(-1, 1).squeeze(1)
 
 if __name__ == '__main__':
-    utils.clear_dir(opt.outf)
+    # Set paths based on parameters.
+    outc_path = ('checkpointsx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
+    outf_path = ('outputx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
+    utils.clear_dir(outc_path)
+    utils.clear_dir(outf_path)
+    
     netG = Generator(ngpu).to(device)
     netG.apply(weights_init)
     if opt.netG != '':
@@ -197,10 +203,10 @@ if __name__ == '__main__':
             if fixed_pair is None:
                 fixed_pair = alt_pair
                 vutils.save_image(fixed_pair,
-                        '%s/samples_fixed.png' % opt.outf,
+                        '%s/samples_fixed.png' % outf_path,
                         normalize=True)
                 vutils.save_image(data[0].to(device),
-                        '%s/samples_validation.png' % opt.outf,
+                        '%s/samples_validation.png' % outf_path,
                         normalize=True)
             
             ############################
@@ -219,7 +225,7 @@ if __name__ == '__main__':
 
             # train with fake
             noise = torch.randn(batch_size, nz, 1, 1, device=device)
-            fake = netG(noise)
+            fake = alt_pair - netG(noise)
             label.fill_(fake_label)
             output = netD(fake.detach())
             errD_fake = criterion(output, label)
@@ -244,19 +250,19 @@ if __name__ == '__main__':
                      errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
             if i % opt.nz == 0:
                 vutils.save_image(real_cpu,
-                        '%s/samples_real.png' % opt.outf,
-                        normalize=True)
-                vutils.save_image(alt_pair,
-                        '%s/samples_altered.png' % opt.outf,
+                        '%s/real_%03d.png' % (outf_path, epoch),
                         normalize=True)
                 vutils.save_image(netG(fixed_noise),
-                        '%s/samples_gout.png' % opt.outf,
+                        '%s/samples_gout_%03d.png' % (outf_path, epoch),
                         normalize=True)
-                fake = netG(fixed_noise)
+                vutils.save_image(alt_pair,
+                        '%s/alt_%03d.png' % (outf_path, epoch),
+                        normalize=True)
+                fake = alt_pair - netG(fixed_noise)
                 vutils.save_image(fake.detach(),
-                        '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
+                        '%s/fake_%03d.png' % (outf_path, epoch),
                         normalize=True)
 
         # do checkpointing
-        torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
-        torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
+        torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (outc_path, epoch))
+        torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (outc_path, epoch))

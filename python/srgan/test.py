@@ -60,7 +60,7 @@ if __name__ == '__main__':
     data_prefix = 'C:/Users/wesha/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
     dataset = datasets.ImageFolder(root=data_prefix + 'testset/', transform=transform)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
-                                             shuffle=True, num_workers=int(opt.workers))
+                                             shuffle=False, num_workers=int(opt.workers))
 
     generator = Generator(16, opt.upSampling)
     if opt.generatorWeights != '':

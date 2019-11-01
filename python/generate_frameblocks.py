@@ -58,7 +58,7 @@ for frame_index in range(0, len(frames), 2):
 
         # Choose smallest boundaries.
         img_1 = cv2.imread(img_str_1)
-        img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
+        #img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
         height, width = img_1.shape[:2]
 
         # Create sliding window.
@@ -110,11 +110,11 @@ for frame_index in range(0, len(frames), 2):
         img_str_roi = roi_img_path + 'frame' + str(frame_index) + '.jpg'
 
         img_1 = cv2.imread(img_str_1)
-        img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
+        #img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
         height_1, width_1 = img_1.shape[:2]
 
         img_2 = cv2.imread(img_str_2)
-        img_2 = cv2.resize(img_2, (0,0), fx=0.5, fy=0.5) 
+        #img_2 = cv2.resize(img_2, (0,0), fx=0.5, fy=0.5) 
         height_2, width_2 = img_2.shape[:2]
 
         # Choose smallest boundaries.
