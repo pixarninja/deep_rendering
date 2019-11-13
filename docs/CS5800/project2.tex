@@ -27,21 +27,36 @@
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
+% Colors (RGB)=>(BRG)
+% -------------------
+\definecolor{1,1,1}{RGB}{191,255,255}
+% R
 \definecolor{0,0,0}{RGB}{255,255,255}
 \definecolor{1,0,0}{RGB}{255,223,255}
 \definecolor{6,0,0}{RGB}{255,63,255}
 \definecolor{7,0,0}{RGB}{255,0,255}
+% R + B
 \definecolor{0,0,7}{RGB}{0,255,255}
 \definecolor{1,0,7}{RGB}{0,223,255}
 \definecolor{6,0,7}{RGB}{0,63,255}
 \definecolor{7,0,7}{RGB}{0,0,255}
-\definecolor{0,1,0}{RGB}{255,255,255}
-\definecolor{0,2,0}{RGB}{255,255,247}
-\definecolor{0,3,0}{RGB}{255,255,223}
-\definecolor{0,4,0}{RGB}{255,255,191}
+% G
+\definecolor{0,1,0}{RGB}{255,255,247}
+\definecolor{0,2,0}{RGB}{255,255,223}
+\definecolor{0,3,0}{RGB}{255,255,191}
+\definecolor{0,4,0}{RGB}{255,255,153}
 \definecolor{0,5,0}{RGB}{255,255,127}
 \definecolor{0,6,0}{RGB}{255,255,63}
 \definecolor{0,7,0}{RGB}{255,255,0}
+% G + *
+\definecolor{2,4,0}{RGB}{223,191,191}
+\definecolor{0,4,2}{RGB}{191,255,191}
+\definecolor{4,4,0}{RGB}{223,153,191}
+\definecolor{0,4,4}{RGB}{153,255,191}
+\definecolor{2,6,0}{RGB}{223,191,127}
+\definecolor{0,6,2}{RGB}{191,255,127}
+\definecolor{4,6,0}{RGB}{223,153,127}
+\definecolor{0,6,4}{RGB}{153,255,127}
 \begin{document}
 
 \title{A Study of Scene Semantics: Project 2}
@@ -65,22 +80,22 @@ wharris2@uccs.edu}}
 \begin{center}
 \begin{tikzpicture}
 \coordinate (P) at (3,2);
-\coordinate (Q) at (4,0);
+\coordinate (Q) at (3.5,0);
 \coordinate (R) at (2,-1.5);
-\draw (-2.25,1) -- (-1.75,1); % Screen (top)
-\draw (-2,-1) -- (-2,1); % Screen (Z)
-\draw (-2.25,-1) -- (-1.75,-1); % Screen (bottom)
-\draw (-2,0) -- (3,2); % ZP
-\draw (-2,0) -- (4,0); % ZQ
-\draw (-2,0) -- (2,-1.5); % ZR
+\draw (-1.25,1) -- (-0.75,1); % Screen (top)
+\draw (-1,-1) -- (-1,1); % Screen (Z)
+\draw (-1.25,-1) -- (-0.75,-1); % Screen (bottom)
+\draw (-1,0) -- (3,1.5); % ZP
+\draw (-1,0) -- (3.5,0); % ZQ
+\draw (-1,0) -- (2,-1.5); % ZR
 %%Labels for the vertices are typeset.
-\node[below left = -2.25mm of {(3,2)}] {\textbullet}; % P
-\node[below left = -2.35mm of {(4,0)}] {\textbullet}; % Q
+\node[below left = -2.25mm of {(3,1.5)}] {\textbullet}; % P
+\node[below left = -2.35mm of {(3.5,0)}] {\textbullet}; % Q
 \node[below left = -2.5mm of {(2,-1.5)}] {\textbullet}; % R
-\node[right = 1mm of {(3,2)}] {$P_{z=d + P_{z}}$};
-\node[right = 1mm of {(4,0)}] {$Q_{z=d + Q_{z}}$};
+\node[right = 1mm of {(3,1.5)}] {$P_{z=d + P_{z}}$};
+\node[right = 1mm of {(3.5,0)}] {$Q_{z=d + Q_{z}}$};
 \node[right = 1mm of {(2,-1.5)}] {$R_{z=d + R_{z}}$};
-\node[left = -2mm of {(-2,-1.25)}] {$z=d$};
+\node[right = -5mm of {(-1,-1.3)}] {$z=d$};
 \end{tikzpicture}
 \end{center}
 \caption{Triangle $PQR$ for Question 3.}
@@ -152,55 +167,120 @@ wharris2@uccs.edu}}
 \end{center}
 \end{figure}
 
+%\begin{figure}[h!]
+%\begin{center}
+%\begin{minipage}[t]{\linewidth}
+%\hspace{0.075\linewidth}
+%%\rule[-1em]{0pt}{0cm}
+%\begin{tikzpicture}
+%% R
+%\draw (-2,3) -- (2,3); % g horizontal line
+%\draw (-2,2.95) -- (-2,3.05); % g left tick
+%\draw (2,2.95) -- (2,3.05); % g right tick
+%\node[above = 1mm of {(0,3)}] {$g \wedge \text{0x0F}$};
+%\filldraw[draw=black,fill={0,0,0}] (-2,1) rectangle (-1,2);
+%\filldraw[draw=black,fill={0,1,0}] (-1,1) rectangle (0,2);
+%\filldraw[draw=black,fill={0,2,0}] (0,1) rectangle (1,2);
+%\filldraw[draw=black,fill={0,3,0}] (1,1) rectangle (2,2);
+%\node[above = 3mm of {(-1.5,2)}] {\scriptsize{$g(1)$}};
+%\node[above = 0.5mm of {(-1.5,2)}] {\scriptsize{$\textbf{0x00}$}};
+%\node[above = 3mm of {(-0.5,2)}] {\scriptsize{$g(2)$}};
+%\node[above = 0.5mm of {(-0.5,2)}] {\scriptsize{$\textbf{0x01}$}};
+%\node[above = 3mm of {(0.5,2)}] {\scriptsize{$g(3)$}};
+%\node[above = 0.5mm of {(0.5,2)}] {\scriptsize{$\textbf{0x02}$}};
+%\node[above = 3mm of {(1.5,2)}] {\scriptsize{$g(4)$}};
+%\node[above = 0.5mm of {(1.5,2)}] {\scriptsize{$\textbf{0x04}$}};
+%% B
+%\draw (-2.25,2) -- (-2.25,0); % g vertical line
+%\draw (-2.3,2) -- (-2.2,2); % g top tick
+%\draw (-2.3,0) -- (-2.2,0); % g bottom tick
+%\node[left = 2mm of {(-2.15,1)}] {$g \wedge \text{0xF0}$};
+%\filldraw[draw=black,fill={0,4,0}] (-2,0) rectangle (-1,1);
+%\filldraw[draw=black,fill={0,5,0}] (-1,0) rectangle (0,1);
+%\filldraw[draw=black,fill={0,6,0}] (0,0) rectangle (1,1);
+%\filldraw[draw=black,fill={0,7,0}] (1,0) rectangle (2,1);
+%\node[below = 3mm of {(-1.5,0)}] {\scriptsize{$g(5)$}};
+%\node[below = 0.5mm of {(-1.5,0)}] {\scriptsize{$\textbf{0x10}$}};
+%\node[below = 3mm of {(-0.5,0)}] {\scriptsize{$g(6)$}};
+%\node[below = 0.5mm of {(-0.5,0)}] {\scriptsize{$\textbf{0x20}$}};
+%\node[below = 3mm of {(0.5,0)}] {\scriptsize{$g(7)$}};
+%\node[below = 0.5mm of {(0.5,0)}] {\scriptsize{$\textbf{0x40}$}};
+%\node[below = 3mm of {(1.5,0)}] {\scriptsize{$g(8)$}};
+%\node[below = 0.5mm of {(1.5,0)}] {\scriptsize{$\textbf{0x80}$}};
+%% Labels
+%\node[left = -3mm of {(-1.5,1.5)},fill=white] {$64$};
+%\node[left = -3.5mm of {(-0.5,1.5)},fill=white] {$128$};
+%\node[left = -3.5mm of {(0.5,1.5)},fill=white] {$192$};
+%\node[left = -3.75mm of {(1.5,1.5)},fill=white] {$256$};
+%\node[left = -3.75mm of {(-1.5,0.5)},fill=white] {$320$};
+%\node[left = -3.75mm of {(-0.5,0.5)},fill=white] {$384$};
+%\node[left = -3.8mm of {(0.5,0.5)},fill=white] {$448$};
+%\node[left = -3.85mm of {(1.5,0.5)},fill=white] {$512$};
+%\end{tikzpicture}
+%\caption{Separation of screen space using $r$ and $b$ as parameters.}
+%\label{fig:param_1}
+%\end{minipage}
+%\end{center}
+%\end{figure}
+
 \begin{figure}[h!]
 \begin{center}
 \begin{minipage}[t]{\linewidth}
-\hspace{0.075\linewidth}
+\hspace{-0.025\linewidth}
 %\rule[-1em]{0pt}{0cm}
 \begin{tikzpicture}
+% G
+\draw (-3.375,1.9) -- (0,1.9); % g horizontal line
+\draw (-3.375,1.85) -- (-3.375,1.95); % g left tick
+\draw (0,1.85) -- (0,1.95); % g right tick
+\node[above = 0.5mm of {(-1.6875,1.9)}] {$g(1)$};
+\draw (0,1.9) -- (3.375,1.9); % g horizontal line
+\draw (0,1.85) -- (0,1.95); % g left tick
+\draw (3.375,1.95) -- (3.375,1.95); % g right tick
+\node[above = 0.5mm of {(1.6875,1.9)}] {$g(2)$};
+\filldraw[draw=black,fill={0,4,0}] (-3.375,-1.6875) rectangle (0,1.6875);
+\filldraw[draw=black,fill={0,6,0}] (0,-1.6875) rectangle (3.375,1.6875);
 % R
-\draw (-2,3) -- (2,3); % g horizontal line
-\draw (-2,2.95) -- (-2,3.05); % g left tick
-\draw (2,2.95) -- (2,3.05); % g right tick
-\node[above = 1mm of {(0,3)}] {$g \wedge \text{0x0F}$};
-\filldraw[draw=black,fill={0,0,0}] (-2,1) rectangle (-1,2);
-\filldraw[draw=black,fill={0,1,0}] (-1,1) rectangle (0,2);
-\filldraw[draw=black,fill={0,2,0}] (0,1) rectangle (1,2);
-\filldraw[draw=black,fill={0,3,0}] (1,1) rectangle (2,2);
-\node[above = 3mm of {(-1.5,2)}] {\scriptsize{$g(1)$}};
-\node[above = 0.5mm of {(-1.5,2)}] {\scriptsize{$\textbf{0x00}$}};
-\node[above = 3mm of {(-0.5,2)}] {\scriptsize{$g(2)$}};
-\node[above = 0.5mm of {(-0.5,2)}] {\scriptsize{$\textbf{0x01}$}};
-\node[above = 3mm of {(0.5,2)}] {\scriptsize{$g(3)$}};
-\node[above = 0.5mm of {(0.5,2)}] {\scriptsize{$\textbf{0x02}$}};
-\node[above = 3mm of {(1.5,2)}] {\scriptsize{$g(4)$}};
-\node[above = 0.5mm of {(1.5,2)}] {\scriptsize{$\textbf{0x04}$}};
+\draw (-3,-1.9) -- (-0.375,-1.9); % r horizontal line
+\draw (-3,-1.85) -- (-3,-1.95); % r left tick
+\draw (-0.375,-1.85) -- (-0.375,-1.95); % r right tick
+\node[below = -0.5mm of {(-1.6875,-1.9)}] {$r(1..4)$};
+\draw (0.375,-1.9) -- (3,-1.9); % r horizontal line
+\draw (0.375,-1.85) -- (0.375,-1.95); % r left tick
+\draw (3,-1.85) -- (3,-1.95); % r right tick
+\node[below = -0.5mm of {(1.6875,-1.9)}] {$r(5..8)$};
 % B
-\draw (-2.25,2) -- (-2.25,0); % g vertical line
-\draw (-2.3,2) -- (-2.2,2); % g top tick
-\draw (-2.3,0) -- (-2.2,0); % g bottom tick
-\node[left = 2mm of {(-2.15,1)}] {$g \wedge \text{0xF0}$};
-\filldraw[draw=black,fill={0,4,0}] (-2,0) rectangle (-1,1);
-\filldraw[draw=black,fill={0,5,0}] (-1,0) rectangle (0,1);
-\filldraw[draw=black,fill={0,6,0}] (0,0) rectangle (1,1);
-\filldraw[draw=black,fill={0,7,0}] (1,0) rectangle (2,1);
-\node[below = 3mm of {(-1.5,0)}] {\scriptsize{$g(5)$}};
-\node[below = 0.5mm of {(-1.5,0)}] {\scriptsize{$\textbf{0x10}$}};
-\node[below = 3mm of {(-0.5,0)}] {\scriptsize{$g(6)$}};
-\node[below = 0.5mm of {(-0.5,0)}] {\scriptsize{$\textbf{0x20}$}};
-\node[below = 3mm of {(0.5,0)}] {\scriptsize{$g(7)$}};
-\node[below = 0.5mm of {(0.5,0)}] {\scriptsize{$\textbf{0x40}$}};
-\node[below = 3mm of {(1.5,0)}] {\scriptsize{$g(8)$}};
-\node[below = 0.5mm of {(1.5,0)}] {\scriptsize{$\textbf{0x80}$}};
-% Labels
-\node[left = -3mm of {(-1.5,1.5)},fill=white] {$64$};
-\node[left = -3.5mm of {(-0.5,1.5)},fill=white] {$128$};
-\node[left = -3.5mm of {(0.5,1.5)},fill=white] {$192$};
-\node[left = -3.75mm of {(1.5,1.5)},fill=white] {$256$};
-\node[left = -3.75mm of {(-1.5,0.5)},fill=white] {$320$};
-\node[left = -3.75mm of {(-0.5,0.5)},fill=white] {$384$};
-\node[left = -3.8mm of {(0.5,0.5)},fill=white] {$448$};
-\node[left = -3.85mm of {(1.5,0.5)},fill=white] {$512$};
+\draw (-3.6,-1.3125) -- (-3.6,1.3125); % b vertical line
+\draw (-3.55,1.3125) -- (-3.65,1.3125); % b top tick
+\draw (-3.55,-1.3125) -- (-3.65,-1.3125); % b bottom tick
+\node[left = 0mm of {(-3.6,0)}] {$b(1..4)$};
+%\filldraw[draw=black,fill=lightgray] (1.5,4) rectangle (3.5,4.5);
+% Left pairs
+\filldraw[draw=black,fill={0,4,2}] (-3,-1.3125) rectangle (-1.6875,0); % bottom left
+\filldraw[draw=black,fill={0,4,4}] (-1.6875,-1.3125) rectangle (-0.375,1.3125); % bottom right
+\filldraw[draw=black,fill={2,4,0}] (-3,0) rectangle (-1.6875,1.3125); % top left
+\filldraw[draw=black,fill={4,4,0}] (-1.6875,0) rectangle (-0.375,1.3125); % top right
+% Right pairs
+\filldraw[draw=black,fill={0,6,2}] (0.375,-1.3125) rectangle (1.6875,0); % bottom left
+\filldraw[draw=black,fill={0,6,4}] (1.6875,-1.3125) rectangle (3,1.3125); % bottom right
+\filldraw[draw=black,fill={2,6,0}] (0.375,0) rectangle (1.6875,1.3125); % top left
+\filldraw[draw=black,fill={4,6,0}] (1.6875,0) rectangle (3,1.3125); % top right
+%% Left pairs
+%\filldraw[draw=black,fill={0,4,2}] (-2,-0.875) rectangle (-1.125,0); % bottom left
+%\filldraw[draw=black,fill={0,4,4}] (-1.125,-0.875) rectangle (-0.25,0.875); % bottom right
+%\filldraw[draw=black,fill={2,4,0}] (-2,0) rectangle (-1.125,0.875); % top left
+%\filldraw[draw=black,fill={4,4,0}] (-1.125,0) rectangle (-0.25,0.875); % top right
+%% Right pairs
+%\filldraw[draw=black,fill={0,6,2}] (0.25,-0.875) rectangle (1.125,0); % bottom left
+%\filldraw[draw=black,fill={0,6,4}] (1.125,-0.875) rectangle (2,0.875); % bottom right
+%\filldraw[draw=black,fill={2,6,0}] (0.25,0) rectangle (1.125,0.875); % top left
+%\filldraw[draw=black,fill={4,6,0}] (1.125,0) rectangle (2,0.875); % top right
+% Object
+\filldraw[draw=black,fill={1,1,1},fill opacity=0.5] (0,0) circle (3em);
+\draw[dashed] (-1.0725,-1.55) -- (-1.0725,1.55); % vertical left
+\draw[dashed] (1.0725,-1.55) -- (1.0725,1.55); % vertical right
+\draw[dashed] (-3.15,-1.075) -- (3.2,-1.075); % horizontal bottom
+\draw[dashed] (-3.15,1.075) -- (3.2,1.075); % horizontal bottom
 \end{tikzpicture}
 \caption{Separation of screen space using $r$ and $b$ as parameters.}
 \label{fig:param_1}
