@@ -31,7 +31,7 @@ def worldSpaceToScreenSpace(worldPoint):
     projMtx = om.MMatrix(mFloatMtx.matrix)
 
     # Multiply all together and do the normalisation
-    mPoint = om.MPoint(worldPoint[0],worldPoint[1],worldPoint[2]) * camInvMtx * projMtx;
+    mPoint = om.MPoint(worldPoint[0],worldPoint[1],worldPoint[2]) * camInvMtx * projMtx
     x = (mPoint[0] / mPoint[3] / 2 + .5)
     y = (mPoint[1] / mPoint[3] / 2 + .5)
 
@@ -43,7 +43,7 @@ def collectObjects(currSel):
     meshSel = []
     for xform in currSel:
         shapes = cmds.listRelatives(xform, shapes=True) # it's possible to have more than one
-        if shapes != None:
+        if shapes is not None:
             for s in shapes:
                 if cmds.nodeType(s) == 'mesh':
                     meshSel.append(xform)
@@ -91,7 +91,7 @@ def clippingTest(p, q, bounds):
         
     return True
 
-# Return the Pp Code for a given point
+# Return the Op Code for a given point
 def opCode(p, bounds):
     code = 0
     
@@ -112,6 +112,26 @@ def opCode(p, bounds):
         code = code | 8
         
     return code
+    
+# Update the color of a shader given r, g, b
+def updateShaderColor(mesh, colorCode, maxVal):
+    shader = findShader(mesh)
+    cmds.setAttr ( (shader) + '.r', colorCode[0] / float(maxVal) )
+    cmds.setAttr ( (shader) + '.g', colorCode[1] / float(maxVal) )
+    cmds.setAttr ( (shader) + '.b', colorCode[2] / float(maxVal) ) 
+    
+# Return correct shader given a shader name
+def findShader(mesh):
+    cmds.select(mesh)
+    nodes = cmds.ls(sl=True, dag=True, s=True)
+    shadingEngine = cmds.listConnections(nodes, type='shadingEngine')
+    materials = cmds.ls(cmds.listConnections(shadingEngine), materials=True)
+    
+    # Find the OSL shader node from connected nodes of the material
+    for node in cmds.listConnections(materials):
+        if node.find('PxrOSL') > -1:
+            return node
+    return None
 
 ##########################
 ### Main Functionality ###
@@ -125,19 +145,19 @@ def displayWindow():
     cmds.columnLayout( cat=('both', 25), rs=10, cw=340 )
     cmds.text( label="\nThis is the \"Sematics Tool\"! This tool will generate semantics for the loaded scene.\n\n", ww=True, al="left" )
     cmds.text( label="To run:\n1) Input the information in the fields below.\n2) Click \"Run\".", al="left" )
-    cmds.text( '1', label='Enter the keyframe at which to start semantics generation:', al='left', ww=True )
+    cmds.text( label='Enter the keyframe at which to start semantics generation (1):', al='left', ww=True )
     startTimeField = cmds.textField()
-    cmds.text( '120', label='Enter the keyframe at which to end semantics generation:', al='left', ww=True )
+    cmds.text( label='Enter the keyframe at which to end semantics generation (120):', al='left', ww=True )
     endTimeField = cmds.textField()
-    cmds.text( '1', label='Enter the step at which to process frames:', al='left', ww=True )
+    cmds.text( label='Enter the step at which to process frames (1):', al='left', ww=True )
     stepTimeField = cmds.textField()
-    cmds.text( '1', label='Enter the dimension of frame blocks, or -1 for the whole frame:', al='left', ww=True )
-    blockDimField = cmds.textField()
-    cmds.button( label='Run', command=partial( generateSemantics, menu, startTimeField, endTimeField, stepTimeField, blockDimField ) )
+    cmds.text( label='Enter the number of bits used to store each, a multiple of 8 is recommended (8):', al='left', ww=True )
+    bitNumField = cmds.textField()
+    cmds.button( label='Run', command=partial( generateSemantics, menu, startTimeField, endTimeField, stepTimeField, bitNumField ) )
     cmds.text( label="\n", al='left' )
     cmds.showWindow( menu )
 
-def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, blockDimField, *args ):
+def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, bitNumField, *args ):
     # Grab user input and delete window
     startTime = cmds.textField(startTimeField, q=True, tx=True )
     if (startTime == ''):
@@ -151,40 +171,69 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, blockD
     if (stepTime == ''):
         print 'WARNING: Default step time (1) used...'
         stepTime = '1'
-    blockDim = cmds.textField(blockDimField, q=True, tx=True )
-    if (blockDim == ''):
-        print 'WARNING: Default block dim (-1) used...'
-        blockDim = '-1'
+    bitNum = cmds.textField(bitNumField, q=True, tx=True )
+    if (bitNum == ''):
+        print 'WARNING: Default bit number (8) used...'
+        bitNum = '8'
+    N = int(bitNum)
     cmds.deleteUI( menu, window=True )
     
     # Set up program
     resWidth = cmds.getAttr('defaultResolution.width')
     resHeight = cmds.getAttr('defaultResolution.height')
-    print(resWidth, resHeight)
+    blockDim = [int(resWidth / (2 * N)), int(resHeight / ((N / 8) * N))]
+    
+    # Set up blocks
     blocks = []
-    if int(blockDim) < 0:
-        blocks.append([[0,1],[0,1]])
-    else:
-        for w in range(0, resWidth / int(blockDim)):
-            left = (w * int(blockDim)) / float(resWidth)
-            right = ((w + 1) * int(blockDim)) / float(resWidth)
-            for h in range(0, resHeight / int(blockDim)):
-                top = (h * int(blockDim)) / float(resHeight)
-                bottom = ((h + 1) * int(blockDim)) / float(resHeight)
-                
-                blocks.append([[left,right],[top,bottom]])
+    for w in range(resWidth / blockDim[0]):
+        row = []
+        
+        # Find boundaries for each block in the row
+        left = (w * blockDim[0]) / float(resWidth)
+        right = ((w + 1) * blockDim[0]) / float(resWidth)
+        for h in range(resHeight / blockDim[1]):
+            top = (h * blockDim[1]) / float(resHeight)
+            bottom = ((h + 1) * blockDim[1]) / float(resHeight)
+            
+            row.append([[left,right],[top,bottom]])
+            
+        # Append the finished row
+        blocks.append(row)
+            
+    print('Block Dim: (%d, %d), Blocks: (%d, %d)' % (blockDim[0], blockDim[1], len(blocks), len(blocks[0])))
     
     # Obtain all meshes in the scene
     currSel = cmds.ls()
     meshes = collectObjects(currSel)
+    meshColors = []
+    for n in range(len(meshes)):
+        meshColors.append([0x0, 0x0, 0x0])
     
     # Iterate over all meshes and all boundaries
-    for bounds in blocks:
-        print(bounds)
-        for i, mesh in enumerate(meshes):
-            inBounds = testMesh(mesh, bounds)
-            if inBounds:
-                print(mesh)
+    #       i % N           --> B value
+    #       j % N           --> R value
+    # i/(N/2) % N + j/(N/2) --> G value
+    for i in range(len(blocks)):
+        b = i % N
+        for j in range(len(blocks[i])):
+            r = j % N
+            #g = (i / 4) * (N / 4) + (j / 4)
+            g = (i / (N / 2)) * (N / 4) + (j / (N / 2))
+            
+            # Find bounds and color code for current block
+            bounds = blocks[i][j]
+            colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
+            
+            # Test which meshes are contained within the block
+            print('%d: Processing bounds [[%0.3f,%0.3f],[%0.3f,%0.3f]]' % (g, bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]))
+            for k, mesh in enumerate(meshes):
+                if testMesh(mesh, bounds):
+                    for n in range(len(colorCode)):
+                        meshColors[k][n] |= colorCode[n]
+                    
+    for k, mesh in enumerate(meshes):
+        updateShaderColor(mesh, meshColors[k], 2**N)
+        print(mesh, meshColors[k])
     
 ##########################
 ####### Run Script #######
