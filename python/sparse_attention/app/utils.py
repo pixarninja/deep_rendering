@@ -58,9 +58,9 @@ class recomputable(object):
         if not recompute:
             return self.normal_fn(*args, **kwargs)
 
-        name = f"{self.name}"
+        name = "{}".format(self.name)
         for key in kwargs:
-            name += f"-{key}-{kwargs[key]}"
+            name += "-{}-{}".format(key, kwargs[key])
         try:
             size_hash = str(hash(int(
                 ''.join([''.join([str(x) for x in a.shape.as_list()])

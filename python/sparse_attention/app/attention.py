@@ -31,7 +31,7 @@ def get_attn_mask(n, attn_mode, local_attn_ctx=None):
 
 def strided_transpose(x, n_ctx, local_attn_ctx, blocksize):
     bT_ctx = n_ctx // local_attn_ctx
-    assert bT_ctx % blocksize == 0, f'{bT_ctx}, {blocksize}'
+    assert bT_ctx % blocksize == 0, '{bT_ctx}, {blocksize}'.format(bT_ctx=bT_ctx, blocksize=blocksize)
     n, t, embd = shape_list(x)
     x = tf.reshape(x, [n, bT_ctx, local_attn_ctx, embd])
     x = tf.transpose(x, [0, 2, 1, 3])
@@ -129,7 +129,7 @@ def get_blocksparse_obj(n_ctx, n_heads, attn_mode, blocksize=32, local_attn_ctx=
         assert bT_ctx % blocksize == 0
         block_chunks = bT_ctx // blocksize
     else:
-        raise ValueError(f'attn mode {attn_mode} invalid')
+        raise ValueError('attn mode {attn_mode} invalid'.format(attn_mode=attn_mode))
 
     if attn_mode == 'fixed':
         assert n_heads % num_verts == 0
