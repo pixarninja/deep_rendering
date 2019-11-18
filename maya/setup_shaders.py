@@ -139,11 +139,11 @@ def findShader(mesh):
 
 # Create and display menu system
 def displayWindow():
-    menu = cmds.window( title="Export Semantics Tool", iconName='SemanticsTool', widthHeight=(350, 400) )
+    menu = cmds.window( title="Semantics Shader Tool", iconName='SemShaderTool', widthHeight=(350, 400) )
     scrollLayout = cmds.scrollLayout( verticalScrollBarThickness=16 )
     cmds.flowLayout( columnSpacing=10 )
     cmds.columnLayout( cat=('both', 25), rs=10, cw=340 )
-    cmds.text( label="\nThis is the \"Sematics Tool\"! This tool will generate semantics for the loaded scene.\n\n", ww=True, al="left" )
+    cmds.text( label="\nThis is the \"Semantics Shader Tool\"! This tool will generate semantics shaders for the loaded scene.\n\n", ww=True, al="left" )
     cmds.text( label="To run:\n1) Input the information in the fields below.\n2) Click \"Run\".", al="left" )
     cmds.text( label='Enter the keyframe at which to start semantics generation (1):', al='left', ww=True )
     startTimeField = cmds.textField()
@@ -153,11 +153,11 @@ def displayWindow():
     stepTimeField = cmds.textField()
     cmds.text( label='Enter the number of bits used to store each, a multiple of 8 is recommended (8):', al='left', ww=True )
     bitNumField = cmds.textField()
-    cmds.button( label='Run', command=partial( generateSemantics, menu, startTimeField, endTimeField, stepTimeField, bitNumField ) )
+    cmds.button( label='Run', command=partial( setupShaders, menu, startTimeField, endTimeField, stepTimeField, bitNumField ) )
     cmds.text( label="\n", al='left' )
     cmds.showWindow( menu )
 
-def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, bitNumField, *args ):
+def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField, *args ):
     # Grab user input and delete window
     startTime = cmds.textField(startTimeField, q=True, tx=True )
     if (startTime == ''):
