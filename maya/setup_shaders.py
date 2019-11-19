@@ -185,18 +185,21 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
     resWidth = cmds.getAttr('defaultResolution.width')
     resHeight = cmds.getAttr('defaultResolution.height')
     blockDim = [int(resWidth / (2 * N)), int(resHeight / ((N / 8) * N))]
-    
+    xDiv = float(resWidth) / blockDim[0]
+    yDiv = float(resHeight) / blockDim[1]
+    step = (resWidth / blockDim[0]) / (N / 2)
+        
     # Set up blocks
     blocks = []
-    for w in range(resWidth / blockDim[0]):
+    for w in range(int(xDiv)):
         row = []
         
         # Find boundaries for each block in the row
-        left = (w * blockDim[0]) / float(resWidth)
-        right = ((w + 1) * blockDim[0]) / float(resWidth)
-        for h in range(resHeight / blockDim[1]):
-            top = (h * blockDim[1]) / float(resHeight)
-            bottom = ((h + 1) * blockDim[1]) / float(resHeight)
+        left = w / xDiv
+        right = (w + 1) / xDiv
+        for h in range(int(yDiv)):
+            top = h / yDiv
+            bottom = (h + 1) / yDiv
             
             row.append([[left,right],[top,bottom]])
             
@@ -213,24 +216,67 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
         meshColors.append([0x0, 0x0, 0x0])
     
     # Iterate over all meshes and all boundaries
-    step = (resWidth / blockDim[0]) / (N / 2)
-    for i in range(len(blocks)):
-        b = i % N
-        for j in range(len(blocks[i])):
-            r = j % N
-            g = int((j / (N / 2))) * int(step) + int((i / (N / 2)))
+    for k, mesh in enumerate(meshes):
+        cmds.select(mesh)
+        bb = cmds.xform( q=True, bb=True, ws=True )
+        
+        # Obtain all 8 points to test from the bounding box
+        # Format: xmin ymin zmin xmax ymax zmax
+        bbPoints = []
+        bbPoints.append(om.MPoint( bb[0], bb[1], bb[2], 1.0 ))
+        bbPoints.append(om.MPoint( bb[0], bb[1], bb[5], 1.0 ))
+        bbPoints.append(om.MPoint( bb[0], bb[4], bb[2], 1.0 ))
+        bbPoints.append(om.MPoint( bb[0], bb[4], bb[5], 1.0 ))
+        bbPoints.append(om.MPoint( bb[3], bb[1], bb[2], 1.0 ))
+        bbPoints.append(om.MPoint( bb[3], bb[1], bb[5], 1.0 ))
+        bbPoints.append(om.MPoint( bb[3], bb[4], bb[2], 1.0 ))
+        bbPoints.append(om.MPoint( bb[3], bb[4], bb[5], 1.0 ))
+        
+        # Translate to screen space and obtain overall bounds
+        left, right, top, bottom = 1.0, -1.0, 1.0, -1.0
+        for p in bbPoints:
+            P = worldSpaceToScreenSpace(p)
+            if left > P[0]:
+                left = P[0]
+                if left < 0.0:
+                    left = 0.0
+            if right < P[0]:
+                right = P[0]
+                if right > 1.0:
+                    right = 1.0
+            if top > P[1]:
+                top = P[1]
+                if top < 0.0:
+                    top = 0.0
+            if bottom < P[1]:
+                bottom = P[1]
+                if bottom > 1.0 or bottom < 0.0:
+                    bottom = 1.0
+        
+        print(mesh, left, right, top, bottom)
+        
+        # Translate bounds to i and j values
+        bounds = [int(left * xDiv), 15, int(top * yDiv), 7]
+        if int(right * xDiv) < 15:
+            bounds[1] = int(right * xDiv) + 1
+        if int(bottom * yDiv) < 7:
+            bounds[3] = int(bottom * yDiv) + 1
             
-            # Find bounds and color code for current block
-            bounds = blocks[i][j]
-            colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
-            
-            # Test which meshes are contained within the block
-            print('%d, %d, %d: Processing bounds [[%0.3f,%0.3f],[%0.3f,%0.3f]]' % (r, g, b, bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]))
-            for k, mesh in enumerate(meshes):
-                if testMesh(mesh, bounds):
-                    for n in range(len(colorCode)):
-                        meshColors[k][n] |= colorCode[n]
-                    
+        print(bounds)
+        
+        for i in range(int(top * yDiv), int(bottom * yDiv) + 1):
+            b = i % N
+            for j in range(int(left * xDiv), int(right * xDiv) + 1):
+                r = j % N
+                g = int((j / (N / 2))) * int(step) + int((i / (N / 2)))
+                
+                # Find color code for current block
+                colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
+                
+                # Test which meshes are contained within the block
+                for n in range(len(colorCode)):
+                    meshColors[k][n] |= colorCode[n]
+
     for k, mesh in enumerate(meshes):
         updateShaderColor(mesh, meshColors[k], 2**N)
         print(mesh, meshColors[k])
