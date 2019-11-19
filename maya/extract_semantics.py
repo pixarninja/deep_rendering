@@ -1,3 +1,54 @@
+import maya.cmds as cmds
+import maya.OpenMaya as om
+
+##########################
+#### Helper Functions ####
+##########################
+
+# Collect all objects in the scene using Maya ls command
+# https://stackoverflow.com/questions/22794533/maya-python-array-collecting
+def collectObjects(currSel):
+    meshSel = []
+    for xform in currSel:
+        shapes = cmds.listRelatives(xform, shapes=True) # it's possible to have more than one
+        if shapes is not None:
+            for s in shapes:
+                if cmds.nodeType(s) == 'mesh':
+                    meshSel.append(xform)
+  
+    return meshSel
+    
+# Return the bit code for shader inputs and block offsets
+def bitCode(mesh, r, g, b):
+    shader = findShader(mesh)
+    
+    rVal = cmds.getAttr ( (shader) + '.r' )
+    gVal = cmds.getAttr ( (shader) + '.g' )
+    bVal = cmds.getAttr ( (shader) + '.b' ) 
+    n = cmds.getAttr ( (shader) + '.n' )
+    
+    return [(rVal >> r) & 0x1, (gVal >> g) & 0x1, (bVal >> b) & 0x1]
+
+# Test if the color value implies block intersection
+def checkBitCode(code):
+    if code[0] == 1 and code[1] == 1 and code[2] == 1:
+        return True
+        
+    return False
+
+# Return correct shader given a shader name
+def findShader(mesh):
+    cmds.select(mesh)
+    nodes = cmds.ls(sl=True, dag=True, s=True)
+    shadingEngine = cmds.listConnections(nodes, type='shadingEngine')
+    materials = cmds.ls(cmds.listConnections(shadingEngine), materials=True)
+    
+    # Find the OSL shader node from connected nodes of the material
+    for node in cmds.listConnections(materials):
+        if node.find('PxrOSL') > -1:
+            return node
+    return None
+
 ##########################
 ### Main Functionality ###
 ##########################
@@ -70,31 +121,28 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, bitNum
     # Obtain all meshes in the scene
     currSel = cmds.ls()
     meshes = collectObjects(currSel)
-    meshColors = []
-    for n in range(len(meshes)):
-        meshColors.append([0x0, 0x0, 0x0])
+    meshBlocks = {}
     
     # Iterate over all meshes and all boundaries
-    #       i % N           --> B value
-    #       j % N           --> R value
-    # i/(N/2) % N + j/(N/2) --> G value
+    step = (resWidth / blockDim[0]) / (N / 2)
     for i in range(len(blocks)):
         b = i % N
         for j in range(len(blocks[i])):
             r = j % N
-            #g = (i / 4) * (N / 4) + (j / 4)
-            g = (i / (N / 2)) * (N / 4) + (j / (N / 2))
+            g = int((j / (N / 2))) * int(step) + int((i / (N / 2)))
             
-            # Find bounds and color code for current block
-            bounds = blocks[i][j]
-            colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
-            
-            # Test which meshes are contained within the block
-            print('%d: Processing bounds [[%0.3f,%0.3f],[%0.3f,%0.3f]]' % (g, bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]))
-                    
+            # Check bit code for current block
+            for k, mesh in enumerate(meshes):
+                code = bitCode(mesh, r, g, b)
+                if checkBitCode(code):
+                    if mesh in meshBlocks:
+                        meshBlocks[mesh].append([r,g,b])
+                    else:
+                        meshBlocks[mesh] = [[r,g,b]]
+    
     for k, mesh in enumerate(meshes):
-        updateShaderColor(mesh, meshColors[k], 2**N)
-        print(mesh, meshColors[k])
+        for blockOffset in meshBlocks[mesh]:
+            print('%s: %d, %d, %d' % (mesh, blockOffset[0], blockOffset[1], blockOffset[2]))
     
 ##########################
 ####### Run Script #######

@@ -33,8 +33,8 @@ def worldSpaceToScreenSpace(worldPoint):
     # Multiply all together and do the normalisation
     mPoint = om.MPoint(worldPoint[0],worldPoint[1],worldPoint[2]) * camInvMtx * projMtx
     x = (mPoint[0] / mPoint[3] / 2 + .5)
-    y = (mPoint[1] / mPoint[3] / 2 + .5)
-
+    y = 1 - (mPoint[1] / mPoint[3] / 2 + .5)
+    
     return [x,y]
 
 # Collect all objects in the scene using Maya ls command
@@ -67,7 +67,7 @@ def testMesh(mesh, bounds):
 
     # Iterate over all the mesh vertices and get position
     mItEdge = om.MItMeshEdge(dagPath)
-    while not mItEdge.isDone():
+    while not mItEdge.isDone():    	
         startPoint = mItEdge.point(0, om.MSpace.kWorld)
         endPoint = mItEdge.point(1, om.MSpace.kWorld)
         
@@ -82,8 +82,10 @@ def testMesh(mesh, bounds):
 # Perform the Cohen-Sutherland Clipping test using Op Codes
 # https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
 def clippingTest(p, q, bounds):
-    opCodeP = opCode(worldSpaceToScreenSpace(p), bounds)
-    opCodeQ = opCode(worldSpaceToScreenSpace(q), bounds)
+    P = worldSpaceToScreenSpace(p)
+    Q = worldSpaceToScreenSpace(q)
+    opCodeP = opCode(P, bounds)
+    opCodeQ = opCode(Q, bounds)
         
     # Trivial reject
     if (opCodeP & opCodeQ):
@@ -116,9 +118,10 @@ def opCode(p, bounds):
 # Update the color of a shader given r, g, b
 def updateShaderColor(mesh, colorCode, maxVal):
     shader = findShader(mesh)
-    cmds.setAttr ( (shader) + '.r', colorCode[0] / float(maxVal) )
-    cmds.setAttr ( (shader) + '.g', colorCode[1] / float(maxVal) )
-    cmds.setAttr ( (shader) + '.b', colorCode[2] / float(maxVal) ) 
+    cmds.setAttr ( (shader) + '.r', colorCode[0] )
+    cmds.setAttr ( (shader) + '.g', colorCode[1] )
+    cmds.setAttr ( (shader) + '.b', colorCode[2] ) 
+    cmds.setAttr ( (shader) + '.n', maxVal ) 
     
 # Return correct shader given a shader name
 def findShader(mesh):
@@ -210,22 +213,19 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
         meshColors.append([0x0, 0x0, 0x0])
     
     # Iterate over all meshes and all boundaries
-    #       i % N           --> B value
-    #       j % N           --> R value
-    # i/(N/2) % N + j/(N/2) --> G value
+    step = (resWidth / blockDim[0]) / (N / 2)
     for i in range(len(blocks)):
         b = i % N
         for j in range(len(blocks[i])):
             r = j % N
-            #g = (i / 4) * (N / 4) + (j / 4)
-            g = (i / (N / 2)) * (N / 4) + (j / (N / 2))
+            g = int((j / (N / 2))) * int(step) + int((i / (N / 2)))
             
             # Find bounds and color code for current block
             bounds = blocks[i][j]
             colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
             
             # Test which meshes are contained within the block
-            print('%d: Processing bounds [[%0.3f,%0.3f],[%0.3f,%0.3f]]' % (g, bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]))
+            print('%d, %d, %d: Processing bounds [[%0.3f,%0.3f],[%0.3f,%0.3f]]' % (r, g, b, bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]))
             for k, mesh in enumerate(meshes):
                 if testMesh(mesh, bounds):
                     for n in range(len(colorCode)):
