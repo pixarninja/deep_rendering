@@ -116,12 +116,12 @@ def opCode(p, bounds):
     return code
     
 # Update the color of a shader given r, g, b
-def updateShaderColor(mesh, colorCode, maxVal):
+def updateShaderColor(mesh, colorCode, n):
     shader = findShader(mesh)
     cmds.setAttr ( (shader) + '.r', colorCode[0] )
     cmds.setAttr ( (shader) + '.g', colorCode[1] )
     cmds.setAttr ( (shader) + '.b', colorCode[2] ) 
-    cmds.setAttr ( (shader) + '.n', maxVal ) 
+    cmds.setAttr ( (shader) + '.n', n ) 
     
 # Return correct shader given a shader name
 def findShader(mesh):
@@ -142,7 +142,7 @@ def findShader(mesh):
 
 # Create and display menu system
 def displayWindow():
-    menu = cmds.window( title="Semantics Shader Tool", iconName='SemShaderTool', widthHeight=(350, 400) )
+    menu = cmds.window( title="Setup Semantics Tool", iconName='SetupSemanticsTool', widthHeight=(350, 400) )
     scrollLayout = cmds.scrollLayout( verticalScrollBarThickness=16 )
     cmds.flowLayout( columnSpacing=10 )
     cmds.columnLayout( cat=('both', 25), rs=10, cw=340 )
@@ -233,52 +233,57 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
         bbPoints.append(om.MPoint( bb[3], bb[4], bb[5], 1.0 ))
         
         # Translate to screen space and obtain overall bounds
-        left, right, top, bottom = 1.0, -1.0, 1.0, -1.0
+        left, right, top, bottom = 1.0, 0.0, 1.0, 0.0
         for p in bbPoints:
             P = worldSpaceToScreenSpace(p)
             if left > P[0]:
                 left = P[0]
-                if left < 0.0:
-                    left = 0.0
             if right < P[0]:
                 right = P[0]
-                if right > 1.0:
-                    right = 1.0
             if top > P[1]:
                 top = P[1]
-                if top < 0.0:
-                    top = 0.0
             if bottom < P[1]:
                 bottom = P[1]
-                if bottom > 1.0 or bottom < 0.0:
-                    bottom = 1.0
-        
-        print(mesh, left, right, top, bottom)
+                    
+        if left < 0.0 or left >= 1.0:
+            left = 0.0
+        if right > 1.0 or right <= 0.0:
+            right = 1.0
+        if top < 0.0 or top >= 1.0:
+            top = 0.0
+        if bottom > 1.0 or bottom <= 0.0:
+            bottom = 1.0
         
         # Translate bounds to i and j values
-        bounds = [int(left * xDiv), 15, int(top * yDiv), 7]
-        if int(right * xDiv) < 15:
-            bounds[1] = int(right * xDiv) + 1
-        if int(bottom * yDiv) < 7:
-            bounds[3] = int(bottom * yDiv) + 1
-            
-        print(bounds)
+        bounds = [int(left * len(blocks)), int(right * len(blocks)) + 1, int(top * len(blocks[0])), int(bottom * len(blocks[0])) + 1]
+        if bounds[0] > len(blocks) - 1:
+            bounds[0] = len(blocks) - 1
+        if bounds[1] > len(blocks) - 1:
+            bounds[1] = len(blocks) - 1
+        if bounds[2] > len(blocks[0]) - 1:
+            bounds[2] = len(blocks[0]) - 1
+        if bounds[3] > len(blocks[0]) - 1:
+            bounds[3] = len(blocks[0]) - 1
         
-        for i in range(int(top * yDiv), int(bottom * yDiv) + 1):
+        print('Processing {}: [({},{}),({},{})]'.format(mesh, bounds[2], bounds[3], bounds[0], bounds[1]))
+        
+        for i in range(bounds[2], bounds[3] + 1):
             b = i % N
-            for j in range(int(left * xDiv), int(right * xDiv) + 1):
+            for j in range(bounds[0], bounds[1] + 1):
                 r = j % N
-                g = int((j / (N / 2))) * int(step) + int((i / (N / 2)))
+                g = int((i / (N / 2))) * int(step) + int((j / (N / 2)))
                 
-                # Find color code for current block
+                # Find bounds and color code for current block
+                subBounds = blocks[j][i]
                 colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
                 
                 # Test which meshes are contained within the block
-                for n in range(len(colorCode)):
-                    meshColors[k][n] |= colorCode[n]
+                if testMesh(mesh, subBounds):
+                    for n in range(len(colorCode)):
+                        meshColors[k][n] |= colorCode[n]
 
     for k, mesh in enumerate(meshes):
-        updateShaderColor(mesh, meshColors[k], 2**N)
+        updateShaderColor(mesh, meshColors[k], N)
         print(mesh, meshColors[k])
     
 ##########################
