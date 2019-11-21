@@ -1,5 +1,6 @@
 import maya.cmds as cmds
 import maya.OpenMaya as om
+from functools import partial
 
 ##########################
 #### Helper Functions ####
@@ -46,6 +47,10 @@ def findShader(mesh):
         if node.find('PxrOSL') > -1:
             return node
     return None
+
+# Extract semantic data based on block position and 
+def extractSemantics(meshes, bounds):
+    return '{}, {}'.format( meshes, bounds )
 
 ##########################
 ### Main Functionality ###
@@ -97,6 +102,7 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, *args 
     # Iterate over all meshes
     xNum, yNum = None, None
     blocks = []
+    blockToMeshMap = []
     for k, mesh in enumerate(meshes):
         shader = findShader(mesh)
         N = cmds.getAttr ( (shader) + '.n' )
@@ -109,39 +115,44 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, *args 
         if xNum is None or yNum is None:
             for h in range(int(yDiv)):
                 row = []
+                blockToMeshMap.append([])
                 
                 # Find boundaries for each block in the row
-                left = h / yDiv
-                right = (h + 1) / yDiv
+                top = h / yDiv
+                bottom = (h + 1) / yDiv
                 for w in range(int(xDiv)):
-                    top = w / xDiv
-                    bottom = (w + 1) / xDiv
+                    left = w / xDiv
+                    right = (w + 1) / xDiv
                     
                     row.append([[left,right],[top,bottom]])
+                    blockToMeshMap[h].append([])
                     
                 # Append the finished row
                 blocks.append(row)
             
             yNum = len(blocks)
             xNum = len(blocks[0])
+            print('Block Dim: (%d, %d), Blocks: (%d, %d)' % (blockDim[0], blockDim[1], len(blocks[0]), len(blocks)))
     
         # Iterate over all boundaries
+        print('Evaluating {}...'.format( mesh ))
         for i in range(yNum):
             b = i % N
             for j in range(xNum):
                 r = j % N
                 g = int((i / (N / 2))) * int(step) + int((j / (N / 2)))
                             
-                # Check bit code for current block
-                for k, mesh in enumerate(meshes):
-                    code = bitCode(mesh, r, g, b)
-                    if checkBitCode(code):
-                        if mesh in meshBlocks:
-                            meshBlocks[mesh].append([r,g,b])
-                        else:
-                            meshBlocks[mesh] = [[r,g,b]]
+                # Check bit code of mesh for current block
+                code = bitCode(mesh, r, g, b)
+                if checkBitCode(code):
+                    if mesh in meshBlocks:
+                        meshBlocks[mesh].append([ r, g, b ])
+                        blockToMeshMap[i][j].append(mesh)
+                    else:
+                        meshBlocks[mesh] = [[ r, g, b ]]
+                        blockToMeshMap[i][j] = [mesh]
                         
-    # Check if the algorithm correctly extracted the blocks.
+    # Check if the algorithm correctly extracted the blocks
     for k, mesh in enumerate(meshes):
         meshColors = [0x0, 0x0, 0x0]
         if mesh in meshBlocks:
@@ -149,15 +160,26 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, *args 
                 colorCode = [0x1 << c[0], 0x1 << c[1], 0x1 << c[2]]
                 for n in range(len(colorCode)):
                     meshColors[n] |= colorCode[n]
+        else:
+            print('{}: No blocks found!'.format( mesh ))
         
         shader = findShader(mesh)
         rVal = cmds.getAttr ( (shader) + '.r' )
         gVal = cmds.getAttr ( (shader) + '.g' )
         bVal = cmds.getAttr ( (shader) + '.b' )
         if (meshColors[0] == rVal) and (meshColors[1] == gVal) and (meshColors[2] == bVal):
-            print(mesh, 'Good!')
+            print('{}: Good!'.format( mesh ))
         else:
-            print(mesh, meshColors, rVal, gVal, bVal)        
+            print('{}: {} ({},{},{})'.format( mesh, meshColors, rVal, gVal, bVal ))
+            
+    # Extract semantics for each mesh
+    for i, row in enumerate(blockToMeshMap):
+        for j, meshesInBlock in enumerate(row):
+            if not meshesInBlock:
+                print('No semantics for block({},{})'.format( i, j ))
+            else:
+                semantics = extractSemantics(meshesInBlock, blocks[i][j])
+                print('Semantics for block({},{}): {}'.format( i, j, semantics ))
     
 ##########################
 ####### Run Script #######

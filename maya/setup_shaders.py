@@ -191,15 +191,15 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
         
     # Set up blocks
     blocks = []
-    for w in range(int(xDiv)):
+    for h in range(int(yDiv)):
         row = []
         
         # Find boundaries for each block in the row
-        left = w / xDiv
-        right = (w + 1) / xDiv
-        for h in range(int(yDiv)):
-            top = h / yDiv
-            bottom = (h + 1) / yDiv
+        top = h / yDiv
+        bottom = (h + 1) / yDiv
+        for w in range(int(xDiv)):
+            left = w / xDiv
+            right = (w + 1) / xDiv
             
             row.append([[left,right],[top,bottom]])
             
@@ -255,17 +255,17 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
             bottom = 1.0
         
         # Translate bounds to i and j values
-        bounds = [int(left * len(blocks)), int(right * len(blocks)) + 1, int(top * len(blocks[0])), int(bottom * len(blocks[0])) + 1]
-        if bounds[0] > len(blocks) - 1:
-            bounds[0] = len(blocks) - 1
-        if bounds[1] > len(blocks) - 1:
-            bounds[1] = len(blocks) - 1
-        if bounds[2] > len(blocks[0]) - 1:
-            bounds[2] = len(blocks[0]) - 1
-        if bounds[3] > len(blocks[0]) - 1:
-            bounds[3] = len(blocks[0]) - 1
+        bounds = [int(left * len(blocks[0])), int(right * len(blocks[0])) + 1, int(top * len(blocks)), int(bottom * len(blocks)) + 1]
+        if bounds[0] > len(blocks[0]) - 1:
+            bounds[0] = len(blocks[0]) - 1
+        if bounds[1] > len(blocks[0]) - 1:
+            bounds[1] = len(blocks[0]) - 1
+        if bounds[2] > len(blocks) - 1:
+            bounds[2] = len(blocks) - 1
+        if bounds[3] > len(blocks) - 1:
+            bounds[3] = len(blocks) - 1
         
-        print('Processing {}: [({},{}),({},{})]'.format(mesh, bounds[2], bounds[3], bounds[0], bounds[1]))
+        print('Processing {}: [({},{}),({},{})]'.format(mesh, bounds[0], bounds[1], bounds[2], bounds[3]))
         
         for i in range(bounds[2], bounds[3] + 1):
             b = i % N
@@ -274,7 +274,7 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
                 g = int((i / (N / 2))) * int(step) + int((j / (N / 2)))
                 
                 # Find bounds and color code for current block
-                subBounds = blocks[j][i]
+                subBounds = blocks[i][j]
                 colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
                 
                 # Test which meshes are contained within the block
