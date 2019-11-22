@@ -14,8 +14,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
 parser.add_argument('--alpha', type=float, default=0.75, help='noise constant to use')
 parser.add_argument('--beta', type=int, default=7, help='blur constant to use')
+parser.add_argument('--nEpochs', type=int, default=2, help='number of epochs to train for')
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--outf', default='./output/', help='folder to output images and model checkpoints')
 
 opt = parser.parse_args()
@@ -232,6 +232,24 @@ def get_callback(attn_mode, local_attn_ctx=None):
         raise ValueError
     return cb
 
+def get_data(train_data_gen, k):
+    high_res, labels = next(train_data_gen)
+    show_batch(high_res, labels, classes, opt.outf + 'high_' + str(k) + '.png')
+
+    # Create altered image pairs from the current batch.
+    low_res = []
+    for i, img in enumerate(high_res):
+        alt = utils.alter_image(img, opt.alpha, opt.beta)
+        alt_norm = cv2.normalize(alt, None, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        low_res.append(alt_norm)
+
+    show_batch(low_res, labels, classes, opt.outf + 'low_' + str(k)  + '.png')
+
+    return high_res, low_res, train_data_gen
+
+def to_tensor(src, n_batch, n_ctx, n_embd):
+    return tf.convert_to_tensor(np.asarray(src).reshape(n_batch, n_ctx, n_embd))
+
 def show_batch(image_batch, label_batch, class_names, output_dir):
     plt.figure(figsize=(10,10))
     for n in range(25):
@@ -240,6 +258,11 @@ def show_batch(image_batch, label_batch, class_names, output_dir):
         plt.title(class_names[label_batch[n]==1][0].title())
         plt.axis('off')
 
+    plt.savefig(output_dir)
+
+def show_img(image, output_dir):
+    plt.imshow(image)
+    plt.axis('off')
     plt.savefig(output_dir)
 
 if __name__ == '__main__':
@@ -252,20 +275,13 @@ if __name__ == '__main__':
     train_data_gen = image_generator.flow_from_directory(directory=str(data_path),
                                                      batch_size=opt.batchSize,
                                                      shuffle=True,
-                                                     target_size=(opt.imageSize, opt.imageSize),
+                                                     target_size=(opt.blockDim, opt.blockDim),
                                                      classes = list(classes))
 
-    high_res, labels = next(train_data_gen)
-    show_batch(high_res, labels, classes, opt.outf + 'high_res.png')
-
-    # Create altered image pairs from the current batch.
-    low_res = []
-    for i, img in enumerate(high_res):
-        alt = utils.alter_image(img, opt.alpha, opt.beta)
-        alt_norm = cv2.normalize(alt, None, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
-        low_res.append(alt_norm)
-
-    show_batch(low_res, labels, classes, opt.outf + 'low_res.png')
+    #high_res, low_res, train_data_gen = get_data(train_data_gen, 0)
+    #print(len(high_res), high_res[0].shape)
+    #tmp = np.asarray(high_res).reshape(n_batch, n_ctx, n_embd)
+    #print(tmp.shape)
 
     #dtype = tf.float32
     #n_batch = 4
@@ -274,18 +290,19 @@ if __name__ == '__main__':
     #blocksize = 32
 
     dtype = tf.float32
-    n_batch = 4
-    n_ctx = int(opt.batchSize / n_batch)
-    n_embd = int(opt.imageSize**2) * 3
+    n_batch = 2
+    n_ctx = int(opt.blockDim**2) * 3
+    n_embd = int(opt.batchSize / 2)
     blocksize = 32
-
-    # query, key, values should be batch x time x dim.
-    print(len(high_res), high_res[0].shape)
-    np.asarray(high_res).reshape(n_batch, n_ctx, n_embd)
     
+    # query, key, values should be batch x time x dim.
     q = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
     k = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
     v = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
+
+    #q = to_tensor(low_res, n_batch, n_ctx, n_embd)
+    #k = to_tensor(low_res, n_batch, n_ctx, n_embd)
+    #v = to_tensor(high_res, n_batch, n_ctx, n_embd)
 
     # first step of strided attention.
     local_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="local", local_attn_ctx=32, blocksize=blocksize, recompute=True)
@@ -295,8 +312,53 @@ if __name__ == '__main__':
     strided_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=32, blocksize=blocksize, recompute=True)
     strided_attn_tf = attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=32, recompute=True)
 
-    sess = tf.Session()
-    strided_tf, strided_bs = sess.run([strided_attn_tf, strided_attn_bs])
+    #sess = tf.Session()
+    #strided_tf, strided_bs = sess.run([strided_attn_tf, strided_attn_bs])
+
+    # Initializing the variables
+    init = tf.initialize_all_variables()
+
+    # Launch the graph
+    with tf.Session() as sess:
+        sess.run(init)
+     
+        # Training cycle
+        for epoch in range(opt.nEpochs):
+            avg_cost = 0.
+            print(len(train_data_gen))
+            batch_num = int(len(train_data_gen)/opt.batchSize)
+
+            # Loop over all batches
+            #for i in range(batch_num):
+            for i in range(2):
+                high_res, low_res, train_data_gen = get_data(train_data_gen, i)
+
+                # Run optimization op (backprop) and cost op (to get loss value)
+                strided_tf, strided_bs = sess.run([strided_attn_tf, strided_attn_bs], feed_dict={q: to_tensor(low_res, n_batch, n_ctx, n_embd).eval(),
+                                                                                                 k: to_tensor(low_res, n_batch, n_ctx, n_embd).eval(),
+                                                                                                 v: to_tensor(high_res, n_batch, n_ctx, n_embd).eval()})
+
+                print(len(strided_bs), strided_bs)
+                ## Compute average loss
+                #avg_cost += derp / batch_num
+
+            ## Display logs per epoch step
+            #if epoch % 1 == 0:
+            #    print("Epoch:", '%04d' % (epoch+1), "cost=", \
+            #        "{:.9f}".format(avg_cost))
+
+        print("Optimization Finished!")
+     
+        ## Test model
+        #correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+
+        ## Calculate accuracy
+        #accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+        #print("Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
+
+    #result = np.asarray(v[0].eval(session=sess)).reshape((32, 32, 32, 3))
+    #print(result[31])
+    #show_batch(result, labels, classes, opt.outf + 'test.png')
 
     print(strided_tf[0])
     print(strided_bs[0])

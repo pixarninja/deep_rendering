@@ -8,4 +8,4 @@ COPY ./app /app
 WORKDIR /app 
 
 # Run the python file as a command on startup
-CMD python attention.py --alpha 0.75 --beta 7
+CMD python attention.py --alpha 0.75 --beta 7 --blockDim 32
