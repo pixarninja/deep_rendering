@@ -33,8 +33,8 @@ def worldSpaceToScreenSpace(worldPoint):
     # Multiply all together and do the normalisation
     mPoint = om.MPoint(worldPoint[0],worldPoint[1],worldPoint[2]) * camInvMtx * projMtx
     x = (mPoint[0] / mPoint[3] / 2 + .5)
-    y = (mPoint[1] / mPoint[3] / 2 + .5)
-
+    y = 1 - (mPoint[1] / mPoint[3] / 2 + .5)
+    
     return [x,y]
 
 # Collect all objects in the scene using Maya ls command
@@ -67,7 +67,7 @@ def testMesh(mesh, bounds):
 
     # Iterate over all the mesh vertices and get position
     mItEdge = om.MItMeshEdge(dagPath)
-    while not mItEdge.isDone():
+    while not mItEdge.isDone():    	
         startPoint = mItEdge.point(0, om.MSpace.kWorld)
         endPoint = mItEdge.point(1, om.MSpace.kWorld)
         
@@ -82,8 +82,10 @@ def testMesh(mesh, bounds):
 # Perform the Cohen-Sutherland Clipping test using Op Codes
 # https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
 def clippingTest(p, q, bounds):
-    opCodeP = opCode(worldSpaceToScreenSpace(p), bounds)
-    opCodeQ = opCode(worldSpaceToScreenSpace(q), bounds)
+    P = worldSpaceToScreenSpace(p)
+    Q = worldSpaceToScreenSpace(q)
+    opCodeP = opCode(P, bounds)
+    opCodeQ = opCode(Q, bounds)
         
     # Trivial reject
     if (opCodeP & opCodeQ):
@@ -114,11 +116,12 @@ def opCode(p, bounds):
     return code
     
 # Update the color of a shader given r, g, b
-def updateShaderColor(mesh, colorCode, maxVal):
+def updateShaderColor(mesh, colorCode, n):
     shader = findShader(mesh)
-    cmds.setAttr ( (shader) + '.r', colorCode[0] / float(maxVal) )
-    cmds.setAttr ( (shader) + '.g', colorCode[1] / float(maxVal) )
-    cmds.setAttr ( (shader) + '.b', colorCode[2] / float(maxVal) ) 
+    cmds.setAttr ( (shader) + '.r', colorCode[0] )
+    cmds.setAttr ( (shader) + '.g', colorCode[1] )
+    cmds.setAttr ( (shader) + '.b', colorCode[2] ) 
+    cmds.setAttr ( (shader) + '.n', n ) 
     
 # Return correct shader given a shader name
 def findShader(mesh):
@@ -139,11 +142,11 @@ def findShader(mesh):
 
 # Create and display menu system
 def displayWindow():
-    menu = cmds.window( title="Export Semantics Tool", iconName='SemanticsTool', widthHeight=(350, 400) )
+    menu = cmds.window( title="Setup Semantics Tool", iconName='SetupSemanticsTool', widthHeight=(350, 400) )
     scrollLayout = cmds.scrollLayout( verticalScrollBarThickness=16 )
     cmds.flowLayout( columnSpacing=10 )
     cmds.columnLayout( cat=('both', 25), rs=10, cw=340 )
-    cmds.text( label="\nThis is the \"Sematics Tool\"! This tool will generate semantics for the loaded scene.\n\n", ww=True, al="left" )
+    cmds.text( label="\nThis is the \"Semantics Shader Tool\"! This tool will generate semantics shaders for the loaded scene.\n\n", ww=True, al="left" )
     cmds.text( label="To run:\n1) Input the information in the fields below.\n2) Click \"Run\".", al="left" )
     cmds.text( label='Enter the keyframe at which to start semantics generation (1):', al='left', ww=True )
     startTimeField = cmds.textField()
@@ -153,11 +156,11 @@ def displayWindow():
     stepTimeField = cmds.textField()
     cmds.text( label='Enter the number of bits used to store each, a multiple of 8 is recommended (8):', al='left', ww=True )
     bitNumField = cmds.textField()
-    cmds.button( label='Run', command=partial( generateSemantics, menu, startTimeField, endTimeField, stepTimeField, bitNumField ) )
+    cmds.button( label='Run', command=partial( setupShaders, menu, startTimeField, endTimeField, stepTimeField, bitNumField ) )
     cmds.text( label="\n", al='left' )
     cmds.showWindow( menu )
 
-def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, bitNumField, *args ):
+def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField, *args ):
     # Grab user input and delete window
     startTime = cmds.textField(startTimeField, q=True, tx=True )
     if (startTime == ''):
@@ -182,18 +185,21 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, bitNum
     resWidth = cmds.getAttr('defaultResolution.width')
     resHeight = cmds.getAttr('defaultResolution.height')
     blockDim = [int(resWidth / (2 * N)), int(resHeight / ((N / 8) * N))]
-    
+    xDiv = float(resWidth) / blockDim[0]
+    yDiv = float(resHeight) / blockDim[1]
+    step = (resWidth / blockDim[0]) / (N / 2)
+        
     # Set up blocks
     blocks = []
-    for w in range(resWidth / blockDim[0]):
+    for h in range(int(yDiv)):
         row = []
         
         # Find boundaries for each block in the row
-        left = (w * blockDim[0]) / float(resWidth)
-        right = ((w + 1) * blockDim[0]) / float(resWidth)
-        for h in range(resHeight / blockDim[1]):
-            top = (h * blockDim[1]) / float(resHeight)
-            bottom = ((h + 1) * blockDim[1]) / float(resHeight)
+        top = h / yDiv
+        bottom = (h + 1) / yDiv
+        for w in range(int(xDiv)):
+            left = w / xDiv
+            right = (w + 1) / xDiv
             
             row.append([[left,right],[top,bottom]])
             
@@ -210,29 +216,74 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, bitNum
         meshColors.append([0x0, 0x0, 0x0])
     
     # Iterate over all meshes and all boundaries
-    #       i % N           --> B value
-    #       j % N           --> R value
-    # i/(N/2) % N + j/(N/2) --> G value
-    for i in range(len(blocks)):
-        b = i % N
-        for j in range(len(blocks[i])):
-            r = j % N
-            #g = (i / 4) * (N / 4) + (j / 4)
-            g = (i / (N / 2)) * (N / 4) + (j / (N / 2))
-            
-            # Find bounds and color code for current block
-            bounds = blocks[i][j]
-            colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
-            
-            # Test which meshes are contained within the block
-            print('%d: Processing bounds [[%0.3f,%0.3f],[%0.3f,%0.3f]]' % (g, bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]))
-            for k, mesh in enumerate(meshes):
-                if testMesh(mesh, bounds):
+    for k, mesh in enumerate(meshes):
+        cmds.select(mesh)
+        bb = cmds.xform( q=True, bb=True, ws=True )
+        
+        # Obtain all 8 points to test from the bounding box
+        # Format: xmin ymin zmin xmax ymax zmax
+        bbPoints = []
+        bbPoints.append(om.MPoint( bb[0], bb[1], bb[2], 1.0 ))
+        bbPoints.append(om.MPoint( bb[0], bb[1], bb[5], 1.0 ))
+        bbPoints.append(om.MPoint( bb[0], bb[4], bb[2], 1.0 ))
+        bbPoints.append(om.MPoint( bb[0], bb[4], bb[5], 1.0 ))
+        bbPoints.append(om.MPoint( bb[3], bb[1], bb[2], 1.0 ))
+        bbPoints.append(om.MPoint( bb[3], bb[1], bb[5], 1.0 ))
+        bbPoints.append(om.MPoint( bb[3], bb[4], bb[2], 1.0 ))
+        bbPoints.append(om.MPoint( bb[3], bb[4], bb[5], 1.0 ))
+        
+        # Translate to screen space and obtain overall bounds
+        left, right, top, bottom = 1.0, 0.0, 1.0, 0.0
+        for p in bbPoints:
+            P = worldSpaceToScreenSpace(p)
+            if left > P[0]:
+                left = P[0]
+            if right < P[0]:
+                right = P[0]
+            if top > P[1]:
+                top = P[1]
+            if bottom < P[1]:
+                bottom = P[1]
+                    
+        if left < 0.0 or left >= 1.0:
+            left = 0.0
+        if right > 1.0 or right <= 0.0:
+            right = 1.0
+        if top < 0.0 or top >= 1.0:
+            top = 0.0
+        if bottom > 1.0 or bottom <= 0.0:
+            bottom = 1.0
+        
+        # Translate bounds to i and j values
+        bounds = [int(left * len(blocks[0])), int(right * len(blocks[0])) + 1, int(top * len(blocks)), int(bottom * len(blocks)) + 1]
+        if bounds[0] > len(blocks[0]) - 1:
+            bounds[0] = len(blocks[0]) - 1
+        if bounds[1] > len(blocks[0]) - 1:
+            bounds[1] = len(blocks[0]) - 1
+        if bounds[2] > len(blocks) - 1:
+            bounds[2] = len(blocks) - 1
+        if bounds[3] > len(blocks) - 1:
+            bounds[3] = len(blocks) - 1
+        
+        print('Processing {}: [({},{}),({},{})]'.format(mesh, bounds[0], bounds[1], bounds[2], bounds[3]))
+        
+        for i in range(bounds[2], bounds[3] + 1):
+            b = i % N
+            for j in range(bounds[0], bounds[1] + 1):
+                r = j % N
+                g = int((i / (N / 2))) * int(step) + int((j / (N / 2)))
+                
+                # Find bounds and color code for current block
+                subBounds = blocks[i][j]
+                colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
+                
+                # Test which meshes are contained within the block
+                if testMesh(mesh, subBounds):
                     for n in range(len(colorCode)):
                         meshColors[k][n] |= colorCode[n]
-                    
+
     for k, mesh in enumerate(meshes):
-        updateShaderColor(mesh, meshColors[k], 2**N)
+        updateShaderColor(mesh, meshColors[k], N)
         print(mesh, meshColors[k])
     
 ##########################
