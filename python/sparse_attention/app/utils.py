@@ -26,7 +26,7 @@ def alter_image(img, alpha, beta):
     # Gaussian blur.
     img = cv2.GaussianBlur(img, (beta, beta), 0)
 
-    return np.asarray(img).transpose(2, 0, 1)
+    return np.asarray(img)
 
 def shape_list(x):
     """

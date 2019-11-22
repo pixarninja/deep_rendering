@@ -1,11 +1,13 @@
 import argparse as argparse
 from blocksparse import BlocksparseTransformer
+import cv2 as cv2
 import glob as glob
 import matplotlib.pyplot as plt
 import numpy as np
 import os as os
 import tensorflow as tf
 import sys as sys
+import utils as utils
 from utils import shape_list, recomputable
 
 parser = argparse.ArgumentParser()
@@ -14,7 +16,7 @@ parser.add_argument('--alpha', type=float, default=0.75, help='noise constant to
 parser.add_argument('--beta', type=int, default=7, help='blur constant to use')
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
-parser.add_argument('--outf', default='./output', help='folder to output images and model checkpoints')
+parser.add_argument('--outf', default='./output/', help='folder to output images and model checkpoints')
 
 opt = parser.parse_args()
 print(opt)
@@ -238,40 +240,58 @@ def show_batch(image_batch, label_batch, class_names, output_dir):
         plt.title(class_names[label_batch[n]==1][0].title())
         plt.axis('off')
 
-    plt.savefig('{}/test_plot.png'.format(output_dir))
+    plt.savefig(output_dir)
 
 if __name__ == '__main__':
+    # Find data path.
     data_path = '/app/training/' + str(opt.blockDim) + '/'
-    class_names = np.array([os.path.basename(item) for item in glob.glob(data_path + '*')])
-    print(class_names)
+    classes = np.array([os.path.basename(item) for item in glob.glob(data_path + '*')])
+    print(classes)
 
     image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255)
     train_data_gen = image_generator.flow_from_directory(directory=str(data_path),
                                                      batch_size=opt.batchSize,
                                                      shuffle=True,
                                                      target_size=(opt.imageSize, opt.imageSize),
-                                                     classes = list(class_names))
+                                                     classes = list(classes))
 
-    image_batch, label_batch = next(train_data_gen)
-    show_batch(image_batch, label_batch, class_names, opt.outf)
-    
+    high_res, labels = next(train_data_gen)
+    show_batch(high_res, labels, classes, opt.outf + 'high_res.png')
+
+    # Create altered image pairs from the current batch.
+    low_res = []
+    for i, img in enumerate(high_res):
+        alt = utils.alter_image(img, opt.alpha, opt.beta)
+        alt_norm = cv2.normalize(alt, None, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        low_res.append(alt_norm)
+
+    show_batch(low_res, labels, classes, opt.outf + 'low_res.png')
+
+    #dtype = tf.float32
+    #n_batch = 4
+    #n_ctx = 1024
+    #n_embd = 256
+    #blocksize = 32
+
+    dtype = tf.float32
     n_batch = 4
-    n_ctx = 1024
-    n_embd = 256
-    is_fp16 = len(sys.argv) > 1 and sys.argv[1] == 'fp16'
-
-    dtype = tf.float16 if is_fp16 else tf.float32
+    n_ctx = int(opt.batchSize / n_batch)
+    n_embd = int(opt.imageSize**2) * 3
     blocksize = 32
+
     # query, key, values should be batch x time x dim.
+    print(len(high_res), high_res[0].shape)
+    np.asarray(high_res).reshape(n_batch, n_ctx, n_embd)
+    
     q = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
     k = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
     v = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
 
-    # # first step of strided attention
+    # first step of strided attention.
     local_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="local", local_attn_ctx=32, blocksize=blocksize, recompute=True)
     local_attn_tf = attention_impl(q, k, v, heads=4, attn_mode="local", local_attn_ctx=32, recompute=True)
 
-    # # second step of strided attention
+    # Second step of strided attention.
     strided_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=32, blocksize=blocksize, recompute=True)
     strided_attn_tf = attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=32, recompute=True)
 
