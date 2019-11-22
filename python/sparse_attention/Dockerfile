@@ -1,13 +1,11 @@
-# To build: docker build -t pixarninja/tf-gpu .
-# To run:   winpty docker run -it --rm --name tf-gpu pixarninja/tf-gpu bash
-#       :   docker run -it -p 1234:8888 --name tf-gpu pixarninja/tf-gpu:jupyter
-#       :   docker run --rm --runtime=nvidia -it pixarninja/tf-gpu
+# To build: docker build -t pixarninja/sparse .
+# To run:   docker run --rm --runtime=nvidia -it --name sparse -v ~/Git/dynamic_frame_generator/python/training:/app/training:ro pixarninja/sparse
 #FROM tensorflow/tensorflow:nightly-gpu-py3-jupyter
-FROM tensorflow/tensorflow:1.13.1-gpu-py3
+FROM pixarninja/tf-gpu
 
-RUN python -m pip install --upgrade pip
-RUN pip install blocksparse
-
+# Copy application and configure blocksparse
 COPY ./app /app
+WORKDIR /app 
 
-RUN ./app/blocksparse_setup.sh
+# Run the python file as a command on startup
+CMD python attention.py

@@ -12,4 +12,5 @@
 /python/*/__pycache__/
 /python/srgan/original/output/
 /python/srgan/logs/
+/python/sparse_attention/output/
 /source/datasets

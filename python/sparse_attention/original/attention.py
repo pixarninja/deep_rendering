@@ -1,28 +1,9 @@
-import argparse as argparse
-from blocksparse import BlocksparseTransformer
-import glob as glob
-import matplotlib.pyplot as plt
+import sys
 import numpy as np
-import os as os
 import tensorflow as tf
-import sys as sys
+from blocksparse import BlocksparseTransformer
 from utils import shape_list, recomputable
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
-parser.add_argument('--alpha', type=float, default=0.75, help='noise constant to use')
-parser.add_argument('--beta', type=int, default=7, help='blur constant to use')
-parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
-parser.add_argument('--outf', default='./output', help='folder to output images and model checkpoints')
-
-opt = parser.parse_args()
-print(opt)
-
-try:
-    os.makedirs(opt.outf)
-except OSError:
-    pass
 
 def get_attn_mask(n, attn_mode, local_attn_ctx=None):
     if attn_mode == 'all':
@@ -230,31 +211,8 @@ def get_callback(attn_mode, local_attn_ctx=None):
         raise ValueError
     return cb
 
-def show_batch(image_batch, label_batch, class_names, output_dir):
-    plt.figure(figsize=(10,10))
-    for n in range(25):
-        ax = plt.subplot(5,5,n+1)
-        plt.imshow(image_batch[n])
-        plt.title(class_names[label_batch[n]==1][0].title())
-        plt.axis('off')
-
-    plt.savefig('{}/test_plot.png'.format(output_dir))
 
 if __name__ == '__main__':
-    data_path = '/app/training/' + str(opt.blockDim) + '/'
-    class_names = np.array([os.path.basename(item) for item in glob.glob(data_path + '*')])
-    print(class_names)
-
-    image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255)
-    train_data_gen = image_generator.flow_from_directory(directory=str(data_path),
-                                                     batch_size=opt.batchSize,
-                                                     shuffle=True,
-                                                     target_size=(opt.imageSize, opt.imageSize),
-                                                     classes = list(class_names))
-
-    image_batch, label_batch = next(train_data_gen)
-    show_batch(image_batch, label_batch, class_names, opt.outf)
-    
     n_batch = 4
     n_ctx = 1024
     n_embd = 256
@@ -263,9 +221,12 @@ if __name__ == '__main__':
     dtype = tf.float16 if is_fp16 else tf.float32
     blocksize = 32
     # query, key, values should be batch x time x dim.
-    q = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
-    k = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
-    v = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
+    q = tf.random_normal(shape=[4, 1024, 256], dtype=dtype)
+    k = tf.random_normal(shape=[4, 1024, 256], dtype=dtype)
+    v = tf.random_normal(shape=[4, 1024, 256], dtype=dtype)
+
+    full_attn_tf = attention_impl(q, k, v, heads=4, attn_mode="all", recompute=True)
+    full_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="all", blocksize=blocksize, recompute=True)
 
     # # first step of strided attention
     local_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="local", local_attn_ctx=32, blocksize=blocksize, recompute=True)
@@ -275,8 +236,20 @@ if __name__ == '__main__':
     strided_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=32, blocksize=blocksize, recompute=True)
     strided_attn_tf = attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=32, recompute=True)
 
+    # # # the 'fixed' attention pattern
+    fixed = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="fixed", local_attn_ctx=128, num_verts=4, vertsize=1, blocksize=blocksize, recompute=True)
     sess = tf.Session()
-    strided_tf, strided_bs = sess.run([strided_attn_tf, strided_attn_bs])
 
-    print(strided_tf[0])
-    print(strided_bs[0])
+    fatf, fabs, latf, labs, satf, sabs, fixed_bs = sess.run([
+        full_attn_tf, full_attn_bs, local_attn_tf, local_attn_bs, strided_attn_tf, strided_attn_bs, fixed])
+
+    print(fatf[0])
+    print(fabs[0])
+    print('-----')
+    print(latf[0])
+    print(labs[0])
+    print('-----')
+    print(satf[0])
+    print(sabs[0])
+    print('-----')
+    print(fixed_bs[0])
