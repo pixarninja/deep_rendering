@@ -1,5 +1,5 @@
 # To build: docker build -t pixarninja/sparse .
-# To run:   docker run --rm --runtime=nvidia -it --name sparse -v ~/Git/dynamic_frame_generator/python/training:/app/training:ro pixarninja/sparse
+# To run:   docker run --rm --runtime=nvidia -it --name sparse -v ~/Git/dynamic_frame_generator/python/training:/app/training:ro -v ~/Git/dynamic_frame_generator/python/sparse_attention/output:/app/output pixarninja/sparse
 #FROM tensorflow/tensorflow:nightly-gpu-py3-jupyter
 FROM pixarninja/tf-gpu
 

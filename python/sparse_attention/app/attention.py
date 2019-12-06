@@ -15,16 +15,14 @@ parser.add_argument('--blockDim', type=int, default=64, help='size of block to u
 parser.add_argument('--alpha', type=float, default=0.75, help='noise constant to use')
 parser.add_argument('--beta', type=int, default=7, help='blur constant to use')
 parser.add_argument('--nEpochs', type=int, default=2, help='number of epochs to train for')
-parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=1024, help='input batch size')
 parser.add_argument('--outf', default='./output/', help='folder to output images and model checkpoints')
 
 opt = parser.parse_args()
 print(opt)
 
-try:
-    os.makedirs(opt.outf)
-except OSError:
-    pass
+# Create storage for new run.
+utils.clear_dir(opt.outf)
 
 def get_attn_mask(n, attn_mode, local_attn_ctx=None):
     if attn_mode == 'all':
@@ -232,44 +230,58 @@ def get_callback(attn_mode, local_attn_ctx=None):
         raise ValueError
     return cb
 
-def get_data(train_data_gen, k):
-    high_res, labels = next(train_data_gen)
-    show_batch(high_res, labels, classes, opt.outf + 'high_' + str(k) + '.png')
+def get_data(train_data_gen, epoch, k):
+    images, labels = next(train_data_gen)
+    high_res, low_res = process_images(images)
 
-    # Create altered image pairs from the current batch.
+    # Store samples of training images.
+    if epoch == 0 and k == 0:
+        show_batch(high_res, labels, classes, opt.outf + 'high_' + str(epoch) + '_' + str(k) + '.png')
+        show_batch(low_res, labels, classes, opt.outf + 'low_' + str(epoch) + '_' + str(k) + '.png')
+
+    return high_res, low_res, train_data_gen, labels
+
+def process_images(images):
+    high_res = normalize_images(images)
+    return np.array(high_res), np.array(high_res)
+
     low_res = []
     for i, img in enumerate(high_res):
-        alt = utils.alter_image(img, opt.alpha, opt.beta)
-        alt_norm = cv2.normalize(alt, None, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
-        low_res.append(alt_norm)
+        alt = np.array(utils.alter_image(img, opt.alpha, opt.beta))
+        low_res.append(normalize_images(alt))
 
-    show_batch(low_res, labels, classes, opt.outf + 'low_' + str(k)  + '.png')
+    return np.array(high_res), np.array(low_res)
 
-    return high_res, low_res, train_data_gen
+def normalize_images(images):
+    return (np.array(images) - np.array(images).min(0)) / np.array(images).ptp(0)
 
 def to_tensor(src, n_batch, n_ctx, n_embd):
     return tf.convert_to_tensor(np.asarray(src).reshape(n_batch, n_ctx, n_embd))
 
 def show_batch(image_batch, label_batch, class_names, output_dir):
     plt.figure(figsize=(10,10))
-    for n in range(25):
+    max_index = min(25, len(image_batch))
+    for n in range(max_index):
         ax = plt.subplot(5,5,n+1)
-        plt.imshow(image_batch[n])
+        plt.imshow(image_batch[n].astype('float32'))
         plt.title(class_names[label_batch[n]==1][0].title())
         plt.axis('off')
 
     plt.savefig(output_dir)
+    plt.close('all')
 
 def show_img(image, output_dir):
     plt.imshow(image)
     plt.axis('off')
     plt.savefig(output_dir)
+    plt.close('all')
 
 if __name__ == '__main__':
     # Find data path.
     data_path = '/app/training/' + str(opt.blockDim) + '/'
     classes = np.array([os.path.basename(item) for item in glob.glob(data_path + '*')])
-    print(classes)
+    
+    print('Classes: {}'.format(classes))
 
     image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255)
     train_data_gen = image_generator.flow_from_directory(directory=str(data_path),
@@ -277,11 +289,11 @@ if __name__ == '__main__':
                                                      shuffle=True,
                                                      target_size=(opt.blockDim, opt.blockDim),
                                                      classes = list(classes))
-
-    #high_res, low_res, train_data_gen = get_data(train_data_gen, 0)
-    #print(len(high_res), high_res[0].shape)
-    #tmp = np.asarray(high_res).reshape(n_batch, n_ctx, n_embd)
-    #print(tmp.shape)
+    test_data_gen = image_generator.flow_from_directory(directory=str(data_path),
+                                                     batch_size=opt.batchSize,
+                                                     shuffle=True,
+                                                     target_size=(opt.blockDim, opt.blockDim),
+                                                     classes = list(classes))
 
     #dtype = tf.float32
     #n_batch = 4
@@ -289,34 +301,24 @@ if __name__ == '__main__':
     #n_embd = 256
     #blocksize = 32
 
+    # Number of samples/batches? (4)
+    # Number of time steps (batch_size / n_batch) --> number of pixels?
+    # Number of features (256 x 3)
     dtype = tf.float32
-    n_batch = 2
-    n_ctx = int(opt.blockDim**2) * 3
-    n_embd = int(opt.batchSize / 2)
+    n_batch = 4
+    n_ctx = opt.blockDim**2
+    n_embd = 256 * 3
     blocksize = 32
     
-    # query, key, values should be batch x time x dim.
-    q = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
-    k = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
-    v = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=dtype)
-
-    #q = to_tensor(low_res, n_batch, n_ctx, n_embd)
-    #k = to_tensor(low_res, n_batch, n_ctx, n_embd)
-    #v = to_tensor(high_res, n_batch, n_ctx, n_embd)
-
-    # first step of strided attention.
-    local_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="local", local_attn_ctx=32, blocksize=blocksize, recompute=True)
-    local_attn_tf = attention_impl(q, k, v, heads=4, attn_mode="local", local_attn_ctx=32, recompute=True)
-
-    # Second step of strided attention.
-    strided_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=32, blocksize=blocksize, recompute=True)
-    strided_attn_tf = attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=32, recompute=True)
-
-    #sess = tf.Session()
-    #strided_tf, strided_bs = sess.run([strided_attn_tf, strided_attn_bs])
-
     # Initializing the variables
     init = tf.initialize_all_variables()
+
+    # Notes:
+    # local_attn_ctx must be a multiple of blocksize.
+    # It seems n_batch must be a multiple of the number of heads, so the data can be split.
+    q = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=tf.float32)
+    k = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=tf.float32)
+    v = tf.random_normal(shape=[n_batch, n_ctx, n_embd], dtype=tf.float32)
 
     # Launch the graph
     with tf.Session() as sess:
@@ -325,40 +327,59 @@ if __name__ == '__main__':
         # Training cycle
         for epoch in range(opt.nEpochs):
             avg_cost = 0.
-            print(len(train_data_gen))
-            batch_num = int(len(train_data_gen)/opt.batchSize)
+            batch_num = len(train_data_gen)
+            if batch_num <= 0:
+                batch_num = 1
+            batch_num = 1
 
             # Loop over all batches
-            #for i in range(batch_num):
-            for i in range(2):
-                high_res, low_res, train_data_gen = get_data(train_data_gen, i)
+            for i in range(batch_num):
+            #for i in range(2):
+                high_res, low_res, train_data_gen, _ = get_data(train_data_gen, epoch, i)
+                if high_res.shape[0] < opt.batchSize or low_res.shape[0] < opt.batchSize:
+                    continue
+                q = to_tensor(low_res, n_batch, n_ctx, n_embd)
+                k = to_tensor(low_res, n_batch, n_ctx, n_embd)
+                v = to_tensor(high_res, n_batch, n_ctx, n_embd)
 
-                # Run optimization op (backprop) and cost op (to get loss value)
-                strided_tf, strided_bs = sess.run([strided_attn_tf, strided_attn_bs], feed_dict={q: to_tensor(low_res, n_batch, n_ctx, n_embd).eval(),
-                                                                                                 k: to_tensor(low_res, n_batch, n_ctx, n_embd).eval(),
-                                                                                                 v: to_tensor(high_res, n_batch, n_ctx, n_embd).eval()})
+                # first step of strided attention.
+                local_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="local", local_attn_ctx=blocksize, blocksize=blocksize, recompute=True)
 
-                print(len(strided_bs), strided_bs)
-                ## Compute average loss
-                #avg_cost += derp / batch_num
+                # Second step of strided attention.
+                strided_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=blocksize, blocksize=blocksize, recompute=True)
 
-            ## Display logs per epoch step
-            #if epoch % 1 == 0:
-            #    print("Epoch:", '%04d' % (epoch+1), "cost=", \
-            #        "{:.9f}".format(avg_cost))
+                # Run model and get new loss.
+                cost = tf.reduce_mean(tf.square(strided_attn_bs - high_res.reshape(n_batch, n_ctx, n_embd)))
+                cost_val, strided_bs = sess.run([cost, strided_attn_bs], feed_dict={q: q.eval(),
+                                                                                    k: k.eval(),
+                                                                                    v: v.eval()})
+
+                # Compute average loss
+                avg_cost += cost_val / batch_num
+
+            # Display logs per epoch step
+            if epoch == 0:
+                print('\n')
+            print('Epoch: {}, Cost: {}'.format(epoch, avg_cost))
 
         print("Optimization Finished!")
-     
-        ## Test model
-        #correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
 
-        ## Calculate accuracy
-        #accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-        #print("Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
+        # Obtain test data.
+        high_res, low_res, test_data_gen, labels = get_data(test_data_gen, -1, -1)
+        q = to_tensor(low_res, n_batch, n_ctx, n_embd)
+        k = to_tensor(low_res, n_batch, n_ctx, n_embd)
+        v = to_tensor(high_res, n_batch, n_ctx, n_embd)
 
-    #result = np.asarray(v[0].eval(session=sess)).reshape((32, 32, 32, 3))
-    #print(result[31])
-    #show_batch(result, labels, classes, opt.outf + 'test.png')
+        # Test trained network.
+        cost = tf.reduce_mean(tf.square(strided_attn_bs - high_res.reshape(n_batch, n_ctx, n_embd)))
+        cost_val, strided_bs = sess.run([cost, strided_attn_bs], feed_dict={q: q.eval(),
+                                                                        k: k.eval(),
+                                                                        v: v.eval()})
 
-    print(strided_tf[0])
-    print(strided_bs[0])
+        print('Final Cost: ', cost_val)
+
+        show_batch(low_res, labels, classes, opt.outf + 'test_low.png')
+        show_batch(high_res, labels, classes, opt.outf + 'test_high.png')
+        show_batch(normalize_images(strided_bs.reshape(n_ctx, opt.blockDim, opt.blockDim, 3)), labels, classes, opt.outf + 'test_pred.png')
+
+        print(strided_bs[0])
