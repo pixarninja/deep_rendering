@@ -40,3 +40,5 @@ RUN cd ~/ &&\
 
 # Set the appropriate link
 RUN ln /dev/null /dev/raw1394
+
+RUN pip install torchvision

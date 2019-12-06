@@ -8,6 +8,7 @@ from tensorflow.python.framework.function import Defun
 
 def make_dir(path):
     if not os.path.exists(path):
+        print('Make ' + path)
         os.mkdir(path)
         
 def clear_dir(path):
