@@ -96,12 +96,64 @@ wharris2@uccs.edu}}
 
 \maketitle
 
+\begin{abstract}
+% derp
+\end{abstract}
+
 \section{Introduction}
 \label{sec:introduction}
+Access to good training data is necessary
+in order to harness the power of machine learning.
+One such data to be studied is the relationship
+between a 3D environment and the
+rendered frame(s) it produces.
+For the purposes of this document, this relationship is
+referred to as the semantics of the given 3D scene --
+i.e. the description of the 3D environment and its complexity
+in relation to what is rendered.
+This study is key to understanding and perhaps improving the
+render pipeline and current rendering techologies.
+However, extracting this data from the render process into a usable
+format is not straightforward.
 
 \section{Research}
+Much of the beginning work accomplished for this portion of the term project was research.
+We researched RenderMan for Maya (RfM) and concepts from Computer Graphics
+that could help in determining scene semantics.
 
-\subsection{Shaders and Ray Casting}
+\subsection{Ray Tracing and Ray Marching}
+Ray tracing and ray marching in the context of RenderMan shaders were studied.
+Figure \ref{fig:ray_marching} shows an example of how ray marching is applied to
+create volumetric shaders, such as smoke or fog \cite{ray_marching}.
+It was thought that these properties could be used to extract useful semantic data
+during the rendering process.
+Ray tracing is the study of how light behaves in a given environment.
+Figure \ref{fig:raytrace}
+shows a ray tracing problem studied in 1986, where light rays were mapped from
+the viewer to a light source. Avro \textit{et al.}
+discuss the difficulty of this problem,
+as it involves taking into consideration material properties, light sources,
+and where the viewer is looking \cite{backwards_raytrace}.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=5cm]{raytrace.png}}
+\caption{Example of a problem in ray tracing \cite{backwards_raytrace}.}
+\label{fig:raytrace}
+\end{figure}
+
+Technological advancements since 1986 have greatly improved ray tracing capabilities.
+The ray tracing basics described by Scratchapixel 
+provides a walkthrough with code samples for casting rays from the camera
+\cite{raytrace_walkthrough}.
+
+\subsection{Shaders}
+Shaders are written in one of 3 ways: Patterns, OSL, and C++ \cite{shading}
+``RenderMan Shading Language (RSL) \dots includes math operations (sin, sqrt, etc.),
+vector and matrix operations, coordinate transformations, and higher level functions like noise and texture''
+\cite{renderman_docs}.
+It was found that shaders can interact with data during rendering,
+however it is unclear how to extract the data for later use.
+
 \begin{figure}[htbp]
 \centering
 {\includegraphics[width=7cm]{ray_marching.png}}
@@ -110,6 +162,9 @@ wharris2@uccs.edu}}
 \end{figure}
 
 \subsection{System Architecture}
+% derp
+Researched screen segmentation.
+
 \begin{figure}[h!]
 \begin{center}
 \begin{minipage}[t]{\linewidth}
@@ -383,13 +438,154 @@ The color of the circle is made up of the logical disjunction of color bits.}
 
 Although there are less frameblocks, the accuracy of the colors increases for objects spanning frameblock sections.
 But what happens when an object spans over more than 2 frameblock sections?
-In this case frameblocks of the next section over will possibly be active when no object resides there.
+In this case, frameblocks of the next section over will possibly be active when no object resides there.
 Since there are already \textit{some} active frameblocks in that section, it is unlikely for the error to cause
 too many complications.
 If this issue does end up causing problems, we can offset it once more using the alpha channel, $a$.
 Then sections would be in total 64 frameblocks apart from each other, and errors are less likely to ocurr by chance.
 
-\subsubsection{Final Semantics Generation}
+\section{Environment Setup}
+Quality source material is key for a successful research project.
+A powerful computer and complex animation source file are both required
+for good research on this topic.
+Described here are the steps taken for setting up the project
+source materials and environment, as well as discussion on future steps
+for how to use these sources for researching scene semantics.
+
+\subsection{Computer Build}
+A new computer was built at the start of the semester, in order to better prepare for the necessary machine learning
+research and graphical image processing. One RTX 2060 GPU was purchased,
+since the 2060 model is the cheapest GPU that also has Tensor cores
+(which are useful specifically for training machine learning models).
+The processor chosen was the AMD RYZEN 3600.
+All the components were assembled,
+and the result was a well-equipped computer running Windows 10 Pro.
+
+\subsection{Rendering Technologies}
+Two renderers that are now highly developed are the Arnold Renderer \cite{arnold}
+and the RenderMan renderer \cite{renderman}. Each of these renderers
+function differently.
+RenderMan -- which is maintained by Pixar Animation Studios --
+was chosen to be the renderer software for the purposes of this project,
+since it is arguably the most advanced renderer developed to date.
+
+The RenderMan Interface is proposed to be used as a gateway
+into producing the bulk of scene semantics.
+The RenderMan Interface provides implementations for rendering
+``\dots hidden surfaces, spatial filtering, dithering, motion blur, depth of field,
+flat and curved surfaces, objects, constructive solid geometry,
+and programmable shading to express lighting conditions, shadows, and surface appearances,
+with sophisticated control over color, texture, and reflectivity''
+\cite{renderman_docs}.
+Many of these attributes are out of scope
+for this project, however they may later be explored in order to test the capabilities
+of what is developed.
+
+Autodesk Maya 2019 student edition
+and RenderMan 22 were
+installed as the animation and rendering softwares for the project.
+Since RenderMan is maintained by Pixar Animation Studios and not a software solution company
+(like Maya),
+tutorials and walkthroughs were somewhat hard to find.
+RenderMan will be used to build a render pipeline that will not only render advanced images
+of 3D scenes, but also calculate and export scene semantics.
+It is predicted that this will be possible through the use of raytracing or ray sampling.
+It is also expected that the RenderMan documentation found in \cite{renderman_docs}
+will be referred to as well.
+See Figure \ref{fig:renderman} for examples of dynamic scenes rendered with RenderMan.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{renderman.png}}
+\caption{Path-traced images rendered with RenderMan \cite{renderman}.}
+\label{fig:renderman}
+\end{figure}
+
+\subsection{Modeling}
+The ``table'' that was modeled is shown in Figure \ref{fig:environment}.
+To model one ring of the table, a primitive cylinder was flattened.
+Its rim was extruded, and the inside raised slightly to create a more interesting object.
+This new disk primitive was copied twice in order to form the two inside-portions of the table.
+Sphere primitives were used to create the half-dome on top of the outer-table, and the centerpiece
+that rests inside. 12 cylinders were used for the legs, and cylinders were also used
+for the hinges that join the tables together.
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}{.5\textwidth}
+\begin{center}
+\begin{minipage}[t]{\linewidth}
+\centerline{\includegraphics[width=8cm]{project1.png}}
+\caption{``Table'' source in Autodesk Maya.}
+\label{fig:environment}
+\end{minipage}
+\end{center}
+\end{subfigure}
+\par\bigskip
+\begin{subfigure}{.5\textwidth}
+\begin{center}
+\begin{minipage}[t]{\linewidth}
+\centerline{\includegraphics[width=8cm]{table.png}}
+\caption{``Table'' rendered with RenderMan \cite{animation}.}
+\label{fig:table}
+\end{minipage}
+\end{center}
+\end{subfigure}
+\caption{Derp.}
+\label{fig:table_pair}
+\end{figure}
+
+Many materials were experimented with. As discussed in \cite{renderman},
+RenderMan comes with a shelf of unique material presets that may be further customized as desired.
+Instead of choosing one to customize for each part of the table,
+many different materials were used in order to obtain the most dynamic render possible.
+All components besides the floor and center sphere were transparent, with varying indices of refraction.
+The result was a complex scene with a considerably long render-time.
+Rendering a single HD (1920 x 1080) frame took around 15 minutes to complete.
+
+\subsection{Animation}
+In order to animate the scene, joints were placed at each hinge and parented to the object groups they operate.
+Control objects were then created and constrained for each joint group,
+so that the joints themselves were left unaltered throughout animation \cite{rigging}.
+In total, 5 control objects were used to animate the joints in the scene.
+Keyframes were added over the course of 120 frames, and made to loop smoothly.
+
+Since rendering a frame takes about 15 minutes,
+rendering the entire 120 frame sequence took approximately 30 hours to complete.
+Each frame was then placed into a slideshow and exported in movie format at 30 frames per second.
+This created an animation around 5 seconds long,
+but with plenty of movement and dynamic material interaction.
+One of the final rendered frames of the animated sequence is shown in Figure \ref{fig:table}.
+The animation itself is posted on YouTube \cite{animation}.
+
+\section{Implementation}
+% derp
+
+\subsection{Prototype}
+A prototype system was constructed using RenderMan
+and Python scripting, and applied to a frame of the scene.
+New RenderMan nodes each with a custom shader were created for each object in the scene.
+These nodes render a constant color, set by $r$, $g$, and $b$ variable inputs.
+A Python script was then written in order to set the inputs for each shader.
+The script accomplished the following:
+\bigskip
+\begin{enumerate}
+\item Split the screen into a variable number of frameblocks.
+\item Transformed all objects in the scene into screen space, using world-to-screen camera transformation.
+\item Used the Cohen-Sutherland algorithm to identify if an edge of an object is inside a frameblock.
+\item Parameterized screen space where $r$ lies on the $x$-axis, and $b$ on the $y$-axis.
+This is shown for a frame split of 8 x 8 blocks in Figure \ref{fig:parameterization}.
+\item Calculated the floating point color value for the centroid of each frameblock:
+$$v : (r=\frac{(x_2 + x_1)}{2}, g=1, b=\frac{y_2 + y_1}{2})$$
+\item Assigned a color value to each object, where
+$F$ is the set of frameblocks the object is inside of:
+$$v_{object} = \sum_{v_i\in F}v_i$$
+\end{enumerate}
+\bigskip
+RenderMan is used to render the encoded frame.
+An example render and its encoded frameblock colors are shown in Figure \ref{fig:render_comparisons}.
+The example shown has 64 total frame blocks spanning a rendered frame.
+
+\subsection{Final Semantics Generation}
 To conclude this project, we plan to export semantic data from the scene per frameblock.
 Now that we have found a way to find if an is object inside of a frameblock,
 we must decide what data on that object to collect and export.
@@ -405,6 +601,7 @@ We propose collecting the following information for each object processed:
 \item Object type.
 \end{enumerate}
 \bigskip
+
 Figure \ref{fig:distances} shows an example of collecting distances of objects relative to a frameblock.
 All of this data is stored for each frameblock when it is exported.
 We hope that in future research a machine learning algorithm can be trained to construct an image based on this information,
@@ -441,6 +638,7 @@ and that all of these frameblocks can be stitched together to form a rendered fr
 \end{figure}
 \end{adjustwidth}
 
+\section{Results}
 \begin{figure*}[htbp]
 \centering
 \begin{subfigure}{\textwidth}
@@ -464,38 +662,40 @@ and that all of these frameblocks can be stitched together to form a rendered fr
   \centering
     \begin{subfigure}{.49\textwidth}
       \centering
-      \includegraphics[width=\linewidth]{16_render.jpg}
+      \includegraphics[width=\linewidth]{16_render_cropped.jpg}
       \caption{16-bit precision render.}
       \label{fig:render_8}
     \end{subfigure}
     \begin{subfigure}{.49\textwidth}
       \centering
-      \includegraphics[width=\linewidth]{16_partition.jpg}
+      \includegraphics[width=\linewidth]{16_partition_cropped.jpg}
       \caption{16-bit precision screen segmentation.}
       \label{fig:render_8}
     \end{subfigure}
   \label{fig:render_16}
 \end{subfigure}
-\caption{Renders of differing precisions compared to the respective segementation of screen space.}
+\caption{Renders of differing precisions compared to screen space segementation.}
 \label{fig:render_comparisons}
 \end{figure*}
-
-\section{Implementation}
-
-\subsection{Scene Setup}
-
-\subsubsection{Computer Build}
-
-\subsubsection{Modeling}
-
-\subsubsection{Animation}
-
-\subsection{Prototype}
 
 \section{Future Work}
 
 \section{Conclusion}
 \label{sec:conclusion}
+A qualifying computer was built, and a basic environment installed.
+Then a dynamic scene was animated in Autodesk Maya and exported
+using RenderMan. Research into collecting semantics from the scene using
+the RenderMan Interface and RenderMan Shading Language (RSL)
+will be the focus of the project from now on.
+
+We propose a study of the relationship between objects in a 3D scene and rendered images.
+Semantics data is easily recognizable by humans, but much harder for machines.
+Automating the process is a complicated task that will involve much consideration over
+scene dynamics and the relationship of objects to what is rendered.
+Ray tracing is also a concept
+key to many difficult tasks, and this project is an
+opportunity to explore the implementation of ray tracing and its application
+to difficult problems in Computer Graphics.
 
 \bibliography{project}
 \bibliographystyle{IEEEtran}
