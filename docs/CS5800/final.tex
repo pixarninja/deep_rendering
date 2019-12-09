@@ -117,9 +117,9 @@ However, extracting this data from the render process into a usable
 format is not straightforward.
 
 \section{Research}
-Much of the beginning work accomplished for this portion of the term project was research.
 We researched RenderMan for Maya (RfM) and concepts from Computer Graphics
 that could help in determining scene semantics.
+Of these concepts includes ray tracing, ray marching, and shaders.
 
 \subsection{Ray Tracing and Ray Marching}
 Ray tracing and ray marching in the context of RenderMan shaders were studied.
@@ -161,288 +161,16 @@ however it is unclear how to extract the data for later use.
 \label{fig:ray_marching}
 \end{figure}
 
-\subsection{System Architecture}
-% derp
-Researched screen segmentation.
-
-\begin{figure}[h!]
-\begin{center}
-\begin{minipage}[t]{\linewidth}
-\hspace{0.05\linewidth}
-%\rule[-1em]{0pt}{3cm}
-\begin{tikzpicture}
-% R
-\draw (-2,3) -- (3,3); % r horizontal line
-\draw (-2,2.95) -- (-2,3.05); % r left tick
-\draw (3,2.95) -- (3,3.05); % r right tick
-\node[above = 1mm of {(0.5,3)}] {$r$};
-%\filldraw[draw=black,fill=lightgray] (1.5,4) rectangle (3.5,4.5);
-\filldraw[draw=black,fill={0,0,0}] (-2,1) rectangle (-1,2);
-\filldraw[draw=black,fill={1,0,0}] (-1,1) rectangle (0,2);
-%\filldraw[draw=black,fill=white] (0,1) rectangle (1,2);
-\filldraw[draw=black,fill={6,0,0}] (1,1) rectangle (2,2);
-\filldraw[draw=black,fill={7,0,0}] (2,1) rectangle (3,2);
-\node[above = 3mm of {(-1.5,2)}] {\scriptsize{$r(1)$}};
-\node[above = 0.5mm of {(-1.5,2)}] {\scriptsize{$\textbf{0x00}$}};
-\node[above = 3mm of {(-0.5,2)}] {\scriptsize{$r(2)$}};
-\node[above = 0.5mm of {(-0.5,2)}] {\scriptsize{$\textbf{0x02}$}};
-\node[above = 3mm of {(1.5,2)}] {\scriptsize{$r(7)$}};
-\node[above = 0.5mm of {(1.5,2)}] {\scriptsize{$\textbf{0x040}$}};
-\node[above = 3mm of {(2.5,2)}] {\scriptsize{$r(8)$}};
-\node[above = 0.5mm of {(2.5,2)}] {\scriptsize{$\textbf{0x80}$}};
-% B
-\draw (-3.25,2) -- (-3.25,-1); % b vertical line
-\draw (-3.3,2) -- (-3.2,2); % b top tick
-\draw (-3.3,-1) -- (-3.2,-1); % b bottom tick
-\node[left = 2mm of {(-3.15,0.5)}] {$b$};
-\filldraw[draw=black,fill={0,0,7}] (-2,-1) rectangle (-1,0);
-\filldraw[draw=black,fill={1,0,7}] (-1,-1) rectangle (0,0);
-%\filldraw[draw=black,fill=white] (0,-1) rectangle (1,0);
-\filldraw[draw=black,fill={6,0,7}] (1,-1) rectangle (2,0);
-\filldraw[draw=black,fill={7,0,7}] (2,-1) rectangle (3,0);
-\node[left = 1mm of {(-2,1.69)}] {\scriptsize{$b(1)$}};
-\node[left = 1mm of {(-2,1.36)}] {\scriptsize{$\textbf{0x01}$}};
-\node[left = 1mm of {(-2,-0.36)}] {\scriptsize{$b(8)$}};
-\node[left = 1mm of {(-2,-0.69)}] {\scriptsize{$\textbf{0x80}$}};
-% Dots
-\node[right = 1.75mm of {(0,1.5)}] {$\dots$};
-\node[right = 1.75mm of {(0,-0.55)}] {$\dots$};
-\node[right = 3mm of {(2,0.6)}] {$\vdots$};
-\node[right = 3mm of {(-2,0.6)}] {$\vdots$};
-\node[right = -3.5mm of {(0.5,0.6)}] {$\ddots$};
-% Labels
-\node[left = -2mm of {(-1.5,1.5)},fill=white] {$0$};
-\node[left = -2mm of {(-0.5,1.5)},fill=white] {$1$};
-\node[left = -2mm of {(1.5,1.5)},fill=white] {$6$};
-\node[left = -2mm of {(2.5,1.5)},fill=white] {$7$};
-\node[left = -2.75mm of {(-1.5,-0.5)},fill=white] {$56$};
-\node[left = -2.75mm of {(-0.5,-0.5)},fill=white] {$57$};
-\node[left = -2.95mm of {(1.5,-0.5)},fill=white] {$62$};
-\node[left = -2.95mm of {(2.5,-0.5)},fill=white] {$63$};
-\end{tikzpicture}
-\caption{Parameterization of screen space using $r$ and $b$.}
-\label{fig:parameterization}
-\end{minipage}
-\end{center}
-\end{figure}
-
-$r$ and $b$ were used to parameterize the screen
-and create a map of colors to frameblocks.
-However there is a problem with the current method of parameterization
-and output color -- it is unknown which frameblocks make up the color
-for a given object. Take for example the periwinkle-blue objects in the center of
-Figure \ref{fig:prototype}. These objects have the same frameblock color, even though
-some of the frameblocks are different.
-The discrepency comes from using addition over the space of real values between 0 and 1;
-$1 + 2 + 3$ equals $6$, but so does $3 + 3$. We need a way to uniquely map objects to a given frameblock.
-
-Colors can range over 256 values, or 8 bits.
-Let each of the 8 x 8 blocks parameterized by $r$ and $b$ each represent one bit,
-as shown in Figure \ref{fig:parameterization}
-(bit 0x01 was skipped since it is so close to bits 0x00 and 0x02).
-Then each frameblock has a unique color-code with values of 0x00, 0x02, \dots, 0x04, 0x08.
-Instead of addition, we can use a logical disjunction to OR blocks together.
-The result of this is a unique color for the object representing which frameblocks contain it.
-The problem we have now is that a frame can only be broken into 64 blocks.
-Since our frames have the resolution of 1080 x 1920, this means each block will have
-a resolution of 135 x 240. The resolution we would like is much smaller, 64 x 64
-or even 32 x 32.
-We can use the $g$ value to help us break the frame into smaller frameblocks.
-First consider using each of the 8 bits of $g$ to overlap with one parameterized section of screen space,
-as is shown in Figure \ref{fig:partition}.
-
-\begin{figure}[h!]
-\begin{center}
-\begin{minipage}[t]{\linewidth}
-\hspace{0.065\linewidth}
-%\rule[-1em]{0pt}{0cm}
-\begin{tikzpicture}
-% R
-\draw (-2,3) -- (0,3); % r horizontal line
-\draw (-2,2.95) -- (-2,3.05); % r left tick
-\draw (0,2.95) -- (0,3.05); % r right tick
-\node[above = 1mm of {(-1,3)}] {$r(1..8)$};
-\draw (0,3) -- (2,3); % r horizontal line
-\draw (0,2.95) -- (0,3.05); % r left tick
-\draw (2,2.95) -- (2,3.05); % r right tick
-\node[above = 1mm of {(1,3)}] {$r(1..8)$};
-%\filldraw[draw=black,fill={0,0,0}] (-2,1) rectangle (-1,2);
-%\filldraw[draw=black,fill={0,1,0}] (-1,1) rectangle (0,2);
-%\filldraw[draw=black,fill={0,2,0}] (0,1) rectangle (1,2);
-%\filldraw[draw=black,fill={0,3,0}] (1,1) rectangle (2,2);
-\node[above = 3mm of {(-1.5,2)}] {\scriptsize{$g(1)$}};
-\node[above = 0.5mm of {(-1.5,2)}] {\scriptsize{$\textbf{0x00}$}};
-\node[above = 3mm of {(-0.5,2)}] {\scriptsize{$g(2)$}};
-\node[above = 0.5mm of {(-0.5,2)}] {\scriptsize{$\textbf{0x01}$}};
-\node[above = 3mm of {(0.5,2)}] {\scriptsize{$g(3)$}};
-\node[above = 0.5mm of {(0.5,2)}] {\scriptsize{$\textbf{0x02}$}};
-\node[above = 3mm of {(1.5,2)}] {\scriptsize{$g(4)$}};
-\node[above = 0.5mm of {(1.5,2)}] {\scriptsize{$\textbf{0x04}$}};
-% B
-\draw (-2.25,2) -- (-2.25,0); % b vertical line
-\draw (-2.3,2) -- (-2.2,2); % b top tick
-\draw (-2.3,0) -- (-2.2,0); % b bottom tick
-\node[left = 2mm of {(-2.15,1)}] {$b(1..8)$};
-%\filldraw[draw=black,fill={0,4,0}] (-2,0) rectangle (-1,1);
-%\filldraw[draw=black,fill={0,5,0}] (-1,0) rectangle (0,1);
-%\filldraw[draw=black,fill={0,6,0}] (0,0) rectangle (1,1);
-%\filldraw[draw=black,fill={0,7,0}] (1,0) rectangle (2,1);
-\shade[left color={7,0,1},right color={1,0,7}, shading angle=-45] (-2,1) rectangle (-1,2);
-%\shade[path fading=rectangular fading, fill={7,0,7}] (-2,1) rectangle (-1,2);
-\shade[left color={7,1,1},right color={1,1,7}, shading angle=-45] (-1,1) rectangle (0,2);
-%\shade[path fading=rectangular fading, fill={7,0,7}] (-1,1) rectangle (0,2);
-\shade[left color={7,2,1},right color={1,2,7}, shading angle=-45] (0,1) rectangle (1,2);
-%\shade[path fading=rectangular fading, fill={7,0,7}] (0,1) rectangle (1,2);
-\shade[left color={7,3,1},right color={1,3,7}, shading angle=-45] (1,1) rectangle (2,2);
-%\shade[path fading=rectangular fading, fill={7,0,7}] (1,1) rectangle (2,2);
-\shade[left color={7,4,1},right color={1,4,7}, shading angle=-45] (-2,0) rectangle (-1,1);
-\shade[left color={7,5,1},right color={1,5,7}, shading angle=-45] (-1,0) rectangle (0,1);
-\shade[left color={7,6,1},right color={1,6,7}, shading angle=-45] (0,0) rectangle (1,1);
-\shade[left color={7,7,1},right color={1,7,7}, shading angle=-45] (1,0) rectangle (2,1);
-
-\node[below = 3mm of {(-1.5,0)}] {\scriptsize{$g(5)$}};
-\node[below = 0.5mm of {(-1.5,0)}] {\scriptsize{$\textbf{0x10}$}};
-\node[below = 3mm of {(-0.5,0)}] {\scriptsize{$g(6)$}};
-\node[below = 0.5mm of {(-0.5,0)}] {\scriptsize{$\textbf{0x20}$}};
-\node[below = 3mm of {(0.5,0)}] {\scriptsize{$g(7)$}};
-\node[below = 0.5mm of {(0.5,0)}] {\scriptsize{$\textbf{0x40}$}};
-\node[below = 3mm of {(1.5,0)}] {\scriptsize{$g(8)$}};
-\node[below = 0.5mm of {(1.5,0)}] {\scriptsize{$\textbf{0x80}$}};
-% Labels
-\node[left = -3mm of {(-1.5,1.5)},fill=white] {$64$};
-\node[left = -3.5mm of {(-0.5,1.5)},fill=white] {$128$};
-\node[left = -3.5mm of {(0.5,1.5)},fill=white] {$192$};
-\node[left = -3.75mm of {(1.5,1.5)},fill=white] {$256$};
-\node[left = -3.75mm of {(-1.5,0.5)},fill=white] {$320$};
-\node[left = -3.75mm of {(-0.5,0.5)},fill=white] {$384$};
-\node[left = -3.8mm of {(0.5,0.5)},fill=white] {$448$};
-\node[left = -3.85mm of {(1.5,0.5)},fill=white] {$512$};
-\end{tikzpicture}
-\caption{Final partition of screen space, where $g$ on top of the $r$ and $b$ parameterization.}
-\label{fig:partition}
-\end{minipage}
-\end{center}
-\end{figure}
-
-Using this model, the screen can be broken up into 2 x 4 sections, giving us $16 * 32 = 512$ frameblocks
-with resolutions of 67 x 60.
-This is much better resolution, however we find there is yet another problem with this
-system; if an object spans multiple frameblock sections (the odds of which increases the smaller the frameblocks get),
-then it is ambiguous which frameblocks are part of which frameblock section.
-To demonstrate this, consider an object that is contained by 2 frameblocks, one on each side of a frameblock section.
-Thus the object could have the color value:
-
-\begin{align*}
-v &= (r = \text{0x80} \wedge \text{0x01},g=\text{0x01} \wedge \text{0x02}, b=\text{0x04} \wedge \text{0x04})\\
-  &= (r=\text{0x81},g=\text{0x03},b=\text{0x04})
-\end{align*}
-
-The only block value shared between the sections is $b = \text{0x04}$, however the object's color indicates that
-in both sections $g = \text{0x01}$ and $g = \text{0x02}$ blocks with coordinates $(r=\text{0x80},b=\text{0x04})$ and
-$(r=\text{0x01},b=\text{0x04})$ are active. Thus it appears as though the object occupies 4 blocks instead of two.
-This dilemma can be solved by offsetting the domains of $g$ so that instead of covering frameblocks
-$r(i)(0..8),b(i)(0..8)$,
-$g_i$ covers $r_i(0..4),b_i(0..4)$.
-The usecase would then be to test the value of $g$ before evaluating $r$ and $b$.
-Thus divides the domain of $g$ in half, meaning we can only cover 128 frameblocks instead of 256,
-with resolutions of 67 x 120.
-An example calculation of the proposed system is shown in Figure \ref{fig:example}.
-
-\begin{figure}[h!]
-\centering
-\begin{subfigure}{.5\textwidth}
-\begin{center}
-\begin{minipage}[t]{\linewidth}
-\hspace{-0.025\linewidth}
-\begin{tikzpicture}
-% G
-\draw (-3.375,1.9) -- (0,1.9); % g horizontal line
-\draw (-3.375,1.85) -- (-3.375,1.95); % g left tick
-\draw (0,1.85) -- (0,1.95); % g right tick
-\node[above = 0.5mm of {(-1.6875,1.9)}] {$g(6)$};
-\draw (0,1.9) -- (3.375,1.9); % g horizontal line
-\draw (0,1.85) -- (0,1.95); % g left tick
-\draw (3.375,1.85) -- (3.375,1.95); % g right tick
-\node[above = 0.5mm of {(1.6875,1.9)}] {$g(7)$};
-\filldraw[draw=black,fill={0,4,0}] (-3.375,-1.6875) rectangle (0,1.6875);
-\filldraw[draw=black,fill={0,6,0}] (0,-1.6875) rectangle (3.375,1.6875);
-% R
-\draw (-3,-1.9) -- (-0.375,-1.9); % r horizontal line
-\draw (-3,-1.85) -- (-3,-1.95); % r left tick
-\draw (-0.375,-1.85) -- (-0.375,-1.95); % r right tick
-\node[below = -0.5mm of {(-1.6875,-1.9)}] {$r(3,4)$};
-\draw (0.375,-1.9) -- (3,-1.9); % r horizontal line
-\draw (0.375,-1.85) -- (0.375,-1.95); % r left tick
-\draw (3,-1.85) -- (3,-1.95); % r right tick
-\node[below = -0.5mm of {(1.6875,-1.9)}] {$r(5,6)$};
-% B
-\draw (-3.6,-1.3125) -- (-3.6,1.3125); % b vertical line
-\draw (-3.55,1.3125) -- (-3.65,1.3125); % b top tick
-\draw (-3.55,-1.3125) -- (-3.65,-1.3125); % b bottom tick
-\node[left = 0mm of {(-3.6,0)}] {$b(3,4)$};
-% Left pairs
-\filldraw[draw=black,fill={0,4,2}] (-3,-1.3125) rectangle (-1.6875,0); % bottom left
-\filldraw[draw=black,fill={0,4,4}] (-1.6875,-1.3125) rectangle (-0.375,1.3125); % bottom right
-\filldraw[draw=black,fill={2,4,0}] (-3,0) rectangle (-1.6875,1.3125); % top left
-\filldraw[draw=black,fill={4,4,0}] (-1.6875,0) rectangle (-0.375,1.3125); % top right
-% Right pairs
-\filldraw[draw=black,fill={0,6,2}] (0.375,-1.3125) rectangle (1.6875,0); % bottom left
-\filldraw[draw=black,fill={0,6,4}] (1.6875,-1.3125) rectangle (3,1.3125); % bottom right
-\filldraw[draw=black,fill={2,6,0}] (0.375,0) rectangle (1.6875,1.3125); % top left
-\filldraw[draw=black,fill={4,6,0}] (1.6875,0) rectangle (3,1.3125); % top right
-% Object
-\filldraw[draw=black,fill={8,8,8},fill opacity=0.25] (0,0) circle (3em);
-\pattern [pattern=checkerboard,pattern color={8,8,8}] (0,0) circle (3em);
-\end{tikzpicture}
-\caption{Example of an object overlapping a partition}
-\label{fig:object}
-\end{minipage}
-\end{center}
-\end{subfigure}
-\par\bigskip
-\begin{subfigure}{.5\textwidth}
-\begin{center}
-\begin{minipage}[t]{\linewidth}
-\hspace{0.225\linewidth}
-\begin{tikzpicture}
-% Squares
-\filldraw[draw=black,fill={4,4,0}] (-2.5,1) rectangle (2.5,2); % top left
-\filldraw[draw=black,fill={2,6,0}] (-2.5,0) rectangle (2.5,1); % top right
-\filldraw[draw=black,fill={0,6,4}] (-2.5,-1) rectangle (2.5,0); % bottom left
-\filldraw[draw=black,fill={0,6,2}] (-2.5,-2) rectangle (2.5,-1); % bottom right
-\draw[dashed] (-2.5,-2.5) -- (2.5,-2.5); % horizontal line
-\filldraw[draw=black,fill={8,8,8}] (-2.5,-4) rectangle (2.5,-3); % bottom right
-% Labels
-\node[above = -3mm of {(0,1.5)},fill=white] {\small$(r,g,b)=\text{(0x08,0x20,0x04)}$}; % top
-\node[above = -3mm of {(0,0.5)},fill=white] {\small$(r,g,b)=\text{(0x08,0x40,0x08)}$};
-\node[above = -3mm of {(0,-0.5)},fill=white] {\small$(r,g,b)=\text{(0x10,0x20,0x04)}$};
-\node[above = -3mm of {(0,-1.5)},fill=white] {\small$(r,g,b)=\text{(0x10,0x40,0x08)}$};
-% Ops
-\node[right = 3mm of {(2.5,1.5)},fill=white] {\large$\mathbf{\oplus}$};
-\node[right = 3mm of {(2.5,0.5)},fill=white] {\large$\mathbf{\oplus}$};
-\node[right = 3mm of {(2.5,-0.5)},fill=white] {\large$\mathbf{\oplus}$};
-\node[right = 3mm of {(2.5,-1.5)},fill=white] {\large$\mathbf{\oplus}$};
-\node[right = 3mm of {(2.5,-2.5)},fill=white] {\large$\mathbf{=}$};
-% Object
-\node[above = -3mm of {(0,-3.5)},fill=white] {\small$(r,g,b)=\text{(0x18,0x60,0x0B)}$};
-\end{tikzpicture}
-\caption{Derivation of the color for the example object.}
-\label{fig:object_color}
-\end{minipage}
-\end{center}
-\end{subfigure}
-\caption{Example showing how a color is selected for an object straddling more than one frameblock.
-The color of the circle is made up of the logical disjunction of color bits.}
-\label{fig:example}
-\end{figure}
-
-Although there are less frameblocks, the accuracy of the colors increases for objects spanning frameblock sections.
-But what happens when an object spans over more than 2 frameblock sections?
-In this case, frameblocks of the next section over will possibly be active when no object resides there.
-Since there are already \textit{some} active frameblocks in that section, it is unlikely for the error to cause
-too many complications.
-If this issue does end up causing problems, we can offset it once more using the alpha channel, $a$.
-Then sections would be in total 64 frameblocks apart from each other, and errors are less likely to ocurr by chance.
+Our research showed the powerful capabilities and subtle drawbacks of using
+the rendering pipeline.
+While the processes of ray tracing and ray marching have powerful capabilities,
+we found it infeasible to extract the data they create during processing.
+We discovered that, although using values from within the shaders is impractical,
+we can take advantage of a shader's inputs and outputs to store the data we want to
+use in our scene.
+This approach disregards the use of ray tracing or ray marching,
+but retains the concept of encoding data into the scene that can later be used
+for generating semantics.
 
 \section{Environment Setup}
 Quality source material is key for a successful research project.
@@ -558,32 +286,317 @@ One of the final rendered frames of the animated sequence is shown in Figure \re
 The animation itself is posted on YouTube \cite{animation}.
 
 \section{Implementation}
-% derp
+Here we construct a system architecture to be used for semantics generation.
+We decided to implement a system where the objects inside of each frameblock
+are extracted from it at runtime, so that semantics for the frameblock
+can be generated. We also propose a method of storing this information
+in a visual way, to be used in post-processing and keep the render pipeline free from
+unnecessary frameblock calculations.
+The concept is called ``screen segmentation'', and is described
+in detail below.
 
-\subsection{Prototype}
-A prototype system was constructed using RenderMan
-and Python scripting, and applied to a frame of the scene.
-New RenderMan nodes each with a custom shader were created for each object in the scene.
-These nodes render a constant color, set by $r$, $g$, and $b$ variable inputs.
-A Python script was then written in order to set the inputs for each shader.
-The script accomplished the following:
-\bigskip
-\begin{enumerate}
-\item Split the screen into a variable number of frameblocks.
-\item Transformed all objects in the scene into screen space, using world-to-screen camera transformation.
-\item Used the Cohen-Sutherland algorithm to identify if an edge of an object is inside a frameblock.
-\item Parameterized screen space where $r$ lies on the $x$-axis, and $b$ on the $y$-axis.
-This is shown for a frame split of 8 x 8 blocks in Figure \ref{fig:parameterization}.
-\item Calculated the floating point color value for the centroid of each frameblock:
-$$v : (r=\frac{(x_2 + x_1)}{2}, g=1, b=\frac{y_2 + y_1}{2})$$
-\item Assigned a color value to each object, where
-$F$ is the set of frameblocks the object is inside of:
-$$v_{object} = \sum_{v_i\in F}v_i$$
-\end{enumerate}
-\bigskip
-RenderMan is used to render the encoded frame.
-An example render and its encoded frameblock colors are shown in Figure \ref{fig:render_comparisons}.
-The example shown has 64 total frame blocks spanning a rendered frame.
+\subsection{Screen Segmentation}
+\begin{figure}[h!]
+\begin{center}
+\begin{minipage}[t]{\linewidth}
+\hspace{0.05\linewidth}
+%\rule[-1em]{0pt}{3cm}
+\begin{tikzpicture}
+% R
+\draw (-2,3) -- (3,3); % r horizontal line
+\draw (-2,2.95) -- (-2,3.05); % r left tick
+\draw (3,2.95) -- (3,3.05); % r right tick
+\node[above = 1mm of {(0.5,3)}] {$r$};
+%\filldraw[draw=black,fill=lightgray] (1.5,4) rectangle (3.5,4.5);
+\filldraw[draw=black,fill={0,0,0}] (-2,1) rectangle (-1,2);
+\filldraw[draw=black,fill={1,0,0}] (-1,1) rectangle (0,2);
+%\filldraw[draw=black,fill=white] (0,1) rectangle (1,2);
+\filldraw[draw=black,fill={6,0,0}] (1,1) rectangle (2,2);
+\filldraw[draw=black,fill={7,0,0}] (2,1) rectangle (3,2);
+\node[above = 3mm of {(-1.5,2)}] {\scriptsize{$r(1)$}};
+\node[above = 0.5mm of {(-1.5,2)}] {\scriptsize{$\textbf{0x01}$}};
+\node[above = 3mm of {(-0.5,2)}] {\scriptsize{$r(2)$}};
+\node[above = 0.5mm of {(-0.5,2)}] {\scriptsize{$\textbf{0x02}$}};
+\node[above = 3mm of {(1.5,2)}] {\scriptsize{$r(7)$}};
+\node[above = 0.5mm of {(1.5,2)}] {\scriptsize{$\textbf{0x040}$}};
+\node[above = 3mm of {(2.5,2)}] {\scriptsize{$r(8)$}};
+\node[above = 0.5mm of {(2.5,2)}] {\scriptsize{$\textbf{0x80}$}};
+% B
+\draw (-3.25,2) -- (-3.25,-1); % b vertical line
+\draw (-3.3,2) -- (-3.2,2); % b top tick
+\draw (-3.3,-1) -- (-3.2,-1); % b bottom tick
+\node[left = 2mm of {(-3.15,0.5)}] {$b$};
+\filldraw[draw=black,fill={0,0,7}] (-2,-1) rectangle (-1,0);
+\filldraw[draw=black,fill={1,0,7}] (-1,-1) rectangle (0,0);
+%\filldraw[draw=black,fill=white] (0,-1) rectangle (1,0);
+\filldraw[draw=black,fill={6,0,7}] (1,-1) rectangle (2,0);
+\filldraw[draw=black,fill={7,0,7}] (2,-1) rectangle (3,0);
+\node[left = 1mm of {(-2,1.69)}] {\scriptsize{$b(1)$}};
+\node[left = 1mm of {(-2,1.36)}] {\scriptsize{$\textbf{0x01}$}};
+\node[left = 1mm of {(-2,-0.36)}] {\scriptsize{$b(8)$}};
+\node[left = 1mm of {(-2,-0.69)}] {\scriptsize{$\textbf{0x80}$}};
+% Dots
+\node[right = 1.75mm of {(0,1.5)}] {$\dots$};
+\node[right = 1.75mm of {(0,-0.55)}] {$\dots$};
+\node[right = 3mm of {(2,0.6)}] {$\vdots$};
+\node[right = 3mm of {(-2,0.6)}] {$\vdots$};
+\node[right = -3.5mm of {(0.5,0.6)}] {$\ddots$};
+% Labels
+\node[left = -2mm of {(-1.5,1.5)},fill=white] {$0$};
+\node[left = -2mm of {(-0.5,1.5)},fill=white] {$1$};
+\node[left = -2mm of {(1.5,1.5)},fill=white] {$6$};
+\node[left = -2mm of {(2.5,1.5)},fill=white] {$7$};
+\node[left = -2.75mm of {(-1.5,-0.5)},fill=white] {$56$};
+\node[left = -2.75mm of {(-0.5,-0.5)},fill=white] {$57$};
+\node[left = -2.95mm of {(1.5,-0.5)},fill=white] {$62$};
+\node[left = -2.95mm of {(2.5,-0.5)},fill=white] {$63$};
+\end{tikzpicture}
+\caption{Parameterization of screen space using $r$ and $b$.}
+\label{fig:parameterization}
+\end{minipage}
+\end{center}
+\end{figure}
+
+Screen segmentation uses the view of the camera to separate images into different
+frameblocks.
+In order to export this information visually, we exploit the
+red ($r$), green ($g$), and blue ($b$) color channels of an image.
+The underlying principle we would like to have in our semantics render,
+is a unique color for each object based upon which frameblocks it resides in.
+A primitive segmentation of screen space is represented in Figure \ref{fig:parameterization}.
+Here $r$ and $b$ were used to parameterize the entire screen
+and create a map of colors to frameblocks.
+%However there is a problem with the current method of parameterization
+%and output color -- it is unknown which frameblocks make up the color
+%for a given object.
+%These objects have the same frameblock color, even though
+%some of the frameblocks are different.
+%The discrepency comes from using addition over the space of real values between 0 and 1;
+%$1 + 2 + 3$ equals $6$, but so does $3 + 3$. We need a way to uniquely map objects to a given frameblock.
+We utilize binary as a means for assigning these values.
+Each frameblock is given a unique binary color mask based on its position
+in the segemented screen.
+The process of screen sementation is outlined below.
+Colors can range over 256 values, or 8 bits.
+Let each of the 8 x 8 blocks parameterized by $r$ and $b$ each represent one bit,
+as shown in Figure \ref{fig:parameterization}
+Then each frameblock has a unique color-code with values of 0x01, 0x02, \dots, 0x04, 0x08.
+We can use a logical disjunction to ``add'' blocks together, for when
+an object resides in more than one frameblock.
+The result of this is a unique color for the object representing which frameblocks contain it.
+
+The problem we have now is that the screen can only be broken into 64 blocks.
+Since our frames have a screen resolution of 1080 x 1920, this means each block will have
+a resolution of 135 x 240. The desired resolution is much smaller, 64 x 64
+or even 32 x 32.
+This is where we take advantage of the third color channel, $g$.
+We can use $g$ to help us break the frame into smaller frameblocks.
+Consider using each of the 8 bits of $g$ to overlap with one parameterized section of screen space.
+Then the screen can be broken into 4 x 8 x 16 = 512 frameblocks,
+so that each frameblock has a resolution of 67 x 60.
+
+This has the desired resolution,
+however we find there is yet another problem --
+if an object spans multiple 8 x 8 frameblock sections
+(the odds of which increases the smaller the frameblocks become),
+then it is ambiguous which frameblocks are active and which aren't.
+To demonstrate this, consider an object that is contained by 2 frameblocks
+and is straddling a frameblock section, as show in Figure \ref{fig:object}.
+The object would be thought to be in a frameblock that it is not a part of.
+%From the given values of parameterization, the object would have the ultimate
+%color code calculated below.
+%
+%\begin{align*}
+%v &= (r = \text{0x80} \wedge \text{0x01},g=\text{0x01} \wedge \text{0x02}, b=\text{0x04} \wedge \text{0x04})\\
+%  &= (r=\text{0x81},g=\text{0x03},b=\text{0x04})
+%\end{align*}
+%
+%The only color masks shared between the sections are
+%$b = \text{0x04}$, and $b = \text{0x08}$.
+%The object's color, however, indicates that
+%in sections $g = \text{0x01}$ and $g = \text{0x02}$,
+%blocks with red coordinates $(r=\text{0x80},\text{0x10})$ and blue
+%$b=\text{0x04},\text{0x08}$ are active.
+%Thus, it appears as though the object occupies all eight blocks instead of four.
+
+This dilemma can be solved by offsetting the domains of $g$ so that,
+instead of covering frameblocks
+$r_i(0..8),b_i(0..8)$,
+it covers $r_i(0..4),b_i(0..4)$.
+Each 4 x 4 frameblock section has some wiggle-room built in around it,
+and therefore has more precision.
+The final partition of the screen is shown in Figure \ref{fig:partition}.
+
+\begin{figure}[h!]
+\begin{center}
+\begin{minipage}[t]{\linewidth}
+\hspace{0.065\linewidth}
+%\rule[-1em]{0pt}{0cm}
+\begin{tikzpicture}
+% R
+\draw (-2,3) -- (0,3); % r horizontal line
+\draw (-2,2.95) -- (-2,3.05); % r left tick
+\draw (0,2.95) -- (0,3.05); % r right tick
+\node[above = 1mm of {(-1,3)}] {$r(1..8)$};
+\draw (0,3) -- (2,3); % r horizontal line
+\draw (0,2.95) -- (0,3.05); % r left tick
+\draw (2,2.95) -- (2,3.05); % r right tick
+\node[above = 1mm of {(1,3)}] {$r(1..8)$};
+%\filldraw[draw=black,fill={0,0,0}] (-2,1) rectangle (-1,2);
+%\filldraw[draw=black,fill={0,1,0}] (-1,1) rectangle (0,2);
+%\filldraw[draw=black,fill={0,2,0}] (0,1) rectangle (1,2);
+%\filldraw[draw=black,fill={0,3,0}] (1,1) rectangle (2,2);
+\node[above = 3mm of {(-1.5,2)}] {\scriptsize{$g(1)$}};
+\node[above = 0.5mm of {(-1.5,2)}] {\scriptsize{$\textbf{0x01}$}};
+\node[above = 3mm of {(-0.5,2)}] {\scriptsize{$g(2)$}};
+\node[above = 0.5mm of {(-0.5,2)}] {\scriptsize{$\textbf{0x02}$}};
+\node[above = 3mm of {(0.5,2)}] {\scriptsize{$g(3)$}};
+\node[above = 0.5mm of {(0.5,2)}] {\scriptsize{$\textbf{0x04}$}};
+\node[above = 3mm of {(1.5,2)}] {\scriptsize{$g(4)$}};
+\node[above = 0.5mm of {(1.5,2)}] {\scriptsize{$\textbf{0x08}$}};
+% B
+\draw (-2.25,2) -- (-2.25,0); % b vertical line
+\draw (-2.3,2) -- (-2.2,2); % b top tick
+\draw (-2.3,0) -- (-2.2,0); % b bottom tick
+\node[left = 2mm of {(-2.15,1)}] {$b(1..8)$};
+%\filldraw[draw=black,fill={0,4,0}] (-2,0) rectangle (-1,1);
+%\filldraw[draw=black,fill={0,5,0}] (-1,0) rectangle (0,1);
+%\filldraw[draw=black,fill={0,6,0}] (0,0) rectangle (1,1);
+%\filldraw[draw=black,fill={0,7,0}] (1,0) rectangle (2,1);
+\shade[left color={7,0,1},right color={1,0,7}, shading angle=-45] (-2,1) rectangle (-1,2);
+%\shade[path fading=rectangular fading, fill={7,0,7}] (-2,1) rectangle (-1,2);
+\shade[left color={7,1,1},right color={1,1,7}, shading angle=-45] (-1,1) rectangle (0,2);
+%\shade[path fading=rectangular fading, fill={7,0,7}] (-1,1) rectangle (0,2);
+\shade[left color={7,2,1},right color={1,2,7}, shading angle=-45] (0,1) rectangle (1,2);
+%\shade[path fading=rectangular fading, fill={7,0,7}] (0,1) rectangle (1,2);
+\shade[left color={7,3,1},right color={1,3,7}, shading angle=-45] (1,1) rectangle (2,2);
+%\shade[path fading=rectangular fading, fill={7,0,7}] (1,1) rectangle (2,2);
+\shade[left color={7,4,1},right color={1,4,7}, shading angle=-45] (-2,0) rectangle (-1,1);
+\shade[left color={7,5,1},right color={1,5,7}, shading angle=-45] (-1,0) rectangle (0,1);
+\shade[left color={7,6,1},right color={1,6,7}, shading angle=-45] (0,0) rectangle (1,1);
+\shade[left color={7,7,1},right color={1,7,7}, shading angle=-45] (1,0) rectangle (2,1);
+
+\node[below = 0.5mm of {(-1.5,0)}] {\scriptsize{$g(5)$}};
+\node[below = 3mm of {(-1.5,0)}] {\scriptsize{$\textbf{0x10}$}};
+\node[below = 0.5mm of {(-0.5,0)}] {\scriptsize{$g(6)$}};
+\node[below = 3mm of {(-0.5,0)}] {\scriptsize{$\textbf{0x20}$}};
+\node[below = 0.5mm of {(0.5,0)}] {\scriptsize{$g(7)$}};
+\node[below = 3mm of {(0.5,0)}] {\scriptsize{$\textbf{0x40}$}};
+\node[below = 0.5mm of {(1.5,0)}] {\scriptsize{$g(8)$}};
+\node[below = 3mm of {(1.5,0)}] {\scriptsize{$\textbf{0x80}$}};
+% Labels
+\node[left = -3mm of {(-1.5,1.5)},fill=white] {$64$};
+\node[left = -3.5mm of {(-0.5,1.5)},fill=white] {$128$};
+\node[left = -3.5mm of {(0.5,1.5)},fill=white] {$192$};
+\node[left = -3.75mm of {(1.5,1.5)},fill=white] {$256$};
+\node[left = -3.75mm of {(-1.5,0.5)},fill=white] {$320$};
+\node[left = -3.75mm of {(-0.5,0.5)},fill=white] {$384$};
+\node[left = -3.8mm of {(0.5,0.5)},fill=white] {$448$};
+\node[left = -3.85mm of {(1.5,0.5)},fill=white] {$512$};
+\end{tikzpicture}
+\caption{Final partition of screen space, where $g$ on top of the $r$ and $b$ parameterization.}
+\label{fig:partition}
+\end{minipage}
+\end{center}
+\end{figure}
+
+The usecase would then be to test the value of $g$ before evaluating $r$ and $b$.
+This solution divides the domains of $g$ in half,
+meaning we can only cover 128 frameblocks instead of 512, and blocks now have
+resolutions of 135 x 120.
+An example calculation of the final segmentation system is shown in Figure \ref{fig:example}.
+This proves that, although there are less frameblocks, the accuracy of the colors increases for objects spanning frameblock sections.
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}{.5\textwidth}
+\begin{center}
+\begin{minipage}[t]{\linewidth}
+\hspace{-0.025\linewidth}
+\begin{tikzpicture}
+% G
+\draw (-3.375,1.9) -- (0,1.9); % g horizontal line
+\draw (-3.375,1.85) -- (-3.375,1.95); % g left tick
+\draw (0,1.85) -- (0,1.95); % g right tick
+\node[above = 0.5mm of {(-1.6875,1.9)}] {$g(6)$};
+\draw (0,1.9) -- (3.375,1.9); % g horizontal line
+\draw (0,1.85) -- (0,1.95); % g left tick
+\draw (3.375,1.85) -- (3.375,1.95); % g right tick
+\node[above = 0.5mm of {(1.6875,1.9)}] {$g(7)$};
+\filldraw[draw=black,fill={0,4,0}] (-3.375,-1.6875) rectangle (0,1.6875);
+\filldraw[draw=black,fill={0,6,0}] (0,-1.6875) rectangle (3.375,1.6875);
+% R
+\draw (-3,-1.9) -- (-0.375,-1.9); % r horizontal line
+\draw (-3,-1.85) -- (-3,-1.95); % r left tick
+\draw (-0.375,-1.85) -- (-0.375,-1.95); % r right tick
+\node[below = -0.5mm of {(-1.6875,-1.9)}] {$r(3,4)$};
+\draw (0.375,-1.9) -- (3,-1.9); % r horizontal line
+\draw (0.375,-1.85) -- (0.375,-1.95); % r left tick
+\draw (3,-1.85) -- (3,-1.95); % r right tick
+\node[below = -0.5mm of {(1.6875,-1.9)}] {$r(5,6)$};
+% B
+\draw (-3.6,-1.3125) -- (-3.6,1.3125); % b vertical line
+\draw (-3.55,1.3125) -- (-3.65,1.3125); % b top tick
+\draw (-3.55,-1.3125) -- (-3.65,-1.3125); % b bottom tick
+\node[left = 0mm of {(-3.6,0)}] {$b(3,4)$};
+% Left pairs
+\filldraw[draw=black,fill={0,4,2}] (-3,-1.3125) rectangle (-1.6875,0); % bottom left
+\filldraw[draw=black,fill={0,4,4}] (-1.6875,-1.3125) rectangle (-0.375,1.3125); % bottom right
+\filldraw[draw=black,fill={2,4,0}] (-3,0) rectangle (-1.6875,1.3125); % top left
+\filldraw[draw=black,fill={4,4,0}] (-1.6875,0) rectangle (-0.375,1.3125); % top right
+% Right pairs
+\filldraw[draw=black,fill={0,6,2}] (0.375,-1.3125) rectangle (1.6875,0); % bottom left
+\filldraw[draw=black,fill={0,6,4}] (1.6875,-1.3125) rectangle (3,1.3125); % bottom right
+\filldraw[draw=black,fill={2,6,0}] (0.375,0) rectangle (1.6875,1.3125); % top left
+\filldraw[draw=black,fill={4,6,0}] (1.6875,0) rectangle (3,1.3125); % top right
+% Object
+\filldraw[draw=black,fill={8,8,8},fill opacity=0.25] (0,0) circle (3em);
+\pattern [pattern=checkerboard,pattern color={8,8,8}] (0,0) circle (3em);
+\end{tikzpicture}
+\caption{Example of an object overlapping a partition}
+\label{fig:object}
+\end{minipage}
+\end{center}
+\end{subfigure}
+\par\bigskip
+\begin{subfigure}{.5\textwidth}
+\begin{center}
+\begin{minipage}[t]{\linewidth}
+\hspace{0.225\linewidth}
+\begin{tikzpicture}
+% Squares
+\filldraw[draw=black,fill={4,4,0}] (-2.5,1) rectangle (2.5,2); % top left
+\filldraw[draw=black,fill={2,6,0}] (-2.5,0) rectangle (2.5,1); % top right
+\filldraw[draw=black,fill={0,6,4}] (-2.5,-1) rectangle (2.5,0); % bottom left
+\filldraw[draw=black,fill={0,6,2}] (-2.5,-2) rectangle (2.5,-1); % bottom right
+\draw[dashed] (-2.5,-2.5) -- (2.5,-2.5); % horizontal line
+\filldraw[draw=black,fill={8,8,8}] (-2.5,-4) rectangle (2.5,-3); % bottom right
+% Labels
+\node[above = -3mm of {(0,1.5)},fill=white] {\small$(r,g,b)=\text{(0x08,0x20,0x04)}$}; % top
+\node[above = -3mm of {(0,0.5)},fill=white] {\small$(r,g,b)=\text{(0x08,0x40,0x08)}$};
+\node[above = -3mm of {(0,-0.5)},fill=white] {\small$(r,g,b)=\text{(0x10,0x20,0x04)}$};
+\node[above = -3mm of {(0,-1.5)},fill=white] {\small$(r,g,b)=\text{(0x10,0x40,0x08)}$};
+% Ops
+\node[right = 3mm of {(2.5,1.5)},fill=white] {\large$\mathbf{\oplus}$};
+\node[right = 3mm of {(2.5,0.5)},fill=white] {\large$\mathbf{\oplus}$};
+\node[right = 3mm of {(2.5,-0.5)},fill=white] {\large$\mathbf{\oplus}$};
+\node[right = 3mm of {(2.5,-1.5)},fill=white] {\large$\mathbf{\oplus}$};
+\node[right = 3mm of {(2.5,-2.5)},fill=white] {\large$\mathbf{=}$};
+% Object
+\node[above = -3mm of {(0,-3.5)},fill=white] {\small$(r,g,b)=\text{(0x18,0x60,0x0B)}$};
+\end{tikzpicture}
+\caption{Derivation of the color for the example object.}
+\label{fig:object_color}
+\end{minipage}
+\end{center}
+\end{subfigure}
+\caption{Example showing how a color is selected for an object straddling more than one frameblock.
+The color of the circle is made up of the logical disjunction of color bits.}
+\label{fig:example}
+\end{figure}
+
+\subsection{Optimizations and Other Considerations}
+Consider 64 bit case.
 
 \subsection{Final Semantics Generation}
 To conclude this project, we plan to export semantic data from the scene per frameblock.
@@ -637,6 +650,31 @@ and that all of these frameblocks can be stitched together to form a rendered fr
 \label{fig:distances}
 \end{figure}
 \end{adjustwidth}
+
+\subsection{Prototype}
+A prototype system was constructed using RenderMan
+and Python scripting, and applied to a frame of the scene.
+New RenderMan nodes each with a custom shader were created for each object in the scene.
+These nodes render a constant color, set by $r$, $g$, and $b$ variable inputs.
+A Python script was then written in order to set the inputs for each shader.
+The script accomplished the following:
+\bigskip
+\begin{enumerate}
+\item Split the screen into a variable number of frameblocks.
+\item Transformed all objects in the scene into screen space, using world-to-screen camera transformation.
+\item Used the Cohen-Sutherland algorithm to identify if an edge of an object is inside a frameblock.
+\item Parameterized screen space where $r$ lies on the $x$-axis, and $b$ on the $y$-axis.
+This is shown for a frame split of 8 x 8 blocks in Figure \ref{fig:parameterization}.
+\item Calculated the floating point color value for the centroid of each frameblock:
+$$v : (r=\frac{(x_2 + x_1)}{2}, g=1, b=\frac{y_2 + y_1}{2})$$
+\item Assigned a color value to each object, where
+$F$ is the set of frameblocks the object is inside of:
+$$v_{object} = \sum_{v_i\in F}v_i$$
+\end{enumerate}
+\bigskip
+RenderMan is used to render the encoded frame.
+An example render and its encoded frameblock colors are shown in Figure \ref{fig:render_comparisons}.
+The example shown has 64 total frame blocks spanning a rendered frame.
 
 \section{Results}
 \begin{figure*}[htbp]
