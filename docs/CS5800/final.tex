@@ -97,29 +97,32 @@ wharris2@uccs.edu}}
 \maketitle
 
 \begin{abstract}
-% derp
+Here we research the relationship between objects in a 3D scene and screen space.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 Access to good training data is necessary
-in order to harness the power of machine learning.
+to harness the power of machine learning.
 One such data to be studied is the relationship
 between a 3D environment and the
-rendered frame(s) it produces.
-For the purposes of this document, this relationship is
-referred to as the semantics of the given 3D scene --
-i.e. the description of the 3D environment and its complexity
-in relation to what is rendered.
+rendered frames it produces,
+the semantics of a 3D scene.
+Scene semantics are a description of the complex 3D environment and its
+relation to what is ultimately rendered.
 This study is key to understanding and perhaps improving the
 render pipeline and current rendering techologies.
 However, extracting this data from the render process into a usable
 format is not straightforward.
 
 \section{Research}
+Here we discuss our research on scene semantics, and how they can be generated
+from scene data.
 We researched RenderMan for Maya (RfM) and concepts from Computer Graphics
 that could help in determining scene semantics.
 Of these concepts includes ray tracing, ray marching, and shaders.
+The fundamentals discussed here are important to understand our dicisions
+and implementation, discussed later in Section \ref{sec:implementation}.
 
 \subsection{Ray Tracing and Ray Marching}
 Ray tracing is the study of how light behaves in a given environment.
@@ -136,14 +139,18 @@ and where the viewer is looking \cite{backwards_raytrace}.
 \label{fig:raytrace}
 \end{figure}
 
-Technological advancements since 1986 have greatly improved ray tracing capabilities.
-The ray tracing basics described by Scratchapixel 
-provides a walkthrough with code samples for casting rays from the camera
-\cite{raytrace_walkthrough}.
-Ray marching is a derivative of ray tracing, used to model interactions of light through
-dense surfaces.
+Technological advancements since 1986 have greatly improved ray tracing capabilities,
+and the improvements are well documented.
+For instance, the ray tracing walthrough created by Scratchapixel 
+provides code samples for casting rays from the camera and other basic ray tracing
+functionality \cite{raytrace_walkthrough}.
+Ray marching is a derivative of ray tracing, and is used to model interactions
+of light through volumetric surfaces.
 Figure \ref{fig:ray_marching} shows an example of how ray marching is applied to
 create volumetric shaders, such as smoke or fog \cite{ray_marching}.
+Examples of both ray tracing and ray marching effects
+can be seen within the rendered scenes shown in Figure \ref{fig:renderman}
+and Figure \ref{fig:table}.
 
 \begin{figure}[htbp]
 \centering
@@ -155,19 +162,18 @@ create volumetric shaders, such as smoke or fog \cite{ray_marching}.
 \subsection{RenderMan}
 Two renderers that are now highly developed are the Arnold Renderer \cite{arnold}
 and the RenderMan renderer \cite{renderman_docs}. Each of these renderers
-function differently.
+functions differently, and provides different interfaces for the same tasks, in general.
 RenderMan 22 -- which is maintained by Pixar Animation Studios --
 was chosen to be the renderer software for the purposes of this project,
-since it is arguably the most advanced renderer developed to date.
+since it is arguably the most advanced (and oldest) renderer developed to date.
+Figure \ref{fig:renderman} shows two examples of dynamic scenes rendered with RenderMan.
+
 RenderMan includes many resources via their documentation,
-however outside of officially produced sources there is a lack of any tutorials or
-walkthroughs for shaders in the new RenderMan system.
-Since RenderMan is maintained by Pixar Animation Studios and not a software solution
-company, tutorials and walkthroughs were somewhat hard to find.
+however outside of officially produced documents there is a lack of tutorials or
+walkthroughs for shaders in recent RenderMan systems.
 Introduction materials provided by Pixar were used to research the capabilities
 of RenderMan shaders and the rendering pipeline \cite{renderman}.
-
-The RenderMan Interface provided implementations for rendering
+We found that the RenderMan Interface provides implementations for rendering
 ``\dots hidden surfaces, spatial filtering, dithering, motion blur, depth of field,
 flat and curved surfaces, objects, constructive solid geometry,
 and programmable shading to express lighting conditions, shadows, and surface appearances,
@@ -176,8 +182,8 @@ with sophisticated control over color, texture, and reflectivity''
 Many of these attributes were out of scope
 for this project, however they may later be explored in order to test the capabilities
 of what was developed.
-Figure \ref{fig:renderman} shows two examples of dynamic scenes rendered with RenderMan.
-It is clear that the technology is 
+We were interested in how to harness RenderMan's shaders with the power of path tracing
+to produce detailed scene semantics.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=8cm]{renderman.png}}
@@ -185,28 +191,34 @@ It is clear that the technology is
 \label{fig:renderman}
 \end{figure}
 
-One of the important feature of RenderMan are its powerful shaders.
-Shaders are written in one of 3 ways: Patterns, Shading Language, and C++ \cite{shading}.
+RenderMan shaders are written in one of 3 ways:
+Patterns, Shading Language (OSL or RSL), and C++ \cite{shading}.
 Patterns are useful for adding noise to shaders, or generating source data
-programatically. This includes fractals, shapes, gradients, mult-layered noise,
+programatically. This includes fractals, shapes, gradients, and mult-layered noise,
 which can be combined in different ways to create unique images.
-Examples of this include rust, wavy glass, or vector-based shading.
-Shading Language is a tool artists use to program shaders.
+Examples of applications include rust, wavy glass, or vector-based shading.
+Shading Language is a programming tool artists use to created more refined shading.
 ``RenderMan Shading Language (RSL) \dots includes math operations (sin, sqrt, etc.),
 vector and matrix operations, coordinate transformations, and higher level functions like noise and texture''
 \cite{renderman_docs}.
-Shaders for RenderMan are written in RSL (a branch from OSL), or C++.
+Shaders for RenderMan are written in RSL (a branch from OSL) or C++,
+and are attached to different objects via materials.
 
-In any of the three cases, the shader outputs are not written directly
-from shaders to the rendered image. They are applied to a BxDF material
-(the base BxDF material for RenderMan is called ``PxrSurface''),
-and data from all materials in the scene are combined and sent to an Integrator.
+In any of the three cases, shader outputs are not written directly
+from shaders to the rendered frame. They are instead handled through a BxDF material
+(the base BxDF material for RenderMan is called ``PxrSurface'').
+When a scene is being rendered,
+data from all visible materials are combined and sent to an Integrator,
+which converts the data into pixels.
 Integrators can be hot-swapped for different types of rendering and debugging of
 shader code.
 Upon researching how ray tracing is handled, we found that information
-on refracted rays is passed
-back to the BxDF for more sampling.
+on refracted and reflected rays is passed
+back to the BxDF for more sampling, and the cycle continues until the render has sampled
+enough detail.
 Anti-aliasing and other filters can be added at the end as necessary
+to produce the desired result.
+Figure \ref{fig:interaction} shows an abstract summary of the RenderMan render pipeline.
 
 \begin{figure}[htbp]
 \centering
@@ -218,39 +230,42 @@ Anti-aliasing and other filters can be added at the end as necessary
 We found that shaders have complex interactions with data during ray tracing,
 however it is unclear how to extract the data for later use.
 A custom integrator could be written to collect the data, but even then it
-may lose the connections with the scene that we require for semantics generation.
-So, while the processes of ray tracing and ray marching have powerful capabilities,
-we found it infeasible to extract the data they create during processing.
-We discovered that, although using values from within the shaders is impractical,
-we can take advantage of a shader's inputs and outputs to store the data we want to
-use in our scene.
-This approach disregards the use of ray tracing or ray marching,
+may lose the connections with the scene that are required for semantics generation.
+So, while the processes of path tracing have powerful capabilities,
+we found it infeasible to extract the data they create during processing
+at the shader level.
+Although using raw values from within the shaders is impractical,
+a shader's inputs and outputs was found to be able to store semantic data.
+This approach disregards the use of ray tracing or ray marching for the time being,
 but retains the concept of encoding data into the scene that can later be used
 for generating semantics.
+Section \ref{sec:implementation} details the implementation of our approach.
 
 \section{Environment Setup}
-Quality source material is key for a successful research project.
-A powerful computer and complex animation source file are both required
-for good research on this topic.
+\label{sec:environment}
+We now turn to the prerequisites for performing our research.
+Scene semantics requires we look at complexities ranging from simple to dynamic.
+Thus we decided a powerful computer and complex source animation were required
+to produce meaningful research on this topic.
 Described here are the steps taken for setting up the project
-source materials and environment, as well as discussion on future steps
-for how to use these sources for researching scene semantics.
+environment and preparing for our research.
 
-\subsection{Computer Build}
-A new computer was built at the start of the semester, in order to better prepare for the necessary machine learning
-research and graphical image processing. One RTX 2060 GPU was purchased,
-since the 2060 model is the cheapest GPU that also has Tensor cores
-(which are useful specifically for training machine learning models).
-The processor chosen was the AMD RYZEN 3600.
-All the components were assembled,
-and the result was a well-equipped computer running Windows 10 Pro.
+%\subsection{Computer Build}
+%A new computer was built at the start of the semester, in order to better prepare for the necessary machine learning
+%research and graphical image processing. One RTX 2060 GPU was purchased,
+%since the 2060 model is the cheapest GPU that also has Tensor cores
+%(which are useful specifically for training machine learning models).
+%The processor chosen was the AMD RYZEN 3600.
+%All the components were assembled,
+%and the result was a well-equipped computer running Windows 10 Pro.
 
 \subsection{Modeling}
+\label{subsec:modeling}
 The modeling and animation software utilized was Autodesk Maya 2019.
-The ``table'' that was modeled is shown in Figure \ref{fig:environment}.
+The ``table'' created for this project is shown in Figure \ref{fig:environment}.
 To model one ring of the table, a primitive cylinder was flattened.
 Its rim was extruded, and the inside raised slightly to create a more interesting object.
-This new disk primitive was copied twice in order to form the two inside-portions of the table.
+This new disk primitive was copied twice in order to form the two inner-portions of the table.
 Sphere primitives were used to create the half-dome on top of the outer-table, and the centerpiece
 that rests inside. 12 cylinders were used for the legs, and cylinders were also used
 for the hinges that join the tables together.
@@ -280,38 +295,39 @@ for the hinges that join the tables together.
 \label{fig:table_pair}
 \end{figure}
 
-Many materials were experimented with. As discussed in \cite{renderman},
+Each object was assigned a material.
+As discussed in \cite{renderman},
 RenderMan comes with a shelf of unique material presets that may be further customized as desired.
-Instead of choosing one to customize for each part of the table,
+Light dynamics was prioritized in the selection of materials --
+instead of choosing one material to customize for each part of the table,
 many different materials were used in order to obtain the most dynamic render possible.
 All components besides the floor and center sphere were transparent, with varying indices of refraction.
 The result was a complex scene with a considerably long render-time.
-Rendering a single HD (1920 x 1080) frame took around 15 minutes to complete.
+Rendering a single frame of resolution 1920 x 1080 took around 15 minutes to complete.
 
 \subsection{Animation}
 In order to animate the scene, joints were placed at each hinge and parented to the object groups they operate.
 Control objects were then created and constrained for each joint group,
-so that the joints themselves were left unaltered throughout animation \cite{rigging}.
+since it is vital that the joints themselves were left unaltered throughout animation \cite{rigging}.
 In total, 5 control objects were used to animate the joints in the scene.
 Keyframes were added over the course of 120 frames, and made to loop smoothly.
 
-Since rendering a frame takes about 15 minutes,
-rendering the entire 120 frame sequence took approximately 30 hours to complete.
-Each frame was then placed into a slideshow and exported in movie format at 30 frames per second.
-This created an animation around 5 seconds long,
+Since rendering a frame took approximately 15 minutes,
+rendering the entire 120 frame sequence required around 30 hours of render time.
+The resulting sequence of frames created an animation around 5 seconds long,
 but with plenty of movement and dynamic material interaction.
 One of the final rendered frames of the animated sequence is shown in Figure \ref{fig:table}.
 The animation itself is posted on YouTube \cite{animation}.
 
 \section{Implementation}
+\label{sec:implementation}
 Here we construct a system architecture to be used for semantics generation.
-We decided to implement a system where the objects inside of each frameblock
-are extracted from it at runtime, so that semantics for the frameblock
-can be generated. We also propose a method of storing this information
-in a visual way, to be used in post-processing and keep the render pipeline free from
+We decided to implement a system where semantics for each frameblock
+can be generated at rendertime.
+This information is stored in a visual way,
+to be used in post-processing and keep the render pipeline free from
 unnecessary frameblock calculations.
-The concept is called ``screen segmentation'', and is described
-in detail below.
+We denote the complete concept as ``screen segmentation''.
 
 \subsection{Screen Segmentation}
 \begin{figure}[h!]
@@ -375,14 +391,14 @@ in detail below.
 \end{center}
 \end{figure}
 
-Screen segmentation uses the view of the camera to separate images into different
-frameblocks.
-In order to export this information visually, we exploit the
+We expand on the concept of frameblocks explored in \cite{thesis_harris}
+to encode scene semantics in a visual way.
+Screen segmentation can be used to assign a unique color to each object in the scene
+based upon which frameblocks it resides in.
+In order to show this information visually, we exploited the
 red ($r$), green ($g$), and blue ($b$) color channels of an image.
-The underlying principle we would like to have in our semantics render,
-is a unique color for each object based upon which frameblocks it resides in.
-A primitive segmentation of screen space is represented in Figure \ref{fig:parameterization}.
-Here $r$ and $b$ were used to parameterize the entire screen
+A primitive segmentation of screen space is shown in Figure \ref{fig:parameterization}.
+$r$ and $b$ were used to parameterize the entire screen
 and create a map of colors to frameblocks.
 %However there is a problem with the current method of parameterization
 %and output color -- it is unknown which frameblocks make up the color
@@ -391,14 +407,16 @@ and create a map of colors to frameblocks.
 %some of the frameblocks are different.
 %The discrepency comes from using addition over the space of real values between 0 and 1;
 %$1 + 2 + 3$ equals $6$, but so does $3 + 3$. We need a way to uniquely map objects to a given frameblock.
-We utilize binary as a means for assigning these values.
-Each frameblock is given a unique binary color mask based on its position
-in the segemented screen.
-The process of screen sementation is outlined below.
-Colors can range over 256 values, or 8 bits.
-Let each of the 8 x 8 blocks parameterized by $r$ and $b$ each represent one bit,
+We utilize binary as a means for assigning these values --
+each frameblock is given a unique binary color mask based on its position
+in the segmented screen.
+Assuming integer representation of colors,
+values can be represented by 8 bits of binary encoding.
+Let each of the 8 x 8 blocks parameterized by $r$ and $b$ each represent one bit mask
+for either color,
 as shown in Figure \ref{fig:parameterization}
-Then each frameblock has a unique color-code with values of 0x01, 0x02, \dots, 0x04, 0x08.
+Each frameblock then has a unique $(r,b)$ color-code
+with possible values 0x01, 0x02, \dots, 0x04, 0x08.
 We can use a logical disjunction to ``add'' blocks together, for when
 an object resides in more than one frameblock.
 The result of this is a unique color for the object representing which frameblocks contain it.
@@ -407,20 +425,22 @@ The problem we have now is that the screen can only be broken into 64 blocks.
 Since our frames have a screen resolution of 1080 x 1920, this means each block will have
 a resolution of 135 x 240. The desired resolution is much smaller, 64 x 64
 or even 32 x 32.
-This is where we take advantage of the third color channel, $g$.
-We can use $g$ to help us break the frame into smaller frameblocks.
-Consider using each of the 8 bits of $g$ to overlap with one parameterized section of screen space.
-Then the screen can be broken into 4 x 8 x 16 = 512 frameblocks,
-so that each frameblock has a resolution of 67 x 60.
+This is where we also take advantage of the third color channel, $g$.
+Consider using each of the 8 bits of $g$
+to overlap with one parameterized section of screen space.
+The screen is then broken into 4 x 2 sections of 64 frameblocks, or 512 frameblocks total.
+Now each frameblock has a resolution of 67 x 60.
 
 This has the desired resolution,
 however we find there is yet another problem --
 if an object spans multiple 8 x 8 frameblock sections
 (the odds of which increases the smaller the frameblocks become),
-then it is ambiguous which frameblocks are active and which aren't.
+then it is ambiguous which frameblocks are active and which are not.
 To demonstrate this, consider an object that is contained by 2 frameblocks
-and is straddling a frameblock section, as show in Figure \ref{fig:object}.
-The object would be thought to be in a frameblock that it is not a part of.
+and is straddling a frameblock section.
+When extracting the frameblock data from the color values,
+it would appear as though the object resides in 4 frameblocks instead of 2.
+%as show in Figure \ref{fig:object}.
 %From the given values of parameterization, the object would have the ultimate
 %color code calculated below.
 %
@@ -436,7 +456,6 @@ The object would be thought to be in a frameblock that it is not a part of.
 %blocks with red coordinates $(r=\text{0x80},\text{0x10})$ and blue
 %$b=\text{0x04},\text{0x08}$ are active.
 %Thus, it appears as though the object occupies all eight blocks instead of four.
-
 This dilemma can be solved by offsetting the domains of $g$ so that,
 instead of covering frameblocks
 $r_i(0..8),b_i(0..8)$,
@@ -444,6 +463,8 @@ it covers $r_i(0..4),b_i(0..4)$.
 Each 4 x 4 frameblock section has some wiggle-room built in around it,
 and therefore has more precision.
 The final partition of the screen is shown in Figure \ref{fig:partition}.
+Notice that $r$ and $b$ are subscripted, to show where each
+section of frameblocks starts and stops.
 
 \begin{figure}[h!]
 \begin{center}
@@ -455,11 +476,11 @@ The final partition of the screen is shown in Figure \ref{fig:partition}.
 \draw (-2,3) -- (0,3); % r horizontal line
 \draw (-2,2.95) -- (-2,3.05); % r left tick
 \draw (0,2.95) -- (0,3.05); % r right tick
-\node[above = 1mm of {(-1,3)}] {$r(1..8)$};
+\node[above = 1mm of {(-1,3)}] {$r_1(1..8)$};
 \draw (0,3) -- (2,3); % r horizontal line
 \draw (0,2.95) -- (0,3.05); % r left tick
 \draw (2,2.95) -- (2,3.05); % r right tick
-\node[above = 1mm of {(1,3)}] {$r(1..8)$};
+\node[above = 1mm of {(1,3)}] {$r_2(1..8)$};
 %\filldraw[draw=black,fill={0,0,0}] (-2,1) rectangle (-1,2);
 %\filldraw[draw=black,fill={0,1,0}] (-1,1) rectangle (0,2);
 %\filldraw[draw=black,fill={0,2,0}] (0,1) rectangle (1,2);
@@ -476,7 +497,7 @@ The final partition of the screen is shown in Figure \ref{fig:partition}.
 \draw (-2.25,2) -- (-2.25,0); % b vertical line
 \draw (-2.3,2) -- (-2.2,2); % b top tick
 \draw (-2.3,0) -- (-2.2,0); % b bottom tick
-\node[left = 2mm of {(-2.15,1)}] {$b(1..8)$};
+\node[left = 2mm of {(-2.15,1)}] {$b_1(1..8)$};
 %\filldraw[draw=black,fill={0,4,0}] (-2,0) rectangle (-1,1);
 %\filldraw[draw=black,fill={0,5,0}] (-1,0) rectangle (0,1);
 %\filldraw[draw=black,fill={0,6,0}] (0,0) rectangle (1,1);
@@ -536,27 +557,27 @@ This proves that, although there are less frameblocks, the accuracy of the color
 \draw (-3.375,1.9) -- (0,1.9); % g horizontal line
 \draw (-3.375,1.85) -- (-3.375,1.95); % g left tick
 \draw (0,1.85) -- (0,1.95); % g right tick
-\node[above = 0.5mm of {(-1.6875,1.9)}] {$g(6)$};
+\node[above = 0.5mm of {(-1.6875,1.9)}] {$g_1(6)$};
 \draw (0,1.9) -- (3.375,1.9); % g horizontal line
 \draw (0,1.85) -- (0,1.95); % g left tick
 \draw (3.375,1.85) -- (3.375,1.95); % g right tick
-\node[above = 0.5mm of {(1.6875,1.9)}] {$g(7)$};
+\node[above = 0.5mm of {(1.6875,1.9)}] {$g_1(7)$};
 \filldraw[draw=black,fill={0,4,0}] (-3.375,-1.6875) rectangle (0,1.6875);
 \filldraw[draw=black,fill={0,6,0}] (0,-1.6875) rectangle (3.375,1.6875);
 % R
 \draw (-3,-1.9) -- (-0.375,-1.9); % r horizontal line
 \draw (-3,-1.85) -- (-3,-1.95); % r left tick
 \draw (-0.375,-1.85) -- (-0.375,-1.95); % r right tick
-\node[below = -0.5mm of {(-1.6875,-1.9)}] {$r(3,4)$};
+\node[below = -0.5mm of {(-1.6875,-1.9)}] {$r_1(3,4)$};
 \draw (0.375,-1.9) -- (3,-1.9); % r horizontal line
 \draw (0.375,-1.85) -- (0.375,-1.95); % r left tick
 \draw (3,-1.85) -- (3,-1.95); % r right tick
-\node[below = -0.5mm of {(1.6875,-1.9)}] {$r(5,6)$};
+\node[below = -0.5mm of {(1.6875,-1.9)}] {$r_1(5,6)$};
 % B
 \draw (-3.6,-1.3125) -- (-3.6,1.3125); % b vertical line
 \draw (-3.55,1.3125) -- (-3.65,1.3125); % b top tick
 \draw (-3.55,-1.3125) -- (-3.65,-1.3125); % b bottom tick
-\node[left = 0mm of {(-3.6,0)}] {$b(3,4)$};
+\node[left = 0mm of {(-3.6,0)}] {$b_1(3,4)$};
 % Left pairs
 \filldraw[draw=black,fill={0,4,2}] (-3,-1.3125) rectangle (-1.6875,0); % bottom left
 \filldraw[draw=black,fill={0,4,4}] (-1.6875,-1.3125) rectangle (-0.375,1.3125); % bottom right
@@ -571,7 +592,7 @@ This proves that, although there are less frameblocks, the accuracy of the color
 \filldraw[draw=black,fill={8,8,8},fill opacity=0.25] (0,0) circle (3em);
 \pattern [pattern=checkerboard,pattern color={8,8,8}] (0,0) circle (3em);
 \end{tikzpicture}
-\caption{Example of an object overlapping a partition}
+\caption{Example of an object overlapping a partition.}
 \label{fig:object}
 \end{minipage}
 \end{center}
@@ -616,29 +637,30 @@ The color of the circle is made up of the logical disjunction of color bits.}
 \subsection{Optimizations and Other Considerations}
 While the 8-bit model proved useful for integer storage of color values,
 there are other models that have more precision than 8 bits.
-Using floating-point values, we can have up to 64 bits of precision.
+Using floating-point values, we can have up to 64 bits of precision
+and frameblocks of sizes 33 x 60.
 While this is fine in theory, the increased precision can make it harder to distinguish
 objects from each other at runtime.
 
 Renders for both 8-bit and 16-bit precision are shown in
 Figure \ref{fig:render_comparisons}.
-From comparing the two, it is clear that 8-bit precision offers a clearer representation
+Comparing the two, we see that 8-bit precision offers a clearer representation
 of the color spectrum than the 16-bit model.
-This is by nature of binary, since color values are halved with each successive bit.
-We can however use the 16-bit color values given precise enough color detection
-or if the shaders that they are stored in are available.
+This is by the nature of binary, since color values are halved with each successive bit.
+We can, however, use the 16-bit color values given precise enough color detection
+or if the raw shader outputs are available.
 If neither option exists, the only possibility is to use the 8-bit precision,
 with 135 x 120 resolution frameblocks.
 
 \subsection{Final Semantics Generation}
 Now that we have found a way to find if an is object inside of a frameblock,
-we must decide what data on that object to collect and export.
-The visual representation of relationship of objects and screen space
-is not enough semantics data for training machine learning alogrithms.
+we must decide what data to collect and export.
+%The visual relationship of an object to screen space
+%is not enough semantic data for training machine learning alogrithms.
 If we collect enough information about each object,
 we should be able to discern some amount of clarity
 for how that object interacts with others given the frameblock it is in.
-The following information for each object is collected:
+The following information for each object was considered:
 \bigskip
 \begin{enumerate}
 \item Distance to center of frameblock.
@@ -648,12 +670,15 @@ The following information for each object is collected:
 \end{enumerate}
 \bigskip
 
-The above data is stored for each object in a frameblock and exported
+The above data was stored for each object in a frameblock and exported
 per frame in JSON format.
 Figure \ref{fig:distances} shows an example of collecting
 distances of objects relative to a frameblock.
 We decided that since the distances of neighboring objects (the dashed lines)
-is unchanging for a frame, it would not be productive to include these values.
+are unchanging for a static frame, it would not be productive to include these values
+in our data.
+We hope to train an alogrithm on pairs of semantic data and final rendered output,
+to learn how to produce a new frame given only its semantic data.
 
 \begin{adjustwidth}{2.5em}{0pt}
 \begin{figure}[h!]
@@ -686,18 +711,16 @@ is unchanging for a frame, it would not be productive to include these values.
 \end{figure}
 \end{adjustwidth}
 
-We hope that, when paired with the actual render for a frame,
-the exported semantics of each frameblock can be used to
-learn how to produce a new frame given its semantic data.
-
 \subsection{Results}
 A prototype system was constructed using RenderMan
-and Python scripting, and applied to a frame of the scene.
-New RenderMan nodes each with a custom shader were created for each object in the scene.
+and Python scripting, and applied to a frame of the scene discussed in
+Section \ref{subsec:modeling}.
+New RenderMan nodes, each with a custom shader, were attached to each object in the scene.
 These nodes render a constant color, set by $r$, $g$, and $b$ variable inputs.
+The shader source code can be found in Appendix A.
 A Python script was then written in order to set the inputs for each shader.
-The source code can be found in Appendix A.
-\bigskip
+The source code can be found in Appendix B.
+
 \begin{table}[t]
 \begin{centering}
 \bgroup
@@ -708,24 +731,30 @@ Line Number & Description \\
 \hline
 \hline
 184 - 207 & Split the screen into a variable number of frameblocks. \\
-211 - 266 & Transformed all objects in the scene into screen space, using world-to-screen camera transformation. \\
-278       & Parameterized screen space as shown in Figure \ref{fig:partition}. \\
-281 - 283 & Used the Cohen-Sutherland algorithm to identify if an edge of an object is inside a frameblock. \\
-285 - 287 & Assigned a color value to each object shader. \\
+211 - 266 & Transform all objects in the scene into screen space, using world-to-screen camera transformation. \\
+278       & Parameterize screen space as shown in Figure \ref{fig:partition}. \\
+281 - 283 & Use the Cohen-Sutherland algorithm to identify if an edge of an object is inside a frameblock. \\
+285 - 287 & Assign a color value to each object shader based on which frameblocks it resides in. \\
 \hline
 \end{tabular}
-\caption{Description of shader setup code by line number.}
+\caption{Description of shader setup code by line number.
+Source is shown in Appendix B.}
 \label{tbl:fits}
 \egroup
 \end{centering}
 \end{table}
+
 RenderMan is used to render the encoded frame.
 Figure \ref{fig:render_comparisons}
 shows the example scene rendered with frameblock encodings.
 Both 8-bit and 16-bit precisions are rendered, for visual comparison.
 
-The semantics are then generated.
-The source code can be found in Appendix B.
+The semantics are then generated from the encoded colors of each object.
+This is done inside the program, in order to avoid rendering the colors to disk,
+however it is clear that the same approach could be taken for processing a
+rendered frame as opposed to the screen data itself.
+The source code for semantics generation is produced in Appendix C.
+
 \begin{table}[t]
 \begin{centering}
 \bgroup
@@ -735,14 +764,15 @@ The source code can be found in Appendix B.
 Line Number & Description \\ 
 \hline
 \hline
-154 - 208 & Collected color values of each object from their shaders. \\
+154 - 208 & Collect color values of each object from their shaders. \\
 210 - 228 & Check if the calculated frameblocks of each object are equal to the ones it
 resides in. \\
-230 - 241 & Collect semantic data for all objects visible to each frameblock. \\
+230 - 241 & Generate semantic data for all objects visible to each frameblock. \\
 246 - 251 & Export the collected semantic data in JSON format. \\
 \hline
 \end{tabular}
-\caption{Description of semantics generation code by line number.}
+\caption{Description of semantics generation code by line number.
+Source is shown in Appendix C.}
 \label{tbl:fits}
 \egroup
 \end{centering}
@@ -750,13 +780,6 @@ resides in. \\
 
 \section{Conclusion}
 \label{sec:conclusion}
-A qualifying computer was built, and a basic environment installed.
-Then a dynamic scene was animated in Autodesk Maya and exported
-using RenderMan. Research into collecting semantics from the scene using
-the RenderMan Interface and RenderMan Shading Language (RSL)
-will be the focus of the project from now on.
-
-We propose a study of the relationship between objects in a 3D scene and rendered images.
 Semantics data is easily recognizable by humans, but much harder for machines.
 Automating the process is a complicated task that will involve much consideration over
 scene dynamics and the relationship of objects to what is rendered.
@@ -764,9 +787,15 @@ Ray tracing is also a concept
 key to many difficult tasks, and this project is an
 opportunity to explore the implementation of ray tracing and its application
 to difficult problems in Computer Graphics.
+A dynamic scene was animated in Autodesk Maya and exported
+using RenderMan.
 
+We implemented a method of collecting semantic data from the scene using
+RenderMan shaders and Maya Python code.
 \bibliography{project}
 \bibliographystyle{IEEEtran}
+
+\onecolumn
 
 \begin{figure*}[htbp]
 \centering
@@ -817,17 +846,35 @@ to difficult problems in Computer Graphics.
 \label{fig:render_comparisons}
 \end{figure*}
 
-\onecolumn
-
-\pagebreak
-
 \begin{center}
 \section*{Appendix A}
 \label{app:a}
 \end{center}
 
 \footnotesize{
-\begin{minted}{python}
+\begin{minted}[linenos]{python}
+# shader.osl
+derp
+derp
+derp
+derp
+derp
+derp
+derp
+
+derp
+derp
+\end{minted}
+
+\bigskip
+
+\begin{center}
+\section*{Appendix B}
+\label{app:b}
+\end{center}
+
+\footnotesize{
+\begin{minted}[linenos]{python}
 # setup_shaders.py
 import maya.cmds as cmds
 import maya.OpenMaya as om
@@ -1132,13 +1179,13 @@ displayWindow()
 \pagebreak
 
 \begin{center}
-\section*{Appendix B}
+\section*{Appendix C}
 \label{app:b}
 \end{center}
 
 \bigskip
 
-\begin{minted}{python}
+\begin{minted}[linenos]{python}
 # extract_semantics.py
 import maya.cmds as cmds
 import maya.OpenMaya as om
