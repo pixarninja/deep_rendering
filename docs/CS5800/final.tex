@@ -127,6 +127,7 @@ Figure \ref{fig:ray_marching} shows an example of how ray marching is applied to
 create volumetric shaders, such as smoke or fog \cite{ray_marching}.
 It was thought that these properties could be used to extract useful semantic data
 during the rendering process.
+
 Ray tracing is the study of how light behaves in a given environment.
 Figure \ref{fig:raytrace}
 shows a ray tracing problem studied in 1986, where light rays were mapped from
@@ -146,14 +147,6 @@ The ray tracing basics described by Scratchapixel
 provides a walkthrough with code samples for casting rays from the camera
 \cite{raytrace_walkthrough}.
 
-\subsection{Shaders}
-Shaders are written in one of 3 ways: Patterns, OSL, and C++ \cite{shading}
-``RenderMan Shading Language (RSL) \dots includes math operations (sin, sqrt, etc.),
-vector and matrix operations, coordinate transformations, and higher level functions like noise and texture''
-\cite{renderman_docs}.
-It was found that shaders can interact with data during rendering,
-however it is unclear how to extract the data for later use.
-
 \begin{figure}[htbp]
 \centering
 {\includegraphics[width=7cm]{ray_marching.png}}
@@ -161,9 +154,49 @@ however it is unclear how to extract the data for later use.
 \label{fig:ray_marching}
 \end{figure}
 
-Our research showed the powerful capabilities and subtle drawbacks of using
-the rendering pipeline.
-While the processes of ray tracing and ray marching have powerful capabilities,
+\subsection{Shaders}
+RenderMan includes many resources on shaders via their documentation,
+however outside of officially produced sources there is a lack of any tutorials or
+walkthroughs for shaders in the new RenderMan system.
+Since RenderMan is maintained by Pixar Animation Studios and not a software solution
+company, tutorials and walkthroughs were somewhat hard to find.
+Introduction materials provided by Pixar were used to research the capabilities
+of RenderMan shaders and the rendering pipeline \cite{renderman}.
+
+Shaders are written in one of 3 ways: Patterns, Shading Language, and C++ \cite{shading}.
+Patterns are useful for adding noise to shaders, or generating source data
+programatically. This includes fractals, shapes, gradients, mult-layered noise,
+which can be combined in different ways to create unique images.
+Examples of this include rust, wavy glass, or vector-based shading.
+Shading Language is a tool artists use to program shaders.
+``RenderMan Shading Language (RSL) \dots includes math operations (sin, sqrt, etc.),
+vector and matrix operations, coordinate transformations, and higher level functions like noise and texture''
+\cite{renderman_docs}.
+Shaders for RenderMan are written in RSL (a branch from OSL), or C++.
+
+In any of the three cases, the shader outputs are not written directly
+from shaders to the rendered image. They are applied to a BxDF material
+(the base BxDF material for RenderMan is called ``PxrSurface''),
+and data from all materials in the scene are combined and sent to an Integrator.
+Integrators can be hot-swapped for different types of rendering and debugging of
+shader code.
+Upon researching how ray tracing is handled, we found that information
+on refracted rays is passed
+back to the BxDF for more sampling.
+Anti-aliasing and other filters can be added at the end as necessary
+
+\begin{figure}[htbp]
+\centering
+{\includegraphics[width=7cm]{interaction.png}}
+\caption{Data interactions between shaders and the rendered frame  \cite{renderman}.}
+\label{fig:interaction}
+\end{figure}
+
+We found that shaders have complex interactions with data during ray tracing,
+however it is unclear how to extract the data for later use.
+A custom integrator could be written to collect the data, but even then it
+may lose the connections with the scene that we require for semantics generation.
+So, while the processes of ray tracing and ray marching have powerful capabilities,
 we found it infeasible to extract the data they create during processing.
 We discovered that, although using values from within the shaders is impractical,
 we can take advantage of a shader's inputs and outputs to store the data we want to
@@ -191,11 +224,13 @@ and the result was a well-equipped computer running Windows 10 Pro.
 
 \subsection{Rendering Technologies}
 Two renderers that are now highly developed are the Arnold Renderer \cite{arnold}
-and the RenderMan renderer \cite{renderman}. Each of these renderers
+and the RenderMan renderer \cite{renderman_docs}. Each of these renderers
 function differently.
-RenderMan -- which is maintained by Pixar Animation Studios --
+RenderMan 22 -- which is maintained by Pixar Animation Studios --
 was chosen to be the renderer software for the purposes of this project,
 since it is arguably the most advanced renderer developed to date.
+The target platform was Autodesk Maya, and all Python scripts are unique to the
+Maya environment.
 
 The RenderMan Interface is proposed to be used as a gateway
 into producing the bulk of scene semantics.
@@ -208,18 +243,6 @@ with sophisticated control over color, texture, and reflectivity''
 Many of these attributes are out of scope
 for this project, however they may later be explored in order to test the capabilities
 of what is developed.
-
-Autodesk Maya 2019 student edition
-and RenderMan 22 were
-installed as the animation and rendering softwares for the project.
-Since RenderMan is maintained by Pixar Animation Studios and not a software solution company
-(like Maya),
-tutorials and walkthroughs were somewhat hard to find.
-RenderMan will be used to build a render pipeline that will not only render advanced images
-of 3D scenes, but also calculate and export scene semantics.
-It is predicted that this will be possible through the use of raytracing or ray sampling.
-It is also expected that the RenderMan documentation found in \cite{renderman_docs}
-will be referred to as well.
 See Figure \ref{fig:renderman} for examples of dynamic scenes rendered with RenderMan.
 
 \begin{figure}[htbp]
@@ -258,7 +281,7 @@ for the hinges that join the tables together.
 \end{minipage}
 \end{center}
 \end{subfigure}
-\caption{Derp.}
+\caption{Autodesk Maya and RenderMan environments.}
 \label{fig:table_pair}
 \end{figure}
 
@@ -596,29 +619,46 @@ The color of the circle is made up of the logical disjunction of color bits.}
 \end{figure}
 
 \subsection{Optimizations and Other Considerations}
-Consider 64 bit case.
+While the 8-bit model proved useful for integer storage of color values,
+there are other models that have more precision than 8 bits.
+Using floating-point values, we can have up to 64 bits of precision.
+While this is fine in theory, the increased precision can make it harder to distinguish
+objects from each other at runtime.
+
+Renders for both 8-bit and 16-bit precision are shown in
+Figure \ref{fig:render_comparisons}.
+From comparing the two, it is clear that 8-bit precision offers a clearer representation
+of the color spectrum than the 16-bit model.
+This is by nature of binary, since color values are halved with each successive bit.
+We can however use the 16-bit color values given precise enough color detection
+or if the shaders that they are stored in are available.
+If neither option exists, the only possibility is to use the 8-bit precision,
+with 135 x 120 resolution frameblocks.
 
 \subsection{Final Semantics Generation}
-To conclude this project, we plan to export semantic data from the scene per frameblock.
 Now that we have found a way to find if an is object inside of a frameblock,
 we must decide what data on that object to collect and export.
-The ways in which objects in a scene are related to each other cannot be found before rendertime.
-However, if we collect enough information about each object, we should be able to discern some amount of clarity
-for that object and how it interacts with others.
-We propose collecting the following information for each object processed:
+The visual representation of relationship of objects and screen space
+is not enough semantics data for training machine learning alogrithms.
+If we collect enough information about each object,
+we should be able to discern some amount of clarity
+for how that object interacts with others given the frameblock it is in.
+The following information for each object is collected:
 \bigskip
 \begin{enumerate}
-\item Distance to frameblock (in worldspace).
-\item Distances between nearby objects.
-\item Material properties.
-\item Object type.
+\item Distance to center of frameblock.
+\item Translation of object.
+\item Rotation of object.
+\item Scaling of object.
 \end{enumerate}
 \bigskip
 
-Figure \ref{fig:distances} shows an example of collecting distances of objects relative to a frameblock.
-All of this data is stored for each frameblock when it is exported.
-We hope that in future research a machine learning algorithm can be trained to construct an image based on this information,
-and that all of these frameblocks can be stitched together to form a rendered frame.
+The above data is stored for each object in a frameblock and exported
+per frame in JSON format.
+Figure \ref{fig:distances} shows an example of collecting
+distances of objects relative to a frameblock.
+We decided that since the distances of neighboring objects (the dashed lines)
+is unchanging for a frame, it would not be productive to include these values.
 
 \begin{adjustwidth}{2.5em}{0pt}
 \begin{figure}[h!]
@@ -640,18 +680,22 @@ and that all of these frameblocks can be stitched together to form a rendered fr
 \node[below left = -2.45mm of {(3,1.5)}] {\textbullet}; % P
 \node[below left = -2.35mm of {(3.5,0)}] {\textbullet}; % Q
 \node[below left = -2.5mm of {(2,-1.5)}] {\textbullet}; % R
-\node[right = 1mm of {(3,1.5)}] {$P_{x,y,z}$};
-\node[right = 1mm of {(3.5,0)}] {$Q_{x,y,z}$};
-\node[right = 1mm of {(2,-1.5)}] {$R_{x,y,z}$};
-\node[right = -5mm of {(-1,-1.3)}] {$Z_{x,y,z}$};
+\node[right = 1mm of {(3,1.5)}] {$P$};
+\node[right = 1mm of {(3.5,0)}] {$Q$};
+\node[right = 1mm of {(2,-1.5)}] {$R$};
+\node[right = -5mm of {(-1,-1.3)}] {$S_{x,y,z}$};
 \end{tikzpicture}
 \end{center}
-\caption{Relationships between points $P$, $Q$, and $R$ and frameblock with world coordinates $Z_{x,y,z}$.}
+\caption{Relationships between points $P$, $Q$, and $R$ and frameblock with world coordinates $S_{x,y,z}$.}
 \label{fig:distances}
 \end{figure}
 \end{adjustwidth}
 
-\subsection{Prototype}
+We hope that, when paired with the actual render for a frame,
+the exported semantics of each frameblock can be used to
+learn how to produce a new frame given its semantic data.
+
+\subsection{Results}
 A prototype system was constructed using RenderMan
 and Python scripting, and applied to a frame of the scene.
 New RenderMan nodes each with a custom shader were created for each object in the scene.
@@ -663,23 +707,38 @@ The script accomplished the following:
 \item Split the screen into a variable number of frameblocks.
 \item Transformed all objects in the scene into screen space, using world-to-screen camera transformation.
 \item Used the Cohen-Sutherland algorithm to identify if an edge of an object is inside a frameblock.
-\item Parameterized screen space where $r$ lies on the $x$-axis, and $b$ on the $y$-axis.
-This is shown for a frame split of 8 x 8 blocks in Figure \ref{fig:parameterization}.
-\item Calculated the floating point color value for the centroid of each frameblock:
-$$v : (r=\frac{(x_2 + x_1)}{2}, g=1, b=\frac{y_2 + y_1}{2})$$
+\item Parameterized screen space as shown in Figure \ref{fig:partition}.
+\item Calculated the floating point color value for the centroid of each frameblock.
 \item Assigned a color value to each object, where
 $F$ is the set of frameblocks the object is inside of:
 $$v_{object} = \sum_{v_i\in F}v_i$$
+\item Stored the color values for each object in RenderMan shaders.
 \end{enumerate}
 \bigskip
 RenderMan is used to render the encoded frame.
-An example render and its encoded frameblock colors are shown in Figure \ref{fig:render_comparisons}.
-The example shown has 64 total frame blocks spanning a rendered frame.
+Figure \ref{fig:render_comparisons}
+shows the example scene rendered with frameblock encodings.
+Both 8-bit and 16-bit precisions are rendered, for visual comparison.
 
-\section{Results}
+The semantics are then generated.
+\bigskip
+\begin{enumerate}
+\item Collected color values of each object from their shaders.
+\item Check if the calculated frameblocks of each object are equal to the ones it
+resides in.
+\item Loop over all frameblocks
+\begin{enumerate}
+\item Collect semantic data for all objects visible to each frameblock.
+\end{enumerate}
+\item Export the collected semantic data in JSON format.
+\end{enumerate}
+
 \begin{figure*}[htbp]
 \centering
-\begin{subfigure}{\textwidth}
+\begin{subfigure}{1.1\textwidth}
+\begin{center}
+\begin{minipage}[t]{\linewidth}
+\hspace{-0.09\linewidth}
   \centering
     \begin{subfigure}{.49\textwidth}
       \centering
@@ -694,9 +753,14 @@ The example shown has 64 total frame blocks spanning a rendered frame.
       \label{fig:render_8}
     \end{subfigure}
   \label{fig:render_8}
+\end{minipage}
+\end{center}
 \end{subfigure}
 \par\medskip
-\begin{subfigure}{\textwidth}
+\begin{subfigure}{1.1\textwidth}
+\begin{center}
+\begin{minipage}[t]{\linewidth}
+\hspace{-0.09\linewidth}
   \centering
     \begin{subfigure}{.49\textwidth}
       \centering
@@ -711,12 +775,12 @@ The example shown has 64 total frame blocks spanning a rendered frame.
       \label{fig:render_8}
     \end{subfigure}
   \label{fig:render_16}
+\end{minipage}
+\end{center}
 \end{subfigure}
 \caption{Renders of differing precisions compared to screen space segementation.}
 \label{fig:render_comparisons}
 \end{figure*}
-
-\section{Future Work}
 
 \section{Conclusion}
 \label{sec:conclusion}
