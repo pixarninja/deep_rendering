@@ -97,37 +97,38 @@ wharris2@uccs.edu}}
 \maketitle
 
 \begin{abstract}
-We discuss our research of
+We discuss our research on
 the relationship between a 3D scene and the rendered frame it produces,
 denoted as the ``semantics'' of a scene.
 Topics of interest include path tracing, shaders, and color theory
-as are applicable to RenderMan and Autodesk Maya.
+as applicable to RenderMan and Autodesk Maya.
 We modeled and animated a dynamic scene,
 and implemented Python scripts to encode and decode semantic data
 stored in RenderMan shaders.
-Our results showed how semantic data could be stored inside the scene
-for post-processing.
+Our results showed how certain data could be stored at rendertime,
+and processed later as necessary.
 This research is applicable to computer visualization
 and other deep learning problems in Computer Graphics.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
-A dynamic scene has a complex relationship with what is rendered to the screen.
-There is a direct connection between the two,
-however identifying the details of it is a very difficult
-problem.
+Identifying the relationship between a complex 3D scene and its rendered frame
+is very difficult for a computer to accomplish.
+Even though the scene exists in the digital world, this kind of
+abstract data is not easily extractable.
 We use the term ``scene semantics'' to define this problem --
-scene semantics are a description of how the complex 3D environment
+scene semantics are a description of how a complex 3D environment
 affects what is ultimately rendered.
 This study is key to understanding and perhaps improving the
 render pipeline and current rendering techologies.
-We successfully implemented a system capable of encoding and decoding
-scene semantics for a 3D environment in an understandable way.
 
+We successfully implemented a system capable of encoding and decoding
+semantics for a 3D environment in an understandable way.
+Here we ellaborate on our research and the results of our implementation.
 First we describe our preliminary research on path tracing and the render pipeline.
 We then detail the setup of the test environment, implementation,
-and our results with different precisions.
+and our results for different precisions.
 Finally, we discuss the generated semantics and how they can be used to solve
 complex problems in Computer Graphics.
 
@@ -549,16 +550,16 @@ frameblock section begins and ends.
 \node[below = 0.5mm of {(1.5,0)}] {\scriptsize{$g(8)$}};
 \node[below = 3.75mm of {(1.5,0)}] {\scriptsize{$\textbf{0x80}$}};
 % Labels
-\node[left = -3mm of {(-1.5,1.5)},fill=white] {$64$};
-\node[left = -3.5mm of {(-0.5,1.5)},fill=white] {$128$};
-\node[left = -3.5mm of {(0.5,1.5)},fill=white] {$192$};
-\node[left = -3.75mm of {(1.5,1.5)},fill=white] {$256$};
-\node[left = -3.75mm of {(-1.5,0.5)},fill=white] {$320$};
-\node[left = -3.75mm of {(-0.5,0.5)},fill=white] {$384$};
-\node[left = -3.8mm of {(0.5,0.5)},fill=white] {$448$};
-\node[left = -3.85mm of {(1.5,0.5)},fill=white] {$512$};
+\node[left = -3mm of {(-1.5,1.5)},fill=white] {$16$};
+\node[left = -3mm of {(-0.5,1.5)},fill=white] {$32$};
+\node[left = -3mm of {(0.5,1.5)},fill=white] {$48$};
+\node[left = -3mm of {(1.5,1.5)},fill=white] {$64$};
+\node[left = -3mm of {(-1.5,0.5)},fill=white] {$80$};
+\node[left = -3mm of {(-0.5,0.5)},fill=white] {$96$};
+\node[left = -3.675mm of {(0.5,0.5)},fill=white] {$112$};
+\node[left = -3.75mm of {(1.5,0.5)},fill=white] {$128$};
 \end{tikzpicture}
-\caption{Final partition of screen space, where $g$ on top of the $r$ and $b$ parameterization.}
+\caption{Final partition of screen space, where $g$ is overlaid on top of the $r$ and $b$ parameterization.}
 \label{fig:partition}
 \end{minipage}
 \end{center}
@@ -582,11 +583,11 @@ the accuracy of the colors increases for objects spanning frameblock sections.
 \draw (-3,1.9) -- (0,1.9); % g horizontal line
 \draw (-3,1.85) -- (-3,1.95); % g left tick
 \draw (0,1.85) -- (0,1.95); % g right tick
-\node[above = 0.5mm of {(-1.5,1.9)}] {$g_1(6)$};
+\node[above = 0.5mm of {(-1.5,1.9)}] {$g(6)$};
 \draw (0,1.9) -- (3,1.9); % g horizontal line
 \draw (0,1.85) -- (0,1.95); % g left tick
 \draw (3,1.85) -- (3,1.95); % g right tick
-\node[above = 0.5mm of {(1.5,1.9)}] {$g_1(7)$};
+\node[above = 0.5mm of {(1.5,1.9)}] {$g(7)$};
 %\filldraw[draw=black,fill={0,4,0}] (-3.375,-1.6875) rectangle (0,1.6875);
 %\filldraw[draw=black,fill={0,6,0}] (0,-1.6875) rectangle (3.375,1.6875);
 % R
@@ -664,14 +665,14 @@ The color of the circle is made up of the logical disjunction of color bits.}
 
 \subsection{Optimizations and Other Considerations}
 While the 8-bit model is useful for integer storage of color values,
-higher precision models can be applied to shrink frameblock resolution further.
+higher precision models can be applied to shrink frameblock resolution even further.
 Using floating-point values, we can have up to 64 bits of precision.
 While this is great in theory, the increased precision makes it harder to distinguish
 objects from each other at rendertime, and requires many more bits to store the encodings.
 
 We decided to test 8-bit and 16-bit precisions for our example scene.
 16-bit precision grants us frameblocks of sizes 33 x 60,
-which fit our desired frameblock resolution (albeit frameblocks are now rectangular).
+which fit our desired frameblock resolution (albeit frameblocks are now more rectangular).
 Renders for both precisions are shown in
 Figure \ref{fig:render_comparisons}.
 Comparing the two, we see that 8-bit precision offers a clearer representation
@@ -693,16 +694,15 @@ we should be able to discern with some amount of clarity
 the relationship between the object and rendered frame.
 The following information for each object in a frameblock was considered:
 \bigskip
-\begin{enumerate}
-\item Distance to center of frameblock.
-\item Translation of object.
-\item Rotation of object.
-\item Scaling of object.
-\end{enumerate}
+\begin{adjustwidth}{2.5em}{0pt}
+$d$ -- Distance to center of frameblock. \\
+$t$ -- Translation of object. \\
+$r$ -- Rotation of object. \\
+$s$ -- Scaling of object. \\
+\end{adjustwidth}
 \bigskip
-
-The above data was stored for each object and exported
-for the frame in JSON format.
+Data was stored for each object inside of every frameblock,
+and exported for the frame in JSON format.
 Figure \ref{fig:distances} shows an example of collecting
 distances of objects relative to a frameblock.
 We decided that since the distances of neighboring objects (the dashed lines)
@@ -710,34 +710,37 @@ are unchanging for a static frame, it would be unproductive to include these val
 in our data.
 
 Our semantics generation was successful for both the 8-bit and 16-bit precision models.
-We hope to train an alogrithm on pairs of semantic data and final rendered output,
-to learn how to produce a new frame given only its semantic data.
+We hope to use pairs of semantic data and final rendered output,
+to train an algorithm to produce the pixels of a frame given only its semantic data.
 Table \ref{tbl:app_a} and Table \ref{tbl:app_b} show an overview of
 the shader encoding and decoding scripts, respectively.
+Shader and Python source code is available in the Appendices of this document,
+while source files and final outputs are stored on GitHub \cite{thesis_harris}.
+%The source code for semantics generation is produced in Appendix C.
 
 \begin{adjustwidth}{2.5em}{0pt}
 \begin{figure}[h!]
 \begin{center}
 \begin{tikzpicture}
-\coordinate (P) at (1.5,1);
+\coordinate (P) at (1.5,1.5);
 \coordinate (Q) at (3,0);
-\coordinate (R) at (2,-1);
+\coordinate (R) at (2,-1.25);
 \draw (-1.25,0.5) -- (-0.75,0.5); % Screen (top)
 \draw (-1,-0.5) -- (-1,0.5); % Screen (Z)
 \draw (-1.25,-0.5) -- (-0.75,-0.5); % Screen (bottom)
-\draw (-1,0) -- (1.5,1); % ZP
+\draw (-1,0) -- (1.5,1.5); % ZP
 \draw (-1,0) -- (3,0); % ZQ
-\draw (-1,0) -- (2,-1); % ZR
-\draw[dashed] (1.5,1) -- (2,-1); % PR
-\draw[dashed] (1.5,1) -- (3,0); % PQ
-\draw[dashed] (3,0) -- (2,-1); % QR
+\draw (-1,0) -- (2,-1.25); % ZR
+\draw[dashed] (1.5,1.5) -- (2,-1.25); % PR
+\draw[dashed] (1.5,1.5) -- (3,0); % PQ
+\draw[dashed] (3,0) -- (2,-1.25); % QR
 %%Labels for the vertices are typeset.
-\node[below left = -2.45mm of {(1.5,1)}] {\textbullet}; % P
+\node[below left = -2.45mm of {(1.5,1.5)}] {\textbullet}; % P
 \node[below left = -2.35mm of {(3,0)}] {\textbullet}; % Q
-\node[below left = -2.5mm of {(2,-1)}] {\textbullet}; % R
-\node[right = 1mm of {(1.5,1.15)}] {$P$};
-\node[right = 1mm of {(3,0)}] {$Q$};
-\node[right = 1mm of {(2,-1)}] {$R$};
+\node[below left = -2.5mm of {(2,-1.25)}] {\textbullet}; % R
+\node[right = 1mm of {(1.5,1.65)}] {$P : \{d_P,t_P,r_P,s_P\}$};
+\node[right = 1mm of {(3,0)}] {$Q : \{d_Q,t_Q,r_Q,s_Q\}$};
+\node[right = 1mm of {(2,-1.25)}] {$R : \{d_R,t_R,r_R,s_R\}$};
 \node[right = -5mm of {(-1,-0.85)}] {$S_{x,y,z}$};
 \end{tikzpicture}
 \end{center}
@@ -769,14 +772,6 @@ Source is shown in Appendix B.}
 \end{centering}
 \end{table}
 
-The semantics are then generated from the encoded colors of each object.
-This is done inside the program, in order to avoid rendering the colors to disk,
-however it is clear that the same approach could be taken for processing a
-rendered frame as opposed to the screen data itself.
-Shader and Python source code is available in the Appendices of this document,
-while source files are stored on GitHub.
-%The source code for semantics generation is produced in Appendix C.
-
 \begin{table}[t]
 \begin{centering}
 \bgroup
@@ -802,21 +797,21 @@ Source is shown in Appendix C.}
 
 \section{Conclusion}
 \label{sec:conclusion}
-Semantics data is easily extractable by humans,
-so much so that it is often done subconsciously.
-The human brain is able to recognize and describe the relationships in
-scenes, while machines have a very hard time doing this.
+Semantics data is easily extractable by humans --
+the human brain is easily able to recognize the relationships in
+scenes, while machines have a very hard time doing the same.
 Here we look at the possibility of generating semantics using data from the source,
-such that we are able to represent uniquely how a frame is rendered.
-
+such that we are able to represent how a portion of a frame is rendered.
 Automating the process is a complicated task that
 involved consideration for
 scene dynamics and the relationship of objects to rendered data.
-We successfully created a visually dynamic scene, and utilized RenderMan shaders and Python scripting
-to generate semantics for each frameblock of the screen.
+
+In the end, we successfully created a visually dynamic scene
+and utilized RenderMan shaders and Python scripting
+to generate semantics for each frameblock of the segmented screen.
 Our results show that a system for generating scene semantics per frame is feasible.
-We will focus on testing how the system could be adapted for an entire animation,
-as well as optimizing the data that is exported.
+%We will focus on testing how the system could be adapted for an entire animation,
+%as well as optimizing the data that is exported.
 After optimization,
 our implementation will be used to generate inputs for a machine learning application
 aimed at generating missing frames from scene semantics alone.
@@ -859,13 +854,13 @@ computer vision and other prevalent machine learning problems in Computer Graphi
   \centering
     \begin{subfigure}{.49\textwidth}
       \centering
-      \includegraphics[width=\linewidth]{16_render_cropped.jpg}
+      \includegraphics[width=\linewidth]{16_render.jpg}
       \caption{16-bit precision render.}
       \label{fig:render_8}
     \end{subfigure}
     \begin{subfigure}{.49\textwidth}
       \centering
-      \includegraphics[width=\linewidth]{16_partition_cropped.jpg}
+      \includegraphics[width=\linewidth]{16_partition.jpg}
       \caption{16-bit precision screen segmentation.}
       \label{fig:render_8}
     \end{subfigure}
@@ -893,7 +888,7 @@ int n = 1,
 output color resultRGB = color(0)
 )
 {
-resultRGB = color((1.0 * r)/(1.0 * n),(1.0 * g)/(1.0 * n),(1.0 * b)/(1.0 * n));
+resultRGB = color((1.0 * r)/(pow(2.0, n) - 1),(1.0 * g)/(pow(2.0, n) - 1),(1.0 * b)/(pow(2.0, n) - 1));
 }
 \end{minted}
 
