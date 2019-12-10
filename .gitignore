@@ -2,10 +2,10 @@
 /docs/*/output/
 /jupyter/images/
 *.ipynb_checkpoints*
-/python/*/checkpoints*
+/python/*/*checkpoints*
 /python/evaluation/dcgan/
 /python/evaluation/srgan/
-/python/*/output*
+/python/*/*output*
 /python/images/
 /python/training/
 /python/__pycache__/
