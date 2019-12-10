@@ -1,10 +1,24 @@
 import maya.cmds as cmds
 import maya.OpenMaya as om
+import maya.OpenMayaUI as omui
 from functools import partial
+import json as json
+import os as os
 
 ##########################
 #### Helper Functions ####
 ##########################
+
+# Convert screen space to world space
+# https://forums.autodesk.com/t5/maya-programming/getting-click-position-in-world-coordinates/td-p/7578289
+def screenSpaceToWorldSpace(screenPoint):
+    worldPos = om.MPoint() # out variable
+    worldDir = om.MVector() # out variable
+    
+    activeView = omui.M3dView().active3dView()
+    activeView.viewToWorld(int(screenPoint[0]), int(screenPoint[1]), worldPos, worldDir)
+    
+    return worldPos
 
 # Collect all objects in the scene using Maya ls command
 # https://stackoverflow.com/questions/22794533/maya-python-array-collecting
@@ -48,9 +62,40 @@ def findShader(mesh):
             return node
     return None
 
-# Extract semantic data based on block position and 
-def extractSemantics(meshes, bounds):
-    return '{}, {}'.format( meshes, bounds )
+# Extract semantic data based on block position and meshes in block
+def extractSemantics(meshes, screenPoint, neighbors, cutoff):
+    semantics = []
+    
+    for mesh in meshes:
+        semanticsPerMesh = []
+        
+        for neighbor in neighbors:
+            if mesh == neighbor:
+                worldPoint = screenSpaceToWorldSpace(screenPoint)
+                d = postionDistance(meshPosition(mesh), worldPoint)
+                semanticsPerMesh.append('Screen : {}'.format( d ))
+                continue
+                
+            d = findDistance(mesh, neighbor)
+            if d <= cutoff:
+                semanticsPerMesh.append('{} : {}'.format( neighbor, d ))
+        
+        semantics.append('[{} : {}]'.format( mesh, semanticsPerMesh ))
+                
+    return semantics
+
+# Return the Euclidean distance between the centers of two meshes
+def findDistance(meshA, meshB):
+    return postionDistance(meshPosition(meshA), meshPosition(meshB))
+
+# Obtain the position of a mesh in world space
+def meshPosition(mesh):
+    cmds.select(mesh)
+    return cmds.xform( q=True, ws=True, t=True )
+
+# Find the distance between two points
+def postionDistance(posA, posB):
+    return ((posA[0] - posB[0])**2 + (posA[1] - posB[1])**2 + (posA[2] - posB[2])**2)**0.5
 
 ##########################
 ### Main Functionality ###
@@ -66,15 +111,17 @@ def displayWindow():
     cmds.text( label="To run:\n1) Input the information in the fields below.\n2) Click \"Run\".", al="left" )
     cmds.text( label='Enter the keyframe at which to start semantics generation (1):', al='left', ww=True )
     startTimeField = cmds.textField()
-    cmds.text( label='Enter the keyframe at which to end semantics generation (120):', al='left', ww=True )
+    cmds.text( label='Enter the keyframe at which to end semantics generation (1):', al='left', ww=True )
     endTimeField = cmds.textField()
     cmds.text( label='Enter the step at which to process frames (1):', al='left', ww=True )
     stepTimeField = cmds.textField()
-    cmds.button( label='Run', command=partial( generateSemantics, menu, startTimeField, endTimeField, stepTimeField ) )
+    cmds.text( label='Enter the cut off distance for per-object semantics (100):', al='left', ww=True )
+    cutOffField = cmds.textField()
+    cmds.button( label='Run', command=partial( generateSemantics, menu, startTimeField, endTimeField, stepTimeField, cutOffField ) )
     cmds.text( label="\n", al='left' )
     cmds.showWindow( menu )
 
-def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, *args ):
+def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, cutOffField, *args ):
     # Grab user input and delete window
     startTime = cmds.textField(startTimeField, q=True, tx=True )
     if (startTime == ''):
@@ -82,17 +129,22 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, *args 
         startTime = '1'
     endTime = cmds.textField(endTimeField, q=True, tx=True )
     if (endTime == ''):
-        print 'WARNING: Default end time (120) used...'
-        endTime = '120'
+        print 'WARNING: Default end time (1) used...'
+        endTime = '1'
     stepTime = cmds.textField(stepTimeField, q=True, tx=True )
     if (stepTime == ''):
         print 'WARNING: Default step time (1) used...'
         stepTime = '1'
+    cutOff = cmds.textField(cutOffField, q=True, tx=True )
+    if (cutOff == ''):
+        print 'WARNING: Default cutoff (100) used...'
+        cutOff = '100'
     cmds.deleteUI( menu, window=True )
     
     # Set up program
     resWidth = cmds.getAttr('defaultResolution.width')
     resHeight = cmds.getAttr('defaultResolution.height')
+    blockDim = 0 # Placeholder
                 
     # Obtain all meshes in the scene
     currSel = cmds.ls()
@@ -106,7 +158,10 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, *args 
     for k, mesh in enumerate(meshes):
         shader = findShader(mesh)
         N = cmds.getAttr ( (shader) + '.n' )
-        blockDim = [int(resWidth / (2 * N)), int(resHeight / ((N / 8) * N))]
+        
+        if blockDim == 0:
+            blockDim = [int(resWidth / (2 * N)), int(resHeight / ((N / 8) * N))]
+        
         xDiv = float(resWidth) / blockDim[0]
         yDiv = float(resHeight) / blockDim[1]
         step = (resWidth / blockDim[0]) / (N / 2)
@@ -173,13 +228,27 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, *args 
             print('{}: {} ({},{},{})'.format( mesh, meshColors, rVal, gVal, bVal ))
             
     # Extract semantics for each mesh
-    for i, row in enumerate(blockToMeshMap):
-        for j, meshesInBlock in enumerate(row):
+    semantics = []
+    for i, data in enumerate(blockToMeshMap):
+        row = []
+        for j, meshesInBlock in enumerate(data):
             if not meshesInBlock:
                 print('No semantics for block({},{})'.format( i, j ))
             else:
-                semantics = extractSemantics(meshesInBlock, blocks[i][j])
-                print('Semantics for block({},{}): {}'.format( i, j, semantics ))
+                # Screen point = Ydim * (i + 1), Xdim * (j + 1)
+                screenPoint = blockDim[1] * (i + 0.5), blockDim[0] * (j + 0.5)
+                row.append('({}, {}) : {}'.format( i, j, extractSemantics(meshesInBlock, screenPoint, meshes, float(cutOff)) ))
+        semantics.append(row)
+    
+    for row in semantics:
+        print(row)
+    
+    # Write data to an output file
+    filepath = cmds.file(q=True, sn=True)
+    filename = os.path.basename(filepath)
+    raw_name, extension = os.path.splitext(filename)
+    with open('C:\\Users\\wesha\\Documents\\maya\\projects\\CS5800\\scenes\\{}_output_{}.txt'.format( raw_name, N ), 'w') as f:
+        f.write( json.dumps(semantics).replace('"', '').replace('\'', '') )
     
 ##########################
 ####### Run Script #######

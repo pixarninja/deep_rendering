@@ -150,7 +150,7 @@ def displayWindow():
     cmds.text( label="To run:\n1) Input the information in the fields below.\n2) Click \"Run\".", al="left" )
     cmds.text( label='Enter the keyframe at which to start semantics generation (1):', al='left', ww=True )
     startTimeField = cmds.textField()
-    cmds.text( label='Enter the keyframe at which to end semantics generation (120):', al='left', ww=True )
+    cmds.text( label='Enter the keyframe at which to end semantics generation (1):', al='left', ww=True )
     endTimeField = cmds.textField()
     cmds.text( label='Enter the step at which to process frames (1):', al='left', ww=True )
     stepTimeField = cmds.textField()
@@ -168,8 +168,8 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
         startTime = '1'
     endTime = cmds.textField(endTimeField, q=True, tx=True )
     if (endTime == ''):
-        print 'WARNING: Default end time (120) used...'
-        endTime = '120'
+        print 'WARNING: Default end time (1) used...'
+        endTime = '1'
     stepTime = cmds.textField(stepTimeField, q=True, tx=True )
     if (stepTime == ''):
         print 'WARNING: Default step time (1) used...'
