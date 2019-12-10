@@ -67,22 +67,31 @@ def extractSemantics(meshes, screenPoint, neighbors, cutoff):
     semantics = []
     
     for mesh in meshes:
-        semanticsPerMesh = []
+        semanticsForMesh = []
+        semanticsForNeighbors = []
         
-        for neighbor in neighbors:
-            if mesh == neighbor:
-                worldPoint = screenSpaceToWorldSpace(screenPoint)
-                d = postionDistance(meshPosition(mesh), worldPoint)
-                semanticsPerMesh.append('Screen : {}'.format( d ))
-                continue
-                
-            d = findDistance(mesh, neighbor)
-            if d <= cutoff:
-                semanticsPerMesh.append('{} : {}'.format( neighbor, d ))
+        # Calculate semantics for mesh
+        translation = formatList( cmds.xform(mesh, q=1, ws=1, t=1) )
+        rotation = formatList( cmds.xform(mesh, q=1, ws=1, rp=1) )
+        scaling = formatList( cmds.xform(mesh, q=1, ws=1, s=1) )
+        worldPoint = screenSpaceToWorldSpace(screenPoint)
+        d = postionDistance(meshPosition(mesh), worldPoint)
+        print(translation)
+        semanticsForMesh.append('d : {0:.6f}'.format( d ))
+        semanticsForMesh.append('t : [{0:.6f}, {0:.6f}, {0:.6f}]'.format( translation[0], translation[1], translation[2] ))
+        semanticsForMesh.append('r : [{0:.6f}, {0:.6f}, {0:.6f}]'.format( rotation[0], rotation[1], rotation[2] ))
+        semanticsForMesh.append('s : [{0:.6f}, {0:.6f}, {0:.6f}]'.format( scaling[0], scaling[1], scaling[2] ))
         
-        semantics.append('[{} : {}]'.format( mesh, semanticsPerMesh ))
+        semantics.append('{} : {}'.format( mesh, semanticsForMesh ))
                 
     return semantics
+    
+def formatList(list):
+    for i, val in enumerate(list):
+        if float('{0:.6f}'.format( val )) == -0.0:
+            list[i] = 0.0
+            
+    return list
 
 # Return the Euclidean distance between the centers of two meshes
 def findDistance(meshA, meshB):
@@ -248,7 +257,7 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, cutOff
     filename = os.path.basename(filepath)
     raw_name, extension = os.path.splitext(filename)
     with open('C:\\Users\\wesha\\Documents\\maya\\projects\\CS5800\\scenes\\{}_output_{}.txt'.format( raw_name, N ), 'w') as f:
-        f.write( json.dumps(semantics).replace('"', '').replace('\'', '') )
+        f.write( json.dumps(semantics).replace('"', '').replace('\'', '').replace('\\', '') )
     
 ##########################
 ####### Run Script #######

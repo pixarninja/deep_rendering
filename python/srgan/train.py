@@ -7,29 +7,31 @@ import numpy as np
 import os as os
 import sys as sys
 import utils as utils
+import matplotlib.pyplot as plt
 
 import torch
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torch.nn as nn
 from torch.autograd import Variable
-
 import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-
+from models import Generator, Discriminator, FeatureExtractor
 from tensorboard_logger import configure, log_value
 
-from models import Generator, Discriminator, FeatureExtractor
+from keras.datasets import cifar10
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
+    parser.add_argument('--useRange', action='store_true', help='whether or not to use a random range')
     parser.add_argument('--alpha', type=float, default=0.75, help='noise constant to use')
     parser.add_argument('--beta', type=int, default=7, help='blur constant to use')
+    parser.add_argument('--alphaPair', type=float, default=0.9, help='noise constant range to use')
+    parser.add_argument('--betaPair', type=int, default=3, help='blur constant range to use')
     parser.add_argument('--generation', type=int, default=100, help='epochs to wait between writing images')
-    parser.add_argument('--workers', type=int, default=2, help='number of data loading workers')
     parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
     parser.add_argument('--upSampling', type=int, default=1, help='low to high resolution scaling factor')
     parser.add_argument('--nEpochs', type=int, default=100, help='number of epochs to train for')
@@ -39,29 +41,84 @@ if __name__ == '__main__':
     parser.add_argument('--nGPU', type=int, default=1, help='number of GPUs to use')
     parser.add_argument('--generatorWeights', type=str, default='', help="path to generator weights (to continue training)")
     parser.add_argument('--discriminatorWeights', type=str, default='', help="path to discriminator weights (to continue training)")
+    parser.add_argument('--inType', default='frame', help='input type, one of the following: [frame, cifar]')
 
     opt = parser.parse_args()
     print(opt)
     
-    outc_path = ('checkpointsx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
-    outf_path = ('outputx%d-%d-%d/' % (opt.blockDim, int(opt.alpha * 100), opt.beta))
+    pair = None
+    tag = '%d-%d-%d' % (opt.blockDim, int(opt.alpha * 100), opt.beta)
+    if opt.useRange:
+        opt.alpha = 0.75
+        opt.beta = 7
+        pair = [opt.alphaPair, opt.betaPair]
+        tag = 'range'
+    outc_path = ('%s_checkpointsx%s/' % (opt.inType, tag))
+    outf_path = ('%s_outputx%s/' % (opt.inType, tag))
+
     utils.clear_dir(outc_path)
     utils.clear_dir(outf_path)
 
     if torch.cuda.is_available() and not opt.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-    transform = transforms.Compose([transforms.RandomCrop(opt.blockDim),
-                                    transforms.ToTensor()])
+    # Load data.
+    if opt.inType == 'frame':
+        transform = transforms.Compose([transforms.RandomCrop(opt.blockDim), transforms.ToTensor()])
+        normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
 
-    normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
-                                    std = [0.229, 0.224, 0.225])
+        data_prefix = '/home/pixarninja/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
+        dataset = datasets.ImageFolder(root=data_prefix + 'validation/', transform=transform)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize, shuffle=True)
 
-    # Replace loader with hardcoded values.
-    data_prefix = 'C:/Users/wesha/Git/dynamic_frame_generator/python/training/' + str(opt.blockDim) + '/'
-    dataset = datasets.ImageFolder(root=data_prefix + 'validation/', transform=transform)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
-                                             shuffle=True, num_workers=int(opt.workers))
+        # Generate training data.
+        x_train = []
+        y_train = []
+        for i, data in enumerate(dataloader, 0):
+            high_res_real = data[0]
+            if np.shape(high_res_real)[0] != opt.batchSize:
+                continue
+
+            # Downsample images to low resolution.
+            for j in range(opt.batchSize):
+                x_train.append(utils.alter_image(high_res_real[j].numpy().transpose(1, 2, 0), opt.alpha, opt.beta, pair=pair))
+                y_train.append(normalize(high_res_real[j]))
+
+        x_train = torch.stack(x_train)
+        y_train = torch.stack(y_train)
+
+    elif opt.inType == 'cifar':
+        (x_data, _), _ = cifar10.load_data()
+
+        # Generate training data.
+        x_train = []
+        y_train = []
+        for i, data in enumerate(x_data, 0):
+            data = data / 255.
+
+            # Downsample image to low resolution.
+            x_train.append(utils.alter_image(np.array(data), opt.alpha, opt.beta, pair=pair))
+            y_train.append(torch.from_numpy(data.transpose(2, 0, 1)))
+
+        x_train = torch.stack(x_train)
+        y_train = torch.stack(y_train)
+
+    else:
+        print('ERROR: Input data type not recognized')
+        exit(1)
+
+    # Plot 25 sample images.
+    plt.figure(figsize=(10,10))
+    for i in range(25):
+            ax = plt.subplot(5, 5, i + 1)
+            plt.imshow(np.asarray(x_train[i]).transpose(1, 2, 0))
+            plt.title(str(i))
+            plt.axis('off')
+    plt.savefig('./{}_samplesx{}.png'.format(opt.inType, tag))
+    plt.close('all')
+
+    n_samples = int(x_train.shape[0] / opt.batchSize)
+    print('\nBatch Size: {}, Batches: {}'.format(opt.batchSize, n_samples))
 
     generator = Generator(16, opt.upSampling)
     if opt.generatorWeights != '':
@@ -102,16 +159,9 @@ if __name__ == '__main__':
     for epoch in range(2):
         mean_generator_content_loss = 0.0
 
-        for i, data in enumerate(dataloader, 0):
-            # Generate data
-            high_res_real = data[0]
-            if np.shape(high_res_real)[0] != opt.batchSize:
-                continue
-
-            # Downsample images to low resolution
-            for j in range(opt.batchSize):
-                low_res[j] = utils.alter_image(high_res_real[j].numpy().transpose(1, 2, 0), opt.alpha, opt.beta)
-                high_res_real[j] = normalize(high_res_real[j])
+        for i in range(n_samples):
+            low_res = x_train[i * opt.batchSize:(i + 1) * opt.batchSize]
+            high_res_real = y_train[i * opt.batchSize:(i + 1) * opt.batchSize]
 
             # Generate real and fake inputs
             if opt.cuda:
@@ -120,6 +170,9 @@ if __name__ == '__main__':
             else:
                 high_res_real = Variable(high_res_real)
                 high_res_fake = generator(Variable(low_res))
+
+            high_res_real = high_res_real.float()
+            high_res_fake = high_res_fake.float()
 
             ######### Train generator #########
             generator.zero_grad()
@@ -131,20 +184,10 @@ if __name__ == '__main__':
             optim_generator.step()
 
             ######### Status and display #########
-            sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f' % (epoch + 1, 2, i, len(dataloader), generator_content_loss.data))
-            # if i % opt.generation == 0:
-                # vutils.save_image(low_res,
-                        # '%slow_res.png' % outf_path,
-                        # normalize=True)
-                # vutils.save_image(high_res_real,
-                        # '%shigh_res_real.png' % outf_path,
-                        # normalize=True)
-                # vutils.save_image(high_res_fake,
-                        # '%shigh_res_fake.png' % outf_path,
-                        # normalize=True)
+            sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f' % (epoch + 1, 2, i, n_samples, generator_content_loss.data))
 
-        sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f\n' % (epoch + 1, 2, i, len(dataloader), mean_generator_content_loss/len(dataloader)))
-        log_value('generator_mse_loss', mean_generator_content_loss/len(dataloader), epoch)
+        sys.stdout.write('\r[%d/%d][%d/%d] Generator_MSE_Loss: %.4f\n' % (epoch + 1, 2, i, n_samples, mean_generator_content_loss / n_samples))
+        log_value('generator_mse_loss', mean_generator_content_loss / n_samples, epoch)
 
     # Do checkpointing
     torch.save(generator.state_dict(), '%s/generator_pretrain.pth' % outc_path)
@@ -160,16 +203,9 @@ if __name__ == '__main__':
         mean_generator_total_loss = 0.0
         mean_discriminator_loss = 0.0
 
-        for i, data in enumerate(dataloader):
-            # Generate data
-            high_res_real, _ = data
-            if np.shape(high_res_real)[0] != opt.batchSize:
-                continue
-
-            # Downsample images to low resolution
-            for j in range(opt.batchSize):
-                low_res[j] = utils.alter_image(high_res_real[j].numpy().transpose(1, 2, 0), opt.alpha, opt.beta)
-                high_res_real[j] = normalize(high_res_real[j])
+        for i in range(n_samples):
+            low_res = x_train[i * opt.batchSize:(i + 1) * opt.batchSize]
+            high_res_real = y_train[i * opt.batchSize:(i + 1) * opt.batchSize]
 
             # Generate real and fake inputs
             if opt.cuda:
@@ -182,7 +218,10 @@ if __name__ == '__main__':
                 high_res_fake = generator(Variable(low_res))
                 target_real = Variable(torch.rand(opt.batchSize,1)*0.5 + 0.7)
                 target_fake = Variable(torch.rand(opt.batchSize,1)*0.3)
-            
+
+            high_res_real = high_res_real.float()
+            high_res_fake = high_res_fake.float()
+
             ######### Train discriminator #########
             discriminator.zero_grad()
 
@@ -211,9 +250,9 @@ if __name__ == '__main__':
             optim_generator.step()   
             
             ######### Status and display #########
-            sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f' % (epoch + 1, opt.nEpochs, i, len(dataloader),
+            sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f' % (epoch + 1, opt.nEpochs, i, n_samples,
             discriminator_loss.data, generator_content_loss.data, generator_adversarial_loss.data, generator_total_loss.data))
-            if i % opt.generation == 0:
+            if i == n_samples - 1:
                 vutils.save_image(low_res,
                         '%s/alt_%03d.png' % (outf_path, epoch),
                         normalize=True)
@@ -224,14 +263,14 @@ if __name__ == '__main__':
                         '%s/fake_%03d.png' % (outf_path, epoch),
                         normalize=True)
 
-        sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f\n' % (epoch + 1, opt.nEpochs, i, len(dataloader),
-        mean_discriminator_loss/len(dataloader), mean_generator_content_loss/len(dataloader), 
-        mean_generator_adversarial_loss/len(dataloader), mean_generator_total_loss/len(dataloader)))
+        sys.stdout.write('\r[%d/%d][%d/%d] Discriminator_Loss: %.4f Generator_Loss (Content/Advers/Total): %.4f/%.4f/%.4f\n' % (epoch + 1, opt.nEpochs, i, n_samples,
+        mean_discriminator_loss / n_samples, mean_generator_content_loss / n_samples, 
+        mean_generator_adversarial_loss / n_samples, mean_generator_total_loss / n_samples))
 
-        log_value('generator_content_loss', mean_generator_content_loss/len(dataloader), epoch)
-        log_value('generator_adversarial_loss', mean_generator_adversarial_loss/len(dataloader), epoch)
-        log_value('generator_total_loss', mean_generator_total_loss/len(dataloader), epoch)
-        log_value('discriminator_loss', mean_discriminator_loss/len(dataloader), epoch)
+        log_value('generator_content_loss', mean_generator_content_loss / n_samples, epoch)
+        log_value('generator_adversarial_loss', mean_generator_adversarial_loss / n_samples, epoch)
+        log_value('generator_total_loss', mean_generator_total_loss / n_samples, epoch)
+        log_value('discriminator_loss', mean_discriminator_loss / n_samples, epoch)
 
         # Do checkpointing
         torch.save(generator.state_dict(), '%s/generator_final.pth' % outc_path)
