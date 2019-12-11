@@ -18,10 +18,10 @@ import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-from models import Generator, Discriminator, FeatureExtractor
 from tensorboard_logger import configure, log_value
-
 from keras.datasets import cifar10
+
+from models import Generator, Discriminator, FeatureExtractor
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

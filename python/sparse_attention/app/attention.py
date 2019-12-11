@@ -15,17 +15,33 @@ import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
+from keras.datasets import cifar10
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--blockDim', type=int, default=64, help='size of block to use')
+parser.add_argument('--useRange', action='store_true', help='whether or not to use a random range')
 parser.add_argument('--alpha', type=float, default=0.75, help='noise constant to use')
 parser.add_argument('--beta', type=int, default=7, help='blur constant to use')
-parser.add_argument('--nEpochs', type=int, default=1, help='number of epochs to train for')
+parser.add_argument('--alphaPair', type=float, default=0.9, help='noise constant range to use')
+parser.add_argument('--betaPair', type=int, default=3, help='blur constant range to use')
+parser.add_argument('--nEpochs', type=int, default=2, help='number of epochs to train for')
 parser.add_argument('--batchSize', type=int, default=1024, help='input batch size')
 parser.add_argument('--outf', default='./output/', help='folder to output images and model checkpoints')
+parser.add_argument('--inType', default='frame', help='input type, one of the following: [frame, cifar]')
 
 opt = parser.parse_args()
 print(opt)
+
+pair = None
+tag = '%d-%d-%d' % (opt.blockDim, int(opt.alpha * 100), opt.beta)
+if opt.useRange:
+    opt.alpha = 0.75
+    opt.beta = 7
+    pair = [opt.alphaPair, opt.betaPair]
+    tag = 'range'
+outf_path = ('%s%s_outputx%s/' % (opt.outf, opt.inType, tag))
+
+utils.clear_dir(outf_path)
 
 def get_attn_mask(n, attn_mode, local_attn_ctx=None):
     if attn_mode == 'all':
@@ -286,32 +302,98 @@ def save_img(image, path):
     vutils.save_image(data, path, normalize=True)
 
 if __name__ == '__main__':
-    # Set data path.
-    data_prefix = '/app/training/' + str(opt.blockDim) + '/'
-    transform = transforms.Compose([transforms.RandomCrop(opt.blockDim),
-                                    transforms.ToTensor()])
-    dataset = datasets.ImageFolder(root=data_prefix + 'validation/', transform=transform)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize, shuffle=True)
-    testset = datasets.ImageFolder(root=data_prefix + 'testset/', transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=opt.batchSize, shuffle=True)
+# Load data.
+    if opt.inType == 'frame':
+        transform = transforms.Compose([transforms.RandomCrop(opt.blockDim), transforms.ToTensor()])
+        normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
+
+        data_prefix = '/app/training/' + str(opt.blockDim) + '/'
+        dataset = datasets.ImageFolder(root=data_prefix + 'validation/', transform=transform)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize, shuffle=True)
+        testset = datasets.ImageFolder(root=data_prefix + 'testset/', transform=transform)
+        testloader = torch.utils.data.DataLoader(testset, batch_size=opt.batchSize, shuffle=True)
+
+        # Generate training data.
+        x_train = []
+        y_train = []
+        for i, data in enumerate(dataloader, 0):
+            high_res_real = data[0]
+            if np.shape(high_res_real)[0] != opt.batchSize:
+                continue
+
+            # Downsample images to low resolution.
+            for j in range(opt.batchSize):
+                x_train.append(utils.alter_image(high_res_real[j].numpy().transpose(1, 2, 0), opt.alpha, opt.beta, pair=pair))
+                y_train.append(normalize(high_res_real[j]))
+
+        x_train = torch.stack(x_train)
+        y_train = torch.stack(y_train)
+
+        # Generate testing data.
+        x_test = []
+        y_test = []
+        for i, data in enumerate(testloader, 0):
+            high_res_real = data[0]
+            if np.shape(high_res_real)[0] != opt.batchSize:
+                continue
+
+            # Downsample images to low resolution.
+            for j in range(opt.batchSize):
+                x_test.append(utils.alter_image(high_res_real[j].numpy().transpose(1, 2, 0), opt.alpha, opt.beta, pair=pair))
+                y_test.append(normalize(high_res_real[j]))
+
+        x_test = torch.stack(x_test)
+        y_test = torch.stack(y_test)
+
+    elif opt.inType == 'cifar':
+        (train_data, _), (test_data, _) = cifar10.load_data()
+
+        # Generate training data.
+        x_train = []
+        y_train = []
+        for i, data in enumerate(train_data, 0):
+            data = data / 255.
+
+            # Downsample image to low resolution.
+            x_train.append(utils.alter_image(np.array(data), opt.alpha, opt.beta, pair=pair))
+            y_train.append(torch.from_numpy(data.transpose(2, 0, 1)))
+
+        x_train = torch.stack(x_train)
+        y_train = torch.stack(y_train)
+
+        x_test = []
+        y_test = []
+        for i, data in enumerate(test_data, 0):
+            data = data / 255.
+
+            # Downsample image to low resolution.
+            x_test.append(utils.alter_image(np.array(data), opt.alpha, opt.beta, pair=pair))
+            y_test.append(torch.from_numpy(data.transpose(2, 0, 1)))
+
+        x_test = torch.stack(x_test)
+        y_test = torch.stack(y_test)
+
+    else:
+        print('ERROR: Input data type not recognized')
+        exit(1)
+
+    # Plot 25 sample images.
+    plt.figure(figsize=(10,10))
+    for i in range(25):
+            ax = plt.subplot(5, 5, i + 1)
+            plt.imshow(np.asarray(x_train[i]).transpose(1, 2, 0))
+            plt.title(str(i))
+            plt.axis('off')
+    plt.savefig('{}/{}_samplesx{}.png'.format(opt.outf, opt.inType, tag))
+    plt.close('all')
+
+    n_samples = int(x_train.shape[0] / opt.batchSize)
+    number = -1
+    print('\nBatch Size: {}, Batches: {}'.format(opt.batchSize, n_samples))
 
     # Set up application.
-    path_prefix = 'outputx%02d-%02d-%d/' % (opt.blockDim, opt.alpha * 100, opt.beta)
-    altr_prefix = opt.outf + path_prefix + 'low_res/'
-    real_prefix = opt.outf + path_prefix + 'high_res_real/'
-    fake_prefix = opt.outf + path_prefix + 'high_res_fake/'
-    training_altr_prefix = opt.outf + 'training/' + path_prefix + 'low_res/'
-    training_real_prefix = opt.outf + 'training/' + path_prefix + 'high_res_real/'
-    training_fake_prefix = opt.outf + 'training/' + path_prefix + 'high_res_fake/'
-    utils.make_dir(opt.outf + path_prefix)
-    utils.make_dir(opt.outf + 'training/')
-    utils.make_dir(opt.outf + 'training/' + path_prefix)
-    utils.clear_dir(altr_prefix)
-    utils.clear_dir(real_prefix)
-    utils.clear_dir(fake_prefix)
-    utils.clear_dir(training_altr_prefix)
-    utils.clear_dir(training_real_prefix)
-    utils.clear_dir(training_fake_prefix)
+    utils.make_dir(opt.outf)
+    utils.make_dir(outf_path)
 
     # Number of samples/batches? (4)
     # Number of time steps (batch_size / n_batch) --> number of pixels?
@@ -328,18 +410,20 @@ if __name__ == '__main__':
     # Launch the graph.
     with tf.Session() as sess:
         sess.run(init)
-        print('\n\n{} Images Found.\nRunning {} Epochs with {} Batches of {} Images...\n'.format(len(dataloader.dataset), opt.nEpochs, len(dataloader), opt.batchSize))
      
         # Training cycle.
         for epoch in range(opt.nEpochs):
             avg_cost = 0.0
+            total_samples = 0
 
-            for i, data in enumerate(dataloader):
-                # Generate data.
-                high_res, low_res = process_images(data)
+            for i in range(n_samples):
+                low_res = np.float32(x_train[i * opt.batchSize:(i + 1) * opt.batchSize].numpy())
+                high_res = np.float32(y_train[i * opt.batchSize:(i + 1) * opt.batchSize].numpy())
+
                 if high_res.shape[0] < opt.batchSize or low_res.shape[0] < opt.batchSize:
                     continue
 
+                total_samples += n_samples
                 low_res_d = low_res.transpose(0, 2, 3, 1).reshape(n_batch, n_ctx, n_embd)
                 high_res_d = high_res.transpose(0, 2, 3, 1).reshape(n_batch, n_ctx, n_embd)
                 q = to_tensor(low_res_d, n_batch, n_ctx, n_embd)
@@ -358,23 +442,33 @@ if __name__ == '__main__':
                 avg_cost += cost_val
 
                 # Log every 10 batches of images processed.
-                iteration = len(dataloader.dataset) * epoch + i * opt.batchSize
-                number = len(dataloader) * epoch + i
+                iteration = x_train.shape[0] * epoch + i * opt.batchSize
                 print('Iteration: {}, Cost: {}'.format(iteration, cost_val))
-                if i % 10 == 0:
-                    save_img(high_res[0], training_real_prefix + '{}.png'.format(number))
-                    save_img(low_res[0], training_altr_prefix + '{}.png'.format(number))
-                    save_img(normalize_images(strided_bs.reshape(opt.batchSize, opt.blockDim, opt.blockDim, 3))[0].transpose(2, 0, 1), training_fake_prefix + '{}.png'.format(number))
+                number += 1
+                save_img(high_res[0], '%sreal_%03d.png' % (outf_path, number))
+                save_img(low_res[0], '%salt_%03d.png' % (outf_path, number))
+                save_img(normalize_images(strided_bs.reshape(opt.batchSize, opt.blockDim, opt.blockDim, 3))[0].transpose(2, 0, 1), '%sfake_%03d.png' % (outf_path, number))
 
-            print('Average Cost: {}'.format(avg_cost / len(dataloader)))
+            print('Average Cost: {}'.format(avg_cost / total_samples))
 
         print(strided_bs[0])
 
         # Generate results on test data for evaluation.
-        print('\n\n{} Images Found.\nTesting {} Batches of {} Images...\n'.format(len(testloader.dataset), len(testloader), opt.batchSize))
-        for i, data in enumerate(testloader):
-            # Generate data.
-            high_res, low_res = process_images(data)
+        n_samples = int(x_test.shape[0] / opt.batchSize)
+        number = -1
+        print('\nBatch Size: {}, Batches: {}'.format(opt.batchSize, n_samples))
+
+        altr_path = outf_path + 'low_res/'
+        real_path = outf_path + 'high_res_real/'
+        fake_path = outf_path + 'high_res_fake/'
+        utils.clear_dir(altr_path)
+        utils.clear_dir(real_path)
+        utils.clear_dir(fake_path)
+
+        for i in range(n_samples):
+            low_res = np.float32(x_test[i * opt.batchSize:(i + 1) * opt.batchSize].numpy())
+            high_res = np.float32(y_test[i * opt.batchSize:(i + 1) * opt.batchSize].numpy())
+
             if high_res.shape[0] < opt.batchSize or low_res.shape[0] < opt.batchSize:
                 continue
 
@@ -384,15 +478,21 @@ if __name__ == '__main__':
             k = to_tensor(low_res_d, n_batch, n_ctx, n_embd)
             v = to_tensor(high_res_d, n_batch, n_ctx, n_embd)
 
+            # first step of strided attention.
             local_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="local", local_attn_ctx=blocksize, blocksize=blocksize, recompute=True)
+
+            # Second step of strided attention.
             strided_attn_bs = blocksparse_attention_impl(q, k, v, heads=4, attn_mode="strided", local_attn_ctx=blocksize, blocksize=blocksize, recompute=True)
-            strided_bs = sess.run([strided_attn_bs], feed_dict={q: q.eval(), k: k.eval(), v: v.eval()})
+
+            # Run model and get new losses.
+            cost = tf.reduce_mean(tf.square(strided_attn_bs - high_res.reshape(n_batch, n_ctx, n_embd)))
+            cost_val, strided_bs = sess.run([cost, strided_attn_bs], feed_dict={q: q.eval(), k: k.eval(), v: v.eval()})
 
             # Save all images.
-            iteration = len(testloader.dataset) * epoch + i * opt.batchSize
+            iteration = x_test.shape[0] * epoch + i * opt.batchSize
             print('Iteration: {}'.format(iteration))
             for j in range(high_res.shape[0]):
-                number = iteration + j
-                save_img(high_res[j], real_prefix + '{}.png'.format(number))
-                save_img(low_res[j], altr_prefix + '{}.png'.format(number))
-                save_img(normalize_images(strided_bs.reshape(opt.batchSize, opt.blockDim, opt.blockDim, 3))[j].transpose(2, 0, 1), fake_prefix + '{}.png'.format(number))
+                number += 1
+                save_img(high_res[j], '%s%d.png' % (real_path, number))
+                save_img(low_res[j], '%s%d.png' % (altr_path, number))
+                save_img((strided_bs.reshape(opt.batchSize, opt.blockDim, opt.blockDim, 3))[j].transpose(2, 0, 1), '%s%d.png' % (fake_path, number))

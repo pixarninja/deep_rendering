@@ -118,14 +118,17 @@ def plot_loss_all(values, colors, labels, title, path):
     
     # Plot values.
     for i in range(len(values)):
-        plt.plot(x_axis, values[i], color=colors[i], alpha=0.25)
+        plt.plot(x_axis, values[i], color=colors[i], alpha=0.33)
         patches.append(mpatches.Patch(color=colors[i]))
     
     # Plot average lines.
     min = 1
+    max = 0
     for i in range(len(values)):
         if min > np.min(values[i]):
             min = np.min(values[i])
+        if max < np.max(values[i]):
+            max = np.max(values[i])
         avg = np.average(values[i])
         plt.axhline(y=avg, color=colors[i], xmin=0, xmax=samples, linestyle='--', linewidth=0.5)
         
@@ -136,7 +139,7 @@ def plot_loss_all(values, colors, labels, title, path):
     plt.title(title)
     axes = plt.gca()
     axes.set_xlim([0, samples])
-    axes.set_ylim([min, 1])
+    axes.set_ylim([min - 0.01, max + 0.01])
     plt.tight_layout()
     
     if os.path.exists(path):
