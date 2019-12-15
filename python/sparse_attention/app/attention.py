@@ -378,7 +378,7 @@ if __name__ == '__main__':
     for i in range(25):
             ax = plt.subplot(5, 5, i + 1)
             plt.imshow(np.asarray(x_train[i]).transpose(1, 2, 0))
-            plt.title(str(i))
+            #plt.title(str(i))
             plt.axis('off')
     plt.savefig('{}/{}_samplesx{}.png'.format(opt.outf, opt.inType, tag))
     plt.close('all')
