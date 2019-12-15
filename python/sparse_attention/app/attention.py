@@ -294,10 +294,6 @@ def show_batch(image_batch, path):
     plt.close('all')
 
 def save_img(image, path):
-    #plt.imshow(image)
-    #plt.axis('off')
-    #plt.savefig(path)
-    #plt.close('all')
     data = torch.from_numpy(image)
     vutils.save_image(data, path, normalize=True)
 
@@ -311,7 +307,7 @@ if __name__ == '__main__':
         dataset = datasets.ImageFolder(root=data_prefix + 'validation/', transform=transform)
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize, shuffle=True)
         testset = datasets.ImageFolder(root=data_prefix + 'testset/', transform=transform)
-        testloader = torch.utils.data.DataLoader(testset, batch_size=opt.batchSize, shuffle=True)
+        testloader = torch.utils.data.DataLoader(testset, batch_size=opt.batchSize, shuffle=False)
 
         # Generate training data.
         x_train = []
