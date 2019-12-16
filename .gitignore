@@ -3,6 +3,7 @@
 /jupyter/images/
 *.ipynb_checkpoints*
 /python/*/*checkpoints*
+/python/evaluation/attention/
 /python/evaluation/dcgan/
 /python/evaluation/srgan/
 /python/*/*output*

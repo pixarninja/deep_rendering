@@ -10,6 +10,7 @@ RUN python -m pip install --upgrade pip
 RUN pip install blocksparse
 RUN pip install pillow
 RUN pip install matplotlib
+RUN pip install keras
 
 # Copy application and configure blocksparse
 COPY ./app/blocksparse_setup.sh /scripts/blocksparse_setup.sh

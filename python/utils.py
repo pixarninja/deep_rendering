@@ -29,26 +29,28 @@ def make_dir(path):
     if not os.path.exists(path):
         os.mkdir(path)
         
-def evaluate_images(img_str_1, img_str_2, img_str_out):
+def evaluate_images(img_str_real, img_str_fake, img_str_out):
     # Read in images from input file paths.
-    img_1 = cv2.imread(img_str_1)
-    img_1 = cv2.resize(img_1, (0,0), fx=0.5, fy=0.5) 
-    height_1, width_1 = img_1.shape[:2]
-    img_2 = cv2.imread(img_str_2)
-    img_2 = cv2.resize(img_2, (0,0), fx=0.5, fy=0.5)
-    height_2, width_2 = img_2.shape[:2]
+    img_real = cv2.imread(img_str_real)
+    img_real = cv2.resize(img_real, (0,0), fx=0.5, fy=0.5) 
+    height_1, width_1 = img_real.shape[:2]
+    img_fake = cv2.imread(img_str_fake)
+    img_fake = cv2.resize(img_fake, (0,0), fx=0.5, fy=0.5)
+    height_2, width_2 = img_fake.shape[:2]
 
     # Find minimum height and width.
     height = min(height_1, height_2)
     width = min(width_1, width_2)
 
     # Evaluate images.
-    img_xor = cv2.bitwise_xor(img_1, img_2)
+    img_xor = cv2.bitwise_xor(img_real, img_fake)
     pixel_sum = np.sum(img_xor)
     img_out = cv2.bitwise_not(cv2.cvtColor(img_xor, cv2.COLOR_BGR2GRAY))
 
     # Print evaluation and save output image.
-    cv2.imwrite(img_str_out, img_out)
+    cv2.imwrite(img_str_out + '.png', img_out)
+    cv2.imwrite(img_str_out + '_real.png', img_real)
+    cv2.imwrite(img_str_out + '_fake.png', img_fake)
     return 1 - (pixel_sum / (3 * 255.0 * width * height))
 
 # Definition for plotting values.
@@ -97,11 +99,11 @@ def plot_loss_single(value, color, label, title, path):
     # Finish plot.
     plt.legend([loss_patch], [label], loc='lower right')
     plt.xlabel('Sample')
-    plt.ylabel('Difference Ratio')
+    plt.ylabel(label)
     plt.title(title)
     axes = plt.gca()
     axes.set_xlim([0, samples])
-    axes.set_ylim([0.75, 1])
+    axes.set_ylim([0, 1])
     plt.tight_layout()
     
     if os.path.exists(path):
@@ -118,14 +120,17 @@ def plot_loss_all(values, colors, labels, title, path):
     
     # Plot values.
     for i in range(len(values)):
-        plt.plot(x_axis, values[i], color=colors[i], alpha=0.25)
+        plt.plot(x_axis, values[i], color=colors[i], alpha=0.33)
         patches.append(mpatches.Patch(color=colors[i]))
     
     # Plot average lines.
     min = 1
+    max = 0
     for i in range(len(values)):
         if min > np.min(values[i]):
             min = np.min(values[i])
+        if max < np.max(values[i]):
+            max = np.max(values[i])
         avg = np.average(values[i])
         plt.axhline(y=avg, color=colors[i], xmin=0, xmax=samples, linestyle='--', linewidth=0.5)
         
@@ -136,7 +141,7 @@ def plot_loss_all(values, colors, labels, title, path):
     plt.title(title)
     axes = plt.gca()
     axes.set_xlim([0, samples])
-    axes.set_ylim([min, 1])
+    axes.set_ylim([0.725, 1])
     plt.tight_layout()
     
     if os.path.exists(path):
