@@ -105,28 +105,28 @@ jkalita@uccs.edu
 Image enhancement is
 a well-studied problem in Computer Vision.
 %a growing topic of interest within the Computer Graphics community.
-Enhancing very crude or noisy images cannot be accomplished realistically with traditional means,
-so researchers are now turning to machine learning to solve
+Since performing detailed enhancements analytically produces poor results,
+researchers are now turning to machine learning to solve
 this and other complex image processing problems.
-Here we attempt to locate out of current technologies
-the best architecture best suited for
-enhancing images by removing
-noise and other visual artifacts from an input image.
-We investigated two generative models,
-Generative Adversarial Networks and Transformers,
-and found that the former improved images with 1.3 times more accuracy.
-However, the speed benefits and added capabilities of Transformers
-cannot be overlooked.
+Here we attempt to discern the best suited architecture out of the current research available
+on image enhacement.
+The focus is not only on upscaling, but also on removing noise and other visual artifacts from an input image.
+We are thus interested in how networks can learn to remove random anamolies from an image
+while retaining clarity.
+Two generative models were investigated,
+Generative Adversarial Networks and Transformers.
+Our evaluation showed that the former improved images with 1.3 times more accuracy on average.
 \end{abstract}
 
 \section{Introduction}
 Image enhancement is a recent hot-topic in the world of Computer Vision
 and Deep Learning. From its many applications to the
-fields of surveilence, cinematography, and social media,
-researchers are interested
-in finding new ways of improving image quality.
-Research and development companies like Google are keen on creating the new
-state-of-the-art systems \cite{google}.
+fields of surveilence, cinematography, social media, and others,
+researchers are currently interested
+in finding new ways of improving image resolution and clarity.
+Even corporate research and development companies like Google are keen on creating the newest
+state-of-the-art image enhancement systems \cite{google}.
+
 Image enhancement involves not only increasing image resolution
 (called super-resolution), but also replacing noise and other anomalies with
 believable substitutes.
@@ -567,6 +567,11 @@ and the distinction between to the two distributions is very pronounced.
 In comparision, the Transformer seemed to have roughly the same results (both good and bad)
 for either dataset. We see the same trend as in the SRGAN on average, however accuracies are much closer together.
 
+As a way of evaluating each model's capabilities for images with unknown amounts of
+noise and blurring, we also trained them on images with a range of values.
+We were surprised to find that these tests differed only slightly from the least-altered models.
+This proves that generative models are appropritate for solving real-world enhancement
+problems, where we don't know how much the anamolous data affects a source image.
 Overall, our generated dataset performed much better than the CIFAR-10 dataset.
 This is what we anticipated, since all images in our dataset had the same qualities --
 subject, lighting, color, and negative space were found to influence the model accuracy.
@@ -641,23 +646,19 @@ Some final outputs of testing each model are shown in Figure \ref{fig:example_ou
 The average SRGAN accuracy on testing data was 0.84291,
 while the Transformer had an average accuracy of 0.62945.
 This means that the SRGAN was on average 1.3 times as accurate as the Transformer architecture.
+Average enhancement for the SRGAN model on testing data was 0.84291,
+while average enhancement for the Transformer was 0.62945.
 
-Average enhancement for the 75-7 SRGAN model on testing data was 0.8860892.
-The 90-7 and 90-3 SRGAN models were closer together, with enhancements of
-0.9263004 and 0.9270327, respectively.
-These results clearly show the impact of noise when training the model.
-Switching from $\beta = 3$ to $\beta = 7$ created an insignificant change
-compared to the increase of $\alpha = 0.75$ to $\alpha = 0.90$.
-Thus, noise more heavily impacted results than blur.
-This effect is demonstrated by the samples shown in Figure \ref{fig:srgan_outputs};
-the most distorted image is still close to the target, but not nearly as close as the
-images with less noise.
-
-In comparison, the Transformer produced images of varying accuracy.
+We found that for both models, noise more heavily impacted results than blur.
+This effect is demonstrated by the samples shown in Figure \ref{fig:srgan_outputs},
+where the most distorted image is not nearly as close to the target image as the enhancements from less noise.
+By comparison, the Transformer outputs shown in Figure \ref{rig:attn_outputs}
+are much lower quality.
+We found this was due to the high variance of the Transformer's accuracy.
 Some images were nearly perfect, while others were highly inaccurate.
 There was clear a clear trend of over-fitting to certain types of images.
 Images of dogs and cars were much clearer than images of horses, for example.
-The image we chose as the sample was of median quaility, about 60\% accurate.
+The image we chose as the sample was of median quaility.
 
 \begin{figure}[h!]
 \centering
@@ -694,37 +695,25 @@ shown in Figures \ref{fig:srgan_outputs}, \ref{fig:attn_outputs}, and \ref{fig:d
 The XOR comparison image for each pair of inputs is shown where applicable,
 comparing the architecture outputs (left) to real source images (right).
 
-\section{Future Work}
-The next step for the project will be to complete the implementation for the
-Sparse Attention (Transformer) architecture. It is expected that this architecture
-will give better results than either of the DCGAN and SRGAN architectures.
-The SRGAN architecture already achieved an average enhancement of up to 92\%
-the quality of the target image.
-We also plan to tweak the SRGAN model such that it uses
-convolutional and convolutional-transpose layers in D and G, respectively.
-The result should be a DCGAN version of the original SRGAN.
-Comparing the results of the modified model to the original will provide
-insight into how the layer changes affected the model's output.
-
-Another study that will be performed is a variation of image degradation,
-to test whether the trained models can learn how to enhance images with alterations
-over the spectrum of parameter values.
-This factor will be important for evaluating a model's
-capabilities in general.
-
 \section{Conclusion}
-Image enhancement is a widely-studied problem, with new advancements in the field
-being made each year.
-In order to find the best model possible for enhancing low quality images,
-we will evaluate several machine learning architectures.
-Current tests show promise in the GAN architecture,
-specifically the SRGAN model that was used for testing.
-While the original DCGAN model faired poorly, it will be interesting to see the
-impacts of modifying the layers of the SRGAN into a DCGAN-type architecture.
-While results have yet to be collected from the Transformer,
-the non-convolutional model will be an excellent comparison once completed.
-The project will conclude with an extrapolation on future research
-and the implications of our results on generalized image enhancement.
+Image enhancement is a difficult problem to solve.
+With the advent of machine learning, however, researchers are now closer
+to producing realistic and detailed results.
+Here we discussed our work regarding the evaluation of several machine learning architectures.
+Our analysis is not exhaustive, there are plenty more models we will
+test in the future as applicable. Of these include the
+Convolutional Neural Network (CNN) and Conditional GAN (cGAN).
+
+Out of those implemented,
+we found that the architecture with the best results was the SRGAN.
+While the DCGAN and Transformer models faired poorly in our analysis,
+we note that with a few improvements they could conceivably obtain the same results
+we saw with the SRGAN.
+The added capabilities of Sparse Attention Transformers in particular is also promising
+to all image processing problems.
+Our work shows how powerful these machine learning models can become.
+We look forward to collecting even better results as techologies improve and
+lead to new and exciting discoveries.
 
 \begin{figure*}[h!]
 \centering
