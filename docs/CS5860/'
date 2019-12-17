@@ -531,13 +531,13 @@ we decided the DCGAN implementation did not provide enough data to support evalu
 The model does however produce good images from noise,
 examples of which are shown in Figure \ref{fig:dcgan_outputs}.
 
-%The Sparse Attention Transformer was the most problematic of all the network architectures we studied.
-%The Transformer required a Linux operating system, and the TensorFlow and Blocksparse modules.
-%Those two modules required conflicting Python versions, so the only way we could get the source code to run
-%was to modify the Blocksparse module scripts and remove Python 3 syntax.
-%Despite the misgivings with the architecture, we were able to get it running.
-%The next issue we faced was with preparing our image data as inputs into the Transformer.
-%We reimagined how to split our data to be fed into the network correctly.
+The Sparse Attention Transformer was the most problematic of all the network architectures we studied.
+The Transformer required a Linux operating system, and the TensorFlow and Blocksparse modules.
+Those two modules required conflicting Python versions, so the only way we could get the source code to run
+was to modify the Blocksparse module scripts and remove Python 3 syntax.
+Despite the misgivings with the architecture, we were able to get it running.
+The next issue we faced was with preparing our image data as inputs into the Transformer.
+We reimagined how to split our data to be fed into the network correctly.
 
 \section{Results}
 The SRGAN and Transformer models were trained on 75\% of the dataset, with shuffling,
@@ -547,17 +547,10 @@ Green and blue lines are measurements for the CIFAR dataset, while
 yellow and red lines are measurements for our generated frameblock dataset.
 Means are provided as dashed lines for each distribution.
 
-\begin{figure}[h!]
-\centerline{\includegraphics[width=8cm]{srgan_training_results.png}}
-\centerline{\includegraphics[width=8cm]{attn_training_results.png}}
-\caption{Results during training of the SRGAN and Transformer models.}
-\label{fig:training_results}
-\end{figure}
-
 Figure \ref{fig:training_results} shows the calculated enhancement
 during training.
 The average enhancement for each distribution is drawn in
-a horizontal dashed line.
+a horizontal dashed line. These averages are also recorded in Table \ref{tbl:enhancement}.
 The results of our tests are presented in Table \ref{tbl:results}.
 The SRGAN showed much better trends than the Transformer.
 As shown in the graph, we can clearly see that the SRGAN model increased in accuracy over the course of training.
@@ -565,11 +558,25 @@ The Transformer's performance was unexpectedly erratic, which explains why some 
 The SRGAN model handled each dataset very differently,
 and the distinction between to the two distributions is very pronounced.
 In comparision, the Transformer seemed to have roughly the same results (both good and bad)
-for either dataset. We see the same trend as in the SRGAN on average, however accuracies are much closer together.
+for either dataset. From the dashed lines, however, we can see the same trend as in the SRGAN.
+
+The averages captured in Table \ref{tbl:results} also shows a great divide between training and testing results.
+Both the SRGAN and Transformer suffered a dip in accuracy between training and testing,
+however the Transformer's accuracy dropped around 4 times more than the SRGAN.
+This result again shows that our Transformer model was over-fitting to some data.
+Some final outputs of testing each model are shown in Figure \ref{fig:example_outputs}.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{srgan_training_results.png}}
+\centerline{\includegraphics[width=8cm]{attn_training_results.png}}
+\caption{Results during training of the SRGAN and Transformer models.}
+\label{fig:training_results}
+\end{figure}
 
 Overall, our generated dataset performed much better than the CIFAR-10 dataset.
 This is what we anticipated, since all images in our dataset had the same qualities --
-subject, lighting, color, and negative space were found to influence the model accuracy.
+subject, lighting, color, and negative space were found to be important factors in affecting
+model performance.
 
 \begin{table}[t]
 \begin{centering}
@@ -628,19 +635,13 @@ subject, lighting, color, and negative space were found to influence the model a
 \end{tabular}
 \bigskip
 \caption{Evaluation for the SRGAN and Transformer models on each set of parameters.}
-\label{tbl:results}
+\label{tbl:enhancement}
 \egroup
 \end{centering}
 \end{table}
 
-The averages captured in Table \ref{tbl:results} demonstrate the divide between training and testing results.
-Both the SRGAN and Transformer suffered a dip in accuracy between training and testing,
-however the Transformer's accuracy dropped around 4 times more than the SRGAN.
-This result again shows that our Transformer model was over-fitting to some data.
-Some final outputs of testing each model are shown in Figure \ref{fig:example_outputs}.
-The average SRGAN accuracy on testing data was 0.84291,
-while the Transformer had an average accuracy of 0.62945.
-This means that the SRGAN was on average 1.3 times as accurate as the Transformer architecture.
+Overall average SRGAN: 0.84291. Transformer: 0.62945.
+SRGAN was on average, 1.3 times as accurate as the Transformer architecture.
 
 Average enhancement for the 75-7 SRGAN model on testing data was 0.8860892.
 The 90-7 and 90-3 SRGAN models were closer together, with enhancements of
@@ -654,10 +655,11 @@ the most distorted image is still close to the target, but not nearly as close a
 images with less noise.
 
 In comparison, the Transformer produced images of varying accuracy.
-Some images were nearly perfect, while others were highly inaccurate.
+Some images were nearly perfect, while others were highly inaccurate,
+which brought down the overall accuracy to around 0.6. %derp
 There was clear a clear trend of over-fitting to certain types of images.
 Images of dogs and cars were much clearer than images of horses, for example.
-The image we chose as the sample was of median quaility, about 60\% accurate.
+The image we chose as the sample was of median quaility.
 
 \begin{figure}[h!]
 \centering
