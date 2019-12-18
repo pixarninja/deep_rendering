@@ -105,64 +105,62 @@ jkalita@uccs.edu
 Image enhancement is
 a well-studied problem in Computer Vision.
 %a growing topic of interest within the Computer Graphics community.
-Enhancing very crude or noisy images cannot be accomplished realistically with traditional means,
-so researchers are now turning to machine learning to solve
+Since performing detailed enhancements analytically produces poor results,
+researchers are now turning to machine learning to solve
 this and other complex image processing problems.
-Here we attempt to locate out of current technologies
-the best architecture best suited for
-enhancing images by removing
-noise and other visual artifacts from an input image.
-We investigated two generative models,
-Generative Adversarial Networks and Transformers,
-and found that the former improved images with 1.3 times more accuracy.
-However, the speed benefits and added capabilities of Transformers
-cannot be overlooked.
+Here we attempt to discern the best suited architecture for enhancing images.
+The focus is not only on upscaling, but also on removing noise and other visual artifacts from an input image.
+We are thus interested in how networks can learn to remove previously unseen anamolies from images
+while retaining clarity.
+Two generative models were investigated,
+Generative Adversarial Networks and Transformers.
+Our evaluation showed that the former improved images with 1.3 times more accuracy on average.
 \end{abstract}
 
 \section{Introduction}
-Image enhancement is a recent hot-topic in the world of Computer Vision
-and Deep Learning. From its many applications to the
-fields of surveilence, cinematography, and social media,
-researchers are interested
-in finding new ways of improving image quality.
-Research and development companies like Google are keen on creating the new
-state-of-the-art systems \cite{google}.
+Image enhancement is the process of improving an image's quality,
+resolution, and clarity.
+From its many applications in fields such as surveilence, cinematography, and social media,
+researchers are currently interested
+in finding new ways of improving image enhancement techniques.
+Leading research and development companies like Google and Facebook are keen on creating the newest
+state-of-the-art image enhancement systems \cite{google}.
 Image enhancement involves not only increasing image resolution
 (called super-resolution), but also replacing noise and other anomalies with
 believable substitutes.
-Here we discuss our progress in evaluating
-the DCGAN, SRGAN, and Transformer architectures
+Here we discuss our evaluations of
+the DCGAN, SRGAN, and Sparse Attention Transformer architectures
 applied to image enhancement.
-We hope the conclusion of this research will
-provide a foundation
-future advancements in image processing
-and Computer Graphics research.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=7cm]{google.png}}
-\caption{Google \cite{google}.}
+\centerline{\includegraphics[width=8cm]{google.png}}
+\caption{Results of Google's super-resolution network \cite{google}.}
 \label{fig:google}
 \end{figure}
 
 \section{Related Work}
-The code developed and evaluated was based off of DCGAN
+Our research focuses on two generative models,
+Generative Adversarial Networks (GANs) and Transformers.
+Both architectures represent broad classes of networks.
+Concerning the GAN framework, we look at the
+DCGAN
 \cite{generative_adversarial_networks} and SRGAN
-\cite{srgan}, and Sparse Attention Transformer
-\cite{generative_transformers}.
-Basics of each network is discussed below.
+\cite{srgan} models.
+The Transformer architecture evaluated was the Sparse Attention Transformer
+\cite{generative_transformers}, which is very new research that is
+still under development.
+Background information on each network is discussed below.
 
 \subsection{Generative Adversarial Network}
 The Generative Adversarial Network (GAN)
 was first proposed as a way to train a model to produce more realistic images
-from noise. Essentially the vanilla GAN model works as a random image generator.
-The network is made up of two architectures:
-a generator, G, and a discriminator, D.
+from noise. The vanilla GAN model works as essentially a random image generator.
+The network is made up of two sub-architectures:
+a generator, $G$, and a discriminator, $D$.
 GANs are able to generate new images that have similar qualities to
 those in the dataset on which they are trained
 \cite{generative_adversarial_networks}.
-A generalized GAN architecture is shown in Figure \ref{fig:gan_architecture}.
-The model works by training both the generator $G$ and
-discriminator $D$ in tandem.
+A generalization of the GAN architecture is shown in Figure \ref{fig:gan_architecture}.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=7cm]{gan_architecture.png}}
@@ -172,16 +170,12 @@ and discriminator $D$
 \label{fig:gan_architecture}
 \end{figure}
 
+The model works by training both the generator and
+discriminator in tandem.
 $G$ is trained to progressively generate more realistic images,
-while $D$ is trained to recognize differences between real and fake inputs.
+while $D$ is trained to recognize differences between real and fake inputs \cite{cgan}.
 This relationship can be expressed in the format of a
 ``two-player min-max game'', shown in Equation \ref{eq:gan_basic}.
-Here, $p_{data}(\mathbf{x})$ represents the true data distribution,
-and $p_{z}(\mathbf{z})$ represents the distribution of noise.
-The goal in training is to minimize the error produced by the generator
-and maximize the errors found by the discriminator \cite{cgan}.
-Optimizations and variants can be made from this simple concept, of which include
-the implementations of cGAN, DCGAN, and SRGAN.
 
 \begin{equation}
 \label{eq:gan_basic}
@@ -192,11 +186,15 @@ E_{\mathbf{x}\sim p_{data}(\mathbf{x})}[\log D(\mathbf{x})] \\
 \end{split}
 \end{equation}
 
+$p_{data}(\mathbf{x})$ represents the true data distribution,
+and $p_{z}(\mathbf{z})$ represents the distribution of noise.
+Optimizations and variants are based off this simple concept, of which include
+the cGAN, DCGAN, and SRGAN architectures.
+
 \subsection{Transformer}
-The Transformer was first proposed
+Transformers were first proposed
 as a way to use attention mechanisms more efficiently.
-Attention is a mechanism that references past data during each iteration of training,
-in order to discover the complex relationships within the data.
+Attention is a technique that references past data during each iteration of training.
 The Transformer relies
 ``\dots entirely on self-attention to compute representations of its input and output
 without using sequence-aligned RNNs or convolution''
@@ -205,8 +203,7 @@ The Encoder and Decoder for the Transformer design
 are shown in Figure \ref{fig:attention}.
 An input is first encoded into the dimensional space
 the transformer works with,
-then the transformed data is processed
-and decoded back into a conceivable output.
+and the result is then decoded back as the output of the model.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=6cm]{attention_architecture.png}}
@@ -225,8 +222,8 @@ The mathematical expression of the attention function is shown in
 Equation \ref{eq:attention}.
 $d_k$ is the dimension of keys and queries, and
 $Q,K,V$ are matrices of queries, keys, and values, respectively.
-The function uses dotproduct, so that the output is computed as
-a weighted sum of the weights
+The function uses the dotproduct operator, so that the output is computed as
+a linear combination of weights
 \cite{attention_need}.
 
 \begin{equation}
@@ -239,7 +236,7 @@ a weighted sum of the weights
 We can model the joint probability of a sequence,
 $\mathbf{x}={x_1,x_2,\dots,x_n}$,
 as the product of conditional
-probability distributions and parameterized by a network $\theta$
+probability distributions parameterized by a network $\theta$
 \cite{generative_transformers}.
 The final expression is shown in Equation \ref{eq:attention_prob}.
 
@@ -256,20 +253,20 @@ and are useful for natural language processing and image generation
 While the Transformer shows potential as a powerful machine learning technique,
 it is a recent concept and still has many inherent problems.
 One of the major problems with the architecture
-is that the resources it requires scales with $O(n^2)$
+is that its required resources scales with $O(n^2)$
 for sequence length $n$. Researchers theorize that
 ``\dots to improve computational performance for tasks involving very long sequences,
 self-attention could be restricted to considering only a neighborhood of size $r$''
 \cite{attention_need}.
 
 The Sparse Transformer architecture was developed as a means to shrink the
-growth of computational resources for large sequences of data.
+computational resources for large sequences of data.
 Child et al. introduced sparse factorizations on the attention matrix
-of a Transformer in order to speed up processing.
-An approximation of the dense attention
-operation was found by combining several cheaper attention operations.
-These optimizations resulted in a faster attention-based architecture
-that could be trained on longer sequences of data.
+in order to speed up processing.
+They approximated the dense attention
+operation by combining several cheaper attention operations.
+This new method resulted in a faster attention-based architecture
+that could be trained on longer sequences of data \cite{generative_transformers}.
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=7cm]{attention_comparison.png}}
@@ -295,46 +292,53 @@ but uses convolutional and convolutional-transpose layers in $D$ and $G$, respec
 \cite{unsupervised_learning}.
 Pose Guided Person Image Generation (PG\textsuperscript{2})
 proved that a variant conditional DCGAN could be used to
-remove anomalies and provide higher resolution for images
+remove anomalies and provide higher resolution for output images
 \cite{pose_guided_image_generation}.
 Without specifics on how the model was altered for image enhancement,
-we found it ultimately too difficult to obtain good results from our implementation.
-Instead of tuning our imperfect DCGAN, we implemented the
+it was difficult to obtain good results from our initial implementation.
+
+Instead of fine-tuning our imperfect DCGAN, we implemented a
 Super Resolution GAN (SRGAN).
 The SRGAN was first developed in
 Single Image Super Resolution (SISR) research, and showed a drastic decrease in loss measurements
 compared to ``NN, bicubic interpolation, and four state-of-the-art methods''
 \cite{srgan}.
-As opposed to the DCGAN,
 the model architecture of the SRGAN was directly applicable to the image enhancement problem,
-and did not suffer the same set-backs as we encountered with the DCGAN.
+and did not suffer the same set-backs we encountered with the DCGAN.
 We retain the presumption that the SRGAN architecture could be altered into a better performing DCGAN,
-however in order to fully test all architectures we were satisfied with the
-initial SRGAN implemented.
+however in order to fully test all architectures we decided to only focus on our initial SRGAN implementation.
 
-Our final implementation was the Sparse Attention Transformer.
-Source code for the Transformer was
-taken from the Sparse Attention project \cite{generative_transformers}.
+The last architecture we studied was the Sparse Attention Transformer.
+Source code was taken from the Sparse Attention project \cite{generative_transformers}.
 The architecture used completely different mechanisims than the GAN models,
-requiring a separate runtime environment, Python libraries, and even operating system.
+requiring a separate runtime environment, alternate Python libraries, and a Linux operating system.
 After getting the initial Docker environment set up on a fresh Linux build,
 we focused on correctly formulating the tensor inputs of the attention function.
-The source code also utilized multi-head attention with a minimum of 4 layers,
-which gave us an extra challenge to ensure our inputs were split appropriately to each.
+The implementation utilized multi-headed attention with a minimum of 4 layers,
+which gave us the extra challenge of ensuring our inputs were split appropriately for the network.
 
-As an overview of the implementations for each architecture,
+As an overview of each architecture,
 The DCGAN and SRGAN implementations were written for PyTorch,
-while the Transformer architecture used TensorFlow.
+while the Transformer architecture utilized TensorFlow.
 A python module of utility functions was created and shared between the programs via GitHub,
-so that evaluations of altered images would be consistent and comparable.
+so that evaluations of altered images would be consistent and comparable for all architectures.
 A dataset of images was generated
 for the purposes of training and testing the developed networks.
 The standardized CIFAR-10 dataset
-was also used to provide benchmarking and further our analysis.
-Each dataset contained approximately 60,000 32 x 32 pixel images.
-Random samples are shown in Figure \ref{fig:datasets}.
+was also used to further support our analysis.
+Each dataset contained approximately 60,000 32 x 32 pixel images,
+random samples of which are shown in Figure \ref{fig:datasets}.
 
 \subsection{Datasets}
+The first dataset we used was generated from 300 frames of source animation \cite{animation}.
+We refer to the extracted images as ``frameblocks'' --
+each frameblock was chosen to represent significant change between two source frames.
+Frames were processed sequentially, which resulted in a total of 56,337 generated images.
+The CIFAR-10 dataset was also used, in order to help evaluate how our models
+compare to current research.
+The CIFAR-10 data consists of 10 different categories of images, with 60,000 images total.
+Examples of the categories include dogs, horses, frogs, and automobiles.
+
 \begin{figure}[h!]
 \centering
 \begin{subfigure}{0.22\textwidth}
@@ -342,7 +346,7 @@ Random samples are shown in Figure \ref{fig:datasets}.
 \begin{minipage}[t]{0.95\linewidth}
 \begin{centering}
 % FRAME
-{\includegraphics[width=\linewidth]{frame_samplesxrange.png}}
+{\includegraphics[width=\linewidth]{frame_samples.png}}
 \caption{Generated dataset.}
 \label{fig:frame_dataset}
 \end{centering}
@@ -354,7 +358,7 @@ Random samples are shown in Figure \ref{fig:datasets}.
 \begin{minipage}[t]{0.95\linewidth}
 \begin{centering}
 % CIFAR
-{\includegraphics[width=\linewidth]{cifar_samplesxrange.png}}
+{\includegraphics[width=\linewidth]{cifar_samples.png}}
 \caption{CIFAR-10 dataset.}
 \label{fig:cifar_dataset}
 \end{centering}
@@ -365,80 +369,71 @@ Random samples are shown in Figure \ref{fig:datasets}.
 \label{fig:datasets}
 \end{figure}
 
-The first dataset evaluated was generated from 300 frames of source animation \cite{animation}.
-Each frame was a resolution of 1080 by 1920 pixels.
-We refer to the saved images as ``frameblocks'' --
-each frameblock was chosen to represent significant change between two source frames.
-Frames were processed sequentially, which resulted in a total of 56,337 generated images.
-The CIFAR-10 dataset was also used, in order to help evaluate how our models
-compare to current research.
-The CIFAR-10 data consisted of 10 different categories of images, with 60,000 images total.
-Examples of the categories include dogs, horses, frogs, and automobiles.
-
 During training and evaluation, input images from each dataset were pre-processed
 in order to produce low resolution versions containing controlled amounts of random anomalies and noise.
-Equation \ref{eq:alter} expresses how images were altered to provide the sources for enhancement.
-First, a random sample of uniform noise, $I^{N}$, was generated in the shape of
+Equation \ref{eq:alter} expresses how images were altered.
+First, a random sample of uniform noise, $I_{N}$, was generated in the shape of
 sample image, $I$. A linear combination was applied to add $\alpha$ amount of the input
 image with $1 - \alpha$ amount of the random noise
 (where $0 \leq \alpha \leq 1$).
-Afterwards, a Gaussian blur was applied with scale $\beta$.
+Afterwards, a Gaussian blur was applied with stride $\beta$.
 We decided to evaluate several different senarios of varying image quality.
 The top row of each sample in Figure \ref{fig:example_outputs} shows altered samples
 of an image from the CIFAR-10 dataset with varying parameters of $\alpha$ and $\beta$.
-The OpenCV Python library was used to perform the same alterations accross all model architectures.
+The OpenCV Python library was used to perform the same alterations accross all model architectures,
+so we know the results are consistent and repeatable.
 
 \begin{equation}
 \label{eq:alter}
-I' = G_{\beta,\beta}(\alpha I + (1 - \alpha)I^{N})
+I' = G_{\beta,\beta}(\alpha I + (1 - \alpha)I_{N})
 \end{equation}
 
 \subsection{Evaluation}
-A major criticism for GANs is the
+A major criticism of GANs and other generative models is the
 ``lack of a robust and consistent evaluation method\dots''
 \cite{gmm}.
 As opposed to other machine learning models, GANs do not optimize any kind of objective function,
 and operate instead on a learned latent space
-which cannot be evaluated analytically.
-Thus, in order to evaluate the GAN models,
+which cannot be analyzed analytically.
+Thus, in order to evaluate the implemented models,
 we must find a way to numerically compare the generated images to their respective targets.
 
 Researchers have defined many different means of comparing two images.
-Some of this research is focused on image context, such as if two images have the same
-person in them.
+Some of this research is focused on image context, such as if two images contain the same
+person or setting.
 This type of analysis would not benefit our project,
 since the image needs to be exact --
 simply containing similar features is not enough.
 Thus, we turned to the measurements of
 Mean Squared Error (MSE) and Peak Signal-To-Noise Ratio (PSNR),
-since these are both commonly used to evaluate super resolution algorithms
+as both matrics are commonly used to evaluate super resolution algorithms
 \cite{super_resolution}.
 However, since MSE has been found to overlook high-frequency details,
 and PSNR involves complicated calculations,
-it was decided to not use these methods as a means for evaluation
+we decided against using these methods as a means for evaluation
 at this time
 \cite{srgan}.
 
 In place of MSE and PSNR, we chose to use the concept of pixel distance
 to compare two images.
-Pixel distance is often referred to as the $L^2$ distance.
+Pixel distance is often referred to as $L^2$ distance.
 The expression for $L^2$ between two images, $I_1$ and $I_2$, is
 shown in Equation \ref{eq:distance} \cite{graphics}.
-Here pixels are treated as vectors, and images as
-3-dimensional matrices.
-For a pixel $\mathbf{P}$,
-$\mathbf{P} = \langle r,g,b \rangle$ represents
-the red, green, and blue color values,
-respectively.
-Note that the distance between
-two pixels $\mathbf{P}$ and $\mathbf{Q}$ is denoted as
-$||\mathbf{P} - \mathbf{Q}|| =
-\sqrt{(P_x - Q_x)^2 + (P_y - Q_y)^2 + (P_z - Q_z)^2}$.
 
 \begin{equation}
 \label{eq:distance}
 \sum_{i=1}^{w \times h}||\mathbf{P_i}^{I_2} - \mathbf{P_i}^{I_1}||
 \end{equation}
+
+Pixels are treated as vectors, and images as
+3-dimensional matrices.
+$\mathbf{P} = \langle r,g,b \rangle$ represents
+the red, green, and blue color values for pixel $P$,
+respectively.
+Note that the distance between
+two pixels $\mathbf{P}$ and $\mathbf{Q}$ is defined in the following expression:
+$$||\mathbf{P} - \mathbf{Q}|| =
+\sqrt{(P_r - Q_r)^2 + (P_g - Q_g)^2 + (P_b - Q_b)^2}$$
 
 Each of the 60,000 images in either dataset have resolutions of
 32 pixels in width ($w$) and 32 pixels in height ($h$).
@@ -454,17 +449,16 @@ we found it to be a credible and efficient replacement of $L^2$ distance
 \cite{image_analysis}.
 For a visual comparison of standard $L^2$ to our implementation,
 see Figure \ref{fig:pixel_distance}.
+The modified distance calculation we used for our evaluation is shown in Equation \ref{eq:xor}.
 
 \begin{equation}
 \label{eq:xor}
 \sum_{i=1}^{w \times h}\lceil(\sum_{x \in r,g,b}\mathbf{P_i}(x)^{I_2} \oplus \mathbf{P_i}(x)^{I_1})\rceil^{255}
 \end{equation}
 
-The XOR calculation used is a much faster image distance calculation than
-traditional $L^2$, and represents the same 
 The sum of color values ($\sum_{x \in r,g,b}$) is stored in
 the corresponding 8-bit pixel of a black and white image.
-Values are capped at 255 to avoid erroneous results with overflow.
+Values are capped at 255 to avoid erroneous results with overflow in evaluation.
 Percentage of enhancement (e.g. likeness of an image to the target)
 is calculated using a ratio of the pixel sum $S_p$
 and that of a completely black image, $T_p = 255 \times w \times h$.
@@ -512,71 +506,59 @@ Visually speaking, a darker image signifies greater difference than a lighter im
 Since the base DCGAN architecture was created for image generation from noise,
 we found no feasible way to inject a conditioning image during training.
 Several methods were attempted to fix this problem.
-We first attempted to manipulate the Z-latent vector
-This is the vector trained by the GAN to map features of one image to another.
+We first looked at manipulating the Z-latent vector.
+This is the vector trained by the GAN to map features from one image to another.
 Since the latent vector is unknown until training occurs,
 it was impractical to initialize it without a way to convert
-the condition image into the latent space.
+the condition image into latent space.
 After several attempts, this method was abandoned.
 
 The next approach proved to be more useful than manipulating the latent vector directly.
-The GAN was made to generate $G(\mathbf{x})$ of
+The DCGAN was made to generate $G(\mathbf{x})$ of
 the expression $I_E = X - G(\mathbf{x})$. The theory behind this approach was to train
 the model to generate the enhancement by inversing the alterations made in pre-processing.
-The way the generator is setup, however, back-propagation acts on the image generated
-and not the calculated image, $I_E$.
+We found that with the way the generator is implemented, however,
+back-propagation acts on the image generated and not the calculated image, $I_E$.
 Thus, the generator eventually became confused and quickly spiraled out of control thereafter.
-When compared to the good results of the SRGAN,
-we decided the DCGAN implementation did not provide enough data to support evaluation.
-The model does however produce good images from noise,
-examples of which are shown in Figure \ref{fig:dcgan_outputs}.
-
-The Sparse Attention Transformer was the most problematic of all the network architectures we studied.
-The Transformer required a Linux operating system, and the TensorFlow and Blocksparse modules.
-Those two modules required conflicting Python versions, so the only way we could get the source code to run
-was to modify the Blocksparse module scripts and remove Python 3 syntax.
-Despite the misgivings with the architecture, we were able to get it running.
-The next issue we faced was with preparing our image data as inputs into the Transformer.
-We reimagined how to split our data to be fed into the network correctly.
+When comparing the DCGAN results to those of the SRGAN,
+we decided the DCGAN implementation did not provide enough significance to support evaluation.
+However, the model did produce good images from noise.
+Examples of generated images are shown in Figure \ref{fig:dcgan_outputs}.
 
 \section{Results}
 The SRGAN and Transformer models were trained on 75\% of the dataset, with shuffling,
-for each combination of parameters.
+for each combination of parameters ($\alpha$ and $\beta$).
 The remaining 25\% of images were used for testing.
-Green and blue lines are measurements for the CIFAR dataset, while
-yellow and red lines are measurements for our generated frameblock dataset.
-Means are provided as dashed lines for each distribution.
-
 Figure \ref{fig:training_results} shows the calculated enhancement
 during training.
-The average enhancement for each distribution is drawn in
-a horizontal dashed line. These averages are also recorded in Table \ref{tbl:enhancement}.
-The results of our tests are presented in Table \ref{tbl:results}.
-The SRGAN showed much better trends than the Transformer.
-As shown in the graph, we can clearly see that the SRGAN model increased in accuracy over the course of training.
-The Transformer's performance was unexpectedly erratic, which explains why some images were over-fit.
-The SRGAN model handled each dataset very differently,
-and the distinction between to the two distributions is very pronounced.
-In comparision, the Transformer seemed to have roughly the same results (both good and bad)
-for either dataset. From the dashed lines, however, we can see the same trend as in the SRGAN.
+The average enhancement for each distribution is drawn as a horizontal dashed line.
+Green and blue colored lines denote measurements for the CIFAR dataset, while
+yellow and red lines are measurements for our generated frameblock dataset.
 
-The averages captured in Table \ref{tbl:results} also shows a great divide between training and testing results.
-Both the SRGAN and Transformer suffered a dip in accuracy between training and testing,
-however the Transformer's accuracy dropped around 4 times more than the SRGAN.
-This result again shows that our Transformer model was over-fitting to some data.
-Some final outputs of testing each model are shown in Figure \ref{fig:example_outputs}.
-
-\begin{figure}[htbp]
+\begin{figure}[h!]
 \centerline{\includegraphics[width=8cm]{srgan_training_results.png}}
 \centerline{\includegraphics[width=8cm]{attn_training_results.png}}
 \caption{Results during training of the SRGAN and Transformer models.}
 \label{fig:training_results}
 \end{figure}
 
+Results of our testing data are presented in Table \ref{tbl:results}.
+We found that the SRGAN showed much better trends than the Transformer.
+As shown in the graphs, the SRGAN model increased in accuracy over the course of training.
+The Transformer's performance was unexpectedly erratic, which explains why some images were better learned than others.
+The SRGAN model handled each dataset very differently,
+shown by the pronounced distinction between to the two distributions.
+By comparision, the mean accuracies of the Transformer are much closer together.
+
+As a way of evaluating each model's capabilities for images with unknown amounts of
+noise and blurring, we also trained them on images with random combinations of noise and blurring.
+We were surprised to find that these results differed only slightly from
+those of the least-altered set of images.
+This proves that generative models are appropritate for solving real-world enhancement
+problems, where images are not usually affected by anamolous data in the same way or amount.
 Overall, our generated dataset performed much better than the CIFAR-10 dataset.
-This is what we anticipated, since all images in our dataset had the same qualities --
-subject, lighting, color, and negative space were found to be important factors in affecting
-model performance.
+This is what we anticipated, since all images in our dataset had the same qualities.
+Subject, lighting, color, and negative space were found to influence the accuracy of image enhancement.
 
 \begin{table}[t]
 \begin{centering}
@@ -635,31 +617,32 @@ model performance.
 \end{tabular}
 \bigskip
 \caption{Evaluation for the SRGAN and Transformer models on each set of parameters.}
-\label{tbl:enhancement}
+\label{tbl:results}
 \egroup
 \end{centering}
 \end{table}
 
-Overall average SRGAN: 0.84291. Transformer: 0.62945.
-SRGAN was on average, 1.3 times as accurate as the Transformer architecture.
+The averages captured in Table \ref{tbl:results} demonstrate the disparity between training and testing performance.
+Both the SRGAN and Transformer suffered a dip in accuracy between training and testing,
+however the Transformer's accuracy dropped around 4 times more than the SRGAN's.
+This result again shows that our Transformer model was over-fitting to some data.
+The average SRGAN accuracy on testing data was 0.84291,
+while the Transformer had an average accuracy of 0.62945.
+Thus the SRGAN was on average 1.3 times as accurate as the Transformer architecture.
 
-Average enhancement for the 75-7 SRGAN model on testing data was 0.8860892.
-The 90-7 and 90-3 SRGAN models were closer together, with enhancements of
-0.9263004 and 0.9270327, respectively.
-These results clearly show the impact of noise when training the model.
-Switching from $\beta = 3$ to $\beta = 7$ created an insignificant change
-compared to the increase of $\alpha = 0.75$ to $\alpha = 0.90$.
-Thus, noise more heavily impacted results than blur.
-This effect is demonstrated by the samples shown in Figure \ref{fig:srgan_outputs};
-the most distorted image is still close to the target, but not nearly as close as the
-images with less noise.
-
-In comparison, the Transformer produced images of varying accuracy.
-Some images were nearly perfect, while others were highly inaccurate,
-which brought down the overall accuracy to around 0.6. %derp
-There was clear a clear trend of over-fitting to certain types of images.
-Images of dogs and cars were much clearer than images of horses, for example.
-The image we chose as the sample was of median quaility.
+We found that noise more heavily impacted results than blur for either model.
+This effect is demonstrated by the samples shown in Figure \ref{fig:srgan_outputs},
+where the most distorted image is not nearly as close to the target image as the enhancements from less noise.
+By comparison, the Transformer outputs shown in Figure \ref{fig:attn_outputs}
+are much lower quality, but demonstrate the same trend.
+We found the poor performance was due to the high variance of the Transformer's accuracy.
+The Transformer had a clear trend of over-fitting to certain types of images.
+Some images were nearly perfect, while others were highly inaccurate.
+The image we chose as the sample in Figure \ref{fig:attn_outputs} was of median quaility.
+Example outputs for the DCGAN, SRGAN, and Transformer models are
+shown in Figures \ref{fig:final_srgan_outputs}, \ref{fig:final_attn_outputs}, and \ref{fig:final_dcgan_outputs}.
+The XOR comparison image for each input pair is shown where applicable,
+comparing the architecture outputs (left) to the real source images (right).
 
 \begin{figure}[h!]
 \centering
@@ -691,42 +674,25 @@ The image we chose as the sample was of median quaility.
 \label{fig:example_outputs}
 \end{figure}
 
-Sample outputs for the DCGAN, SRGAN, Transformer models are
-shown in Figures \ref{fig:srgan_outputs}, \ref{fig:attn_outputs}, and \ref{fig:dcgan_outputs}.
-The XOR comparison image for each pair of inputs is shown where applicable,
-comparing the architecture outputs (left) to real source images (right).
-
-\section{Future Work}
-The next step for the project will be to complete the implementation for the
-Sparse Attention (Transformer) architecture. It is expected that this architecture
-will give better results than either of the DCGAN and SRGAN architectures.
-The SRGAN architecture already achieved an average enhancement of up to 92\%
-the quality of the target image.
-We also plan to tweak the SRGAN model such that it uses
-convolutional and convolutional-transpose layers in D and G, respectively.
-The result should be a DCGAN version of the original SRGAN.
-Comparing the results of the modified model to the original will provide
-insight into how the layer changes affected the model's output.
-
-Another study that will be performed is a variation of image degradation,
-to test whether the trained models can learn how to enhance images with alterations
-over the spectrum of parameter values.
-This factor will be important for evaluating a model's
-capabilities in general.
-
 \section{Conclusion}
-Image enhancement is a widely-studied problem, with new advancements in the field
-being made each year.
-In order to find the best model possible for enhancing low quality images,
-we will evaluate several machine learning architectures.
-Current tests show promise in the GAN architecture,
-specifically the SRGAN model that was used for testing.
-While the original DCGAN model faired poorly, it will be interesting to see the
-impacts of modifying the layers of the SRGAN into a DCGAN-type architecture.
-While results have yet to be collected from the Transformer,
-the non-convolutional model will be an excellent comparison once completed.
-The project will conclude with an extrapolation on future research
-and the implications of our results on generalized image enhancement.
+Image enhancement is a difficult problem to solve.
+With the advent of machine learning, however, researchers have been able to
+produce more realistic and detailed enhancements from very crude images.
+Here we discussed our work regarding the evaluation of several machine learning architectures.
+%Our results show the power of applying machine learning models to new problems.
+Our analysis is not exhaustive, and there are still plenty more models we will
+test in the future as applicable to this problem.
+The most promising of these networks include the
+Convolutional Neural Network (CNN) and Conditional GAN (cGAN).
+
+Out of the models implemented, the SRGAN showed the best performance accross the board.
+While the DCGAN and Transformer models faired poorly in our analysis,
+we note that with some further development they could conceivably obtain results similar to
+those acheived by the SRGAN.
+The added capabilities of Sparse Attention Transformers in particular is promising
+for enhancement and many other image processing problems.
+We look forward to learning of the exciting discoveries that will be made in Computer Vision
+through the research and application of GANs, Transformers, and other generative models.
 
 \begin{figure*}[h!]
 \centering
@@ -897,7 +863,7 @@ and the implications of our results on generalized image enhancement.
 \end{center}
 \end{subfigure}
 \caption{Super Resolution GAN evaluation.}
-\label{fig:srgan_outputs}
+\label{fig:final_srgan_outputs}
 \end{figure*}
 
 \begin{figure*}[h!]
@@ -1069,7 +1035,7 @@ and the implications of our results on generalized image enhancement.
 \end{center}
 \end{subfigure}
 \caption{Generative Sparse Transformer evaluation.}
-\label{fig:attn_outputs}
+\label{fig:final_attn_outputs}
 \end{figure*}
 
 \begin{figure*}[h!]
@@ -1099,7 +1065,7 @@ and the implications of our results on generalized image enhancement.
 \end{center}
 \end{subfigure}
 \caption{Deep Convolutional GAN evaluation.}
-\label{fig:dcgan_outputs}
+\label{fig:final_dcgan_outputs}
 \end{figure*}
 
 \nocite{overview}
