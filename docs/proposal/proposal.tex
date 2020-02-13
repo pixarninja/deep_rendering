@@ -1,0 +1,177 @@
+\documentclass{article}
+\usepackage[final]{neurips_2018}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+\title{Deep Rendering}
+\author{Mark Wesley Harris\\
+University of Colorado\\
+Colorado Springs\\
+\texttt{wharris2@uccs.edu} \\
+\And
+Semwal Sudhanshu\\
+University of Colorado\\
+Colorado Springs\\
+\texttt{ssemwal@uccs.edu} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We propose a new render pipeline that combines current research in deep learning
+to generate realistic, high-resolution renderings of 3D scenes.
+\end{abstract}
+
+\section{Hypothesis}
+\label{sec:hypothesis}
+
+\subsection{Research Questions}
+\label{subsec:questions}
+\begin{enumerate}
+\item Is it possible to create a system to generate frames dynamically, based off of previous rendered data and previously un-rendered frames?
+\item How much resolution or quality can be expected using such an approach?
+\item Does the relevance of previously rendered frames impact how the pipeline handles new inputs?
+\item How efficient could the proposed system be, compared to the outputs of current rendering technologies?
+\item Where else might this pipeline be applied?
+\end{enumerate}
+
+\subsection{Proposed Methodology}
+\label{subsec:methodology}
+\begin{enumerate}
+\item Research current technologies
+\item Draft a pipeline that could work in theory
+\item Apply current knowledge and previous researched architectures to the drafted pipeline
+\item Create sample input data, including rendered frames (or pieces of frames) with corresponding binary from the source scene
+\end{enumerate}
+
+\section{Introduction}
+\label{sec:introduction}
+Even state-of-the-art machines struggle with rendering a 3-dimensional scene. This is due to the preprocessing and processing which must occur for each artifact in the scene and every pixel of the screen. The problem is exacerbated further for high-resolution renderings, wherein millions of objects and pixels are present in the scene and on the screen, respectively.
+
+Researchers are now turning to deep learning and other advanced techniques in order to produce images. [super resolution GANs, conditional data, text to image]
+
+\section{Related Work}
+\label{sec:related}
+
+\subsection*{Pose Guided Person Image Generation, 2017}
+\nocite{pg2}
+This paper discusses the development of the Pose Guided Person Generation
+Network (PG\textsuperscript{2}). The architecture contains two stages:
+the first is a generative network using several stacked convolutional layers,
+which generates an initial course output;
+the second is a similar generative network that refines the
+result of the previous stage. By combining both of these,
+the authors show that it is possible to produce withstanding results of
+high similarity to the person positioned in the target pose.
+Ma et al. use a U-Net architecture for the generators, and a discriminator
+similar to that used in the DCGAN created by
+\cite{unsupervised_representational}.
+
+The PG\textsuperscript{2} architecture is very relevant to our proposed work,
+however there are a few key differences. The ``target pose'' that was used as 
+part of the inputs of the first generator is represented in a visual format,
+specifically a black and white image with a series of nodes representing the
+pose. This pose representation was also used to mask the reference image,
+thereby disregarding data irrelevant to the network.
+The generative network was thus trained to learn the relationship between two
+images -- a target pose and masked input pose. However the complexity of a scene,
+which must take into account all objects both
+inside and outside the camera's view, cannot be represented in the same format.
+%This is evident from the sophistication of current rendering pipelines, which
+%make use of ray tracing and Monte Carlo sampling to produce their output.
+It is possible that multiple images representing a panoramic view of the scene
+could be used, however obtaining these would eliminate the advantages of deep
+rendering. To compensate,
+we propose using semantic scene data in the form of text.
+%It is unclear whether this text-to-image process will be as fruitful as the
+%image-to-image technique employed by Ma et al.
+
+\subsection*{Multi-View Image Generation from a Single-View, 2018}
+\nocite{multi_view}
+The architecture used by Zhao et al. is similar to the PG\textsuperscript{2}
+discussed previously; their architecture is also comprised of two generative
+networks, and was evaluated in its ability to create a new view of a given pose.
+Since the basic Generative Adversarial Network (GAN) has a hard time
+learning global structures, they implemented VariGANs which use
+``\dots variation inference for modeling correct contours and adversarial
+learning to fill realistic details'' \cite{multi_view}. The complete architecture
+is similar to PG\textsuperscript{2}, but uses primitive word embedding instead of
+a standardized representation for the semantics input into the coarse generator.
+They also only use one conditional discriminator instead of a discriminator per
+generative network.
+
+Although the results of their evaluation were not as good as
+PG\textsuperscript{2}, Zhao et al. include information that is valuable for
+our proposed work. If nothing else, we will study the differences between the two
+architectures, to discover improvements for the generative models. The claimed
+success of both works provides reassurance for our proposed network architecture.
+
+\subsection*{Learn, Imagine and Create: Text-to-Image Generation from Prior Knowledge, 2019}
+\nocite{leica}
+Qiao et al. combine Attention with concepts from GANs to create what they call
+LEarn, Imagine and CreAte GAN (LeicaGAN). Similar to the papers discussed
+previously, their architecture is comprised of a coarse image generator followed
+by a fine image generator. The main difference for the LeicaGAN is the use
+of textual-visual co-embedding (TVE) and multiple priors aggregation (MPA)
+to further extract semantic meaning from their inputs. Qiao et al. argue that
+their network more closely models how humans analyze textual data, and therefore
+will have better results in identifying the relationships between an image and
+its semantic description.
+
+The LeicaGAN was not evaluated in the same way as PG\textsuperscript{2} and
+the VariGAN architectures; instead of converting one image to another, they
+generate a novel image off of textual input alone. In this sense, the LeicaGAN
+is the most relevant research to our proposed work. However, since the results
+are more arbitrary, it is possible the network could fail in recognizing the
+precise global representations for the semantics of a scene as a whole.
+We propose first using the coarse image generator of the LeicaGAN architecture,
+and later improving the results through studying the PG\textsuperscript{2} and
+VariGAN networks.
+
+\subsection*{Image-to-Image Translation with Conditional Adversarial Networks (IEEE 2017)}
+Converting one type of image to another type (e.g. low to high detail, BW to color, etc.)
+Uses a cGAN architecture, which may be similar to the LeicaGAN
+
+\subsection*{Blockwise Multi-Order Feature Regression for Real-Time Path Tracing Reconstruction (ACM 2019)}
+Real-time path tracing reconstruction
+Uses camera and image data to construct a good image from a poor one
+Proves the concept has potential (we propose instead to use previous image data, not yet rendered at all)
+
+\subsection*{Geometry-Based Next Frame Prediction from Monocular Video (IEEE 2017)}
+Uses LSTM to construct new frame based on old frames and depth data
+Very similar, however only uses image based data contained inside the view window
+LSTM may be necessary to improve results for final workflow
+
+\subsection*{3D Point Capsule Networks (CVPR 2019)}
+Based on 2D capsule networks, created a novel 3D point capsule network 3D-PointCapsNet
+“Latent capsules obtained from point clouds alleviate the restriction of parameterizing the latent space by a single, low dimensional vector”
+CN has been turned into CapsuleGANs, so 3D-PointCapsNet could be used to turn 3D point data into images, in theory
+Could be used to extract point cloud data semantics more effectively than JSON format
+Argument against: disregards already-segmented nature of scene, losing the data we already know (would require architecture reconstruction)
+
+\subsection*{Stereo Magnification: Learning view synthesis using multiplane images (ACM 2018, Google)}
+Generates novel views of a scene using known imagery
+Learns a global scene representation, i.e. the relationship between camera and image
+Good reference for loss and evaluation
+
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Approach}
+\label{subsec:approach}
+
+\subsection{Timeline}
+\label{subsec:timeline}
+
+\bibliography{proposal}
+\bibliographystyle{aaai}
+
+\end{document}
