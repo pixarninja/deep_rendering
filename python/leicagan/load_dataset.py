@@ -3,10 +3,25 @@
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from visual_genome import api as vg
-from PIL import Image as Image
+from PIL import Image
+from io import BytesIO
 import requests
 import os
+import json
+import cv2
+import numpy as np
 
+# Data class for storing an image and it's associated JSON attributes.
+class data():
+    def __init__(self, image, attr): 
+        self.image = image
+        self.attr = attr
+          
+    def toString(self):
+        print("Image: ", self.image )
+        print("Attributes: ", self.attr )
+
+# Save the image with optional regions to disk.
 def visualize_regions(path, image, regions):
     response = requests.get(image.url)
     if response.status_code == 200:
@@ -18,25 +33,54 @@ def visualize_regions(path, image, regions):
     img = Image.open(path)
     plt.imshow(img)
     ax = plt.gca()
+    ax.set_xticks([])
+    ax.set_yticks([])
     for region in regions:
-        ax.add_patch(Rectangle((region.x, region.y), region.width, region.height, fill=False, edgecolor='red', linewidth=3))
+        ax.add_patch(Rectangle((region.x, region.y), region.width, region.height, fill=False, edgecolor='red', linewidth=1))
         ax.text(region.x, region.y, region.phrase, style='italic', bbox={'facecolor':'white', 'alpha':0.7, 'pad':10})
     fig = plt.gcf()
-    plt.tick_params(labelbottom='off', labelleft='off')
-    plt.show()
+    plt.savefig(path)
+    plt.clf()
 
-ids = vg.get_image_ids_in_range(start_index=0, end_index=1)
-image_id = ids[0]
-print ('We got an image with id: %d' % image_id)
-
-image = vg.get_image_data(id=image_id)
-print ('The url of the image is: %s' % image.url)
-
-regions = vg.get_region_descriptions_of_image(id=image_id)
-print ('The first region descriptions is: %s' % regions[0].phrase)
-print ('It is located in a bounding box specified by x:%d, y:%d, width:%d, height:%d' % (regions[0].x, regions[0].y, regions[0].width, regions[0].height))
-
-fig = plt.gcf()
-fig.set_size_inches(18.5, 10.5)
+def parse_json(image_path, attr_path):
+    # Open attribute JSON file.
+    with open('./datasets/VisualGenome/attributes.json', 'r') as f:
+        attributes = json.load(f)
+        
+    # Store ids for each image.
+    ids = vg.get_image_ids_in_range(start_index=0, end_index=1)
     
-visualize_regions('.\\datasets\\VisualGenome\\' + str(image_id) + '.jpeg', image, regions[:])
+    for i, image_id in enumerate(ids):
+        # Process image data.
+        image = vg.get_image_data(id=image_id)
+        response = requests.get(image.url)
+        if response.status_code == 200:
+            img = Image.open(BytesIO(response.content))
+            if not os.path.exists(image_path):
+                os.makedirs(image_path)
+                
+            cv2.imwrite(image_path + '%03d.jpg' % (image_id), cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
+                    
+        # Process attribute data.
+        attrs = attributes[i]['attributes']
+        filtered_attr = []
+        for attr in attrs:
+            filtered_attr.append(str(attr['object_id']) + ' ' + attr['names'][0] + ' ' + str(attr['h']) + ' ' + str(attr['w']) + ' ' + str(attr['x']) + ' ' + str(attr['y']))
+
+        if not os.path.exists(attr_path):
+            os.makedirs(attr_path)
+        with open(attr_path + str(image_id) + '.txt', 'w') as f:
+            for n, line in enumerate(filtered_attr):
+                if n > 0:
+                    f.write('\n' + line)
+                else:
+                    f.write(line)
+
+        regions = vg.get_region_descriptions_of_image(id=image_id)
+        print(regions)
+        exit()
+
+base_path = './datasets/VisualGenome/'
+image_path = base_path + 'images/'
+attr_path = base_path + 'attributes/'
+parse_json(image_path, attr_path)
