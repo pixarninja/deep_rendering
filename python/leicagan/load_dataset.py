@@ -42,6 +42,7 @@ def visualize_regions(path, image, regions):
     plt.savefig(path)
     plt.clf()
 
+# Parse VisualGenome dataset from JSON.
 def parse_json(image_path, attr_path):
     # Open attribute JSON file.
     with open('./datasets/VisualGenome/attributes.json', 'r') as f:
@@ -49,6 +50,8 @@ def parse_json(image_path, attr_path):
         
     # Store ids for each image.
     ids = vg.get_image_ids_in_range(start_index=0, end_index=1)
+    w = 800.0;
+    h = 600.0;
     
     for i, image_id in enumerate(ids):
         # Process image data.
@@ -63,22 +66,38 @@ def parse_json(image_path, attr_path):
                     
         # Process attribute data.
         attrs = attributes[i]['attributes']
-        filtered_attr = []
-        for attr in attrs:
-            filtered_attr.append(str(attr['object_id']) + ' ' + attr['names'][0] + ' ' + str(attr['h']) + ' ' + str(attr['w']) + ' ' + str(attr['x']) + ' ' + str(attr['y']))
+        filtered_data = process_attributes(attrs, w, h)
+        
+        #regions = vg.get_region_descriptions_of_image(id=image_id)
+        #filtered_data = process_regions(regions, w, h)
 
         if not os.path.exists(attr_path):
             os.makedirs(attr_path)
-        with open(attr_path + str(image_id) + '.txt', 'w') as f:
-            for n, line in enumerate(filtered_attr):
+        with open(attr_path + '%03d.dat' % (image_id), 'w') as f:
+            for n, line in enumerate(filtered_data):
                 if n > 0:
                     f.write('\n' + line)
                 else:
                     f.write(line)
-
-        regions = vg.get_region_descriptions_of_image(id=image_id)
-        print(regions)
+                    
         exit()
+
+# Process region information.
+def process_regions(regions, w, h):
+    filtered_data = []
+    for region in regions:
+        filtered_data.append(str(region.id) + ' ' + region.phrase.replace(" ", "") + ' ' + str(region.height / h) + ' ' + str(region.width / w) + ' ' + str(region.x / w) + ' ' + str(region.y / h))
+    
+    print(filtered_data)
+    return filtered_data
+
+# Process attribute information.
+def process_attributes(attrs, w, h):
+    filtered_data = []
+    for attr in attrs:
+        filtered_data.append(str(attr['object_id']) + ' ' + attr['names'][0] + ' ' + str(attr['h'] / h) + ' ' + str(attr['w'] / w) + ' ' + str(attr['x'] / w) + ' ' + str(attr['y'] / h))
+    
+    return filtered_data
 
 base_path = './datasets/VisualGenome/'
 image_path = base_path + 'images/'
