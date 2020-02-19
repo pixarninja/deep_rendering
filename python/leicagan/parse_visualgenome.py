@@ -43,13 +43,13 @@ def visualize_regions(path, image, regions):
     plt.clf()
 
 # Parse VisualGenome dataset from JSON.
-def parse_json(image_path, attr_path):
+def parse_json(image_path, attr_path, batch_size):
     # Open attribute JSON file.
     with open('./datasets/VisualGenome/attributes.json', 'r') as f:
         attributes = json.load(f)
         
     # Store ids for each image.
-    ids = vg.get_image_ids_in_range(start_index=0, end_index=1)
+    ids = vg.get_image_ids_in_range(start_index=0, end_index=(batch_size - 1))
     w = 800.0;
     h = 600.0;
     
@@ -80,8 +80,6 @@ def parse_json(image_path, attr_path):
                 else:
                     f.write(line)
                     
-        exit()
-
 # Process region information.
 def process_regions(regions, w, h):
     filtered_data = []
@@ -99,7 +97,10 @@ def process_attributes(attrs, w, h):
     
     return filtered_data
 
-base_path = './datasets/VisualGenome/'
-image_path = base_path + 'images/'
-attr_path = base_path + 'attributes/'
-parse_json(image_path, attr_path)
+base_path = './datasets/VisualGenome'
+image_path = base_path + '/images/'
+attr_path = base_path + '/attributes/'
+batch_size = 512
+
+# Parse images from source dataset.
+parse_json(image_path, attr_path, batch_size)
