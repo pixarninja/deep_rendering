@@ -54,169 +54,53 @@ to generate realistic, high-resolution renderings of 3D scenes.
 
 \section{Introduction}
 \label{sec:introduction}
-Converting a 3D scene into a rendered frame is difficult
-even for state-of-the-art machines. This is due to the
-preprocessing and complex computations which occur for each
-artifact in the scene and every pixel of the screen. The problem is exacerbated
-further for higher resolution renderings, wherein millions of objects are present
-in the scene all of which must be processed at rendertime.
-We propose using machine learning to assist in the rendering process.
-Our proposed system would work alongside current rendering pipelines
-to potentially lower the time and resources spent during rendering.
-Once trained, the model could also be used to preview small changes
-to the scene in real-time, without re-rendering any parts of the scene.
+Even state-of-the-art machines struggle with rendering a 3-dimensional scene. This is due to the preprocessing and computations which must occur for each artifact in the scene and every pixel of the screen. The problem is exacerbated further for higher resolution renderings, wherein millions of objects are present in the scene being rendered.
 
-While a deep learning method has not yet been proposed as an aid for rendering,
-scientists have begun researching the process of image generation as a whole.
-We propose a study on how relevant scene data in the form of text could be
-converted into a corresponding image representative of the rendered frame.
-The architecture is built in two stages: a coarse-image generator, focused on
-creating global structure; and a fine-image generator, which has the purpose
-of up-scaling the output of the first generator to create a final output
-of comparable quality and detail as the frames used during training.
-Here we cover an overview of applicable research for our proposed work,
-including an overview of current model architectures.
-
-\subsection{Generative Adversarial Networks}
-\label{subsec:gan}
-One highly researched technique is the Generative Adversarial Network (GAN)
-first proposed by \cite{generative_adversarial_networks}.
-The GAN was developed as a way to train a model to produce
-more realistic images. The network is made up of two models,
-a generator and a discriminator.
-By training both models in tandem,
+Researchers are now turning to deep learning and other advanced techniques in order to produce images. The Generative Adversarial Network (GAN) was first
+proposed by \cite{gan}.
+The GAN was first proposed as a way to train a model to produce
+more realistic images. The network is made up of two architectures:
+a generator, $G$, and a discriminator, $D$.
 GANs are able to generate new images that have similar qualities to
-those in the dataset which they are trained on.
-As discussed by \cite{image_transformer}, GANs are
-``\dots notoriously unstable\dots [and] generated images fail to reflect
-the diversity in the training set''.
-%GANs cannot be applied for image generation in general,
-%since their outputs lack semantic meaning.
-Recent research, such as \cite{texture_synthesis} and \cite{multiscale_video},
-shows that we are able to obtain
-images with higher quality and more semantic relevance by giving
-an algorithm non-random seed data
--- such as a low-quality image -- to generate from.
-The Deep Convolutional Generative Adversarial Network (DCGAN)
-proposed by \cite{unsupervised_learning}
-uses convolutional and convolutional-transpose layers in
-the discriminator and generator, respectively.
-\cite{pose_guided_image_generation} were successful in using
-a variant conditional DCGAN as their G2 model, and
-\cite{unsupervised_learning} employed a DCGAN to
-create a generative system for image arithmetic.
-Their results show that the DCGAN could work well
-for generating low-quality images with semantic relevance.
-\cite{image_to_image} and \cite{deep_video} used a conditional GAN (cGAN)
-which is similar to the DCGAN, however
-the input vector is random noise instead of a condition image.
-They found their model worked well in
-synthesizing, reconstructing, and colorizing input images.
-Finally, the Super Resolution GAN (SRGAN) was first developed through
-Single Image Super Resolution (SISR) research,
-and showed a drastic decrease in loss measurements
-compared to ``NN, bicubic interpolation, and four state-of-the-art methods''
-\cite{srgan}.
-Each of these model architectures use the GAN as a framework for generating
-higher-quality images with more relevance to situations in the real world.
-\cite{semantic_photo} created a system called GANPaint, to allow users to
-semantically edit photographs through image representational learning.
-\cite{fewer_labels} showed how GANs can be self-supervised to reduce
-the amount of labeled data needed during training.
+those in the dataset which they are trained on
+\cite{generative_adversarial_networks}.
 
-\subsection{Non-Adversarial Networks}
-\label{subsec:non_adversarial}
-GANs are not the only worthwhile image generation algorithms.
-\cite{spatiotemporal}, \cite{monte_carlo}
-generated high quality outputs given very low quality input
-images. The inputs of their algorithm are renderings using
-very low sample-per-pixel global illumination.
-%As shown in Figure \ref{fig:spatiotemporal}, t
-The algorithm is able to
-transform very crude, noisy frames into production-grade outputs comparable to
-the frames rendered at full resolution.
-%Their algorithm is essentially a
-%multi-pass filter which the inputs are fed into, making it very fast and
-%reliable.
-%TODO Discuss downsides of their algorithm compared to ours
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=7cm]{gan_architecture.png}}
+\caption{Basic Generative Adversarial Network architecture, with a generator $G$
+and discriminator $D$
+\cite{cgan}.}
+\label{fig:gan_architecture}
+\end{figure}
 
-Yet another data translation architecture is the Transformer, which was first
-proposed as a way to use attention mechanisms more efficiently
-\cite{attention_need}.
-Transformers are able to
-``\dots model arbitrary dependencies
-in a constant number of layers''
-and have proven useful for natural language processing \cite{generative_transformers}.
-For the development of their Sparse Attention architecture,
-Child \textit{et al.} introduced sparse factorizations on the attention matrix
-of a Transformer in order to speed up processing for long sequences of
-data.
-%Essentially, they implemented an approximation of the dense attention
-%operation by combining several cheaper attention operations.
-%The result was a faster and better attention-based architecture
-%that could be trained on longer sequences of data 
-%\cite{generative_transformers}.
-\cite{subscale_pixel} also used a Attention network which they named
-the Subscale Pixel Network (SPN).
- 
-Another solution is the Convolutional Neural Network, which uses cheap
-filtering operations to learn from input images.
-The CNN excels at feature learning, however researchers have started
-applying it to image generation as well.
-\cite{deep_colorization} used a CNN for image editing, and
-\cite{posecnn} employed a CNN to estimate pose information
-and object attributes given an input image.
-\cite{multiplane} used a fully-convolutional encoder-decoder architecture to
-create novel views of a scene using known imagery at learned depths.
-PixelCNN is a CNN that uses an input image vector
-to generate output images similar to it.
-The system is used by \cite{comparing_simulations} for evaluating simulation
-data.
-\cite{pixelcnn++} provides improvements on the
-PixelCNN architecture
-for system efficiency and image output.
-\cite{parallel_multiscale} proposed improvements on PixelCNN runtime,
-with implications that it could be used qualitatively to
-``\dots achieve compelling results in text-to-image synthesis and
-video generation, as well as diverse super-resolution from very small images''.
+The generalized GAN architecture is shown in Figure \ref{fig:gan_architecture}.
+The model works by training both the generator $G$ and
+discriminator $D$ in tandem.
+$G$ is trained to progressively generate more realistic images,
+while $D$ is trained to recognize differences between real and fake inputs.
+This relationship can be expressed in the format of a
+``two-player min-max game'', shown in Equation \ref{eq:gan_basic}.
+Here, $p_{data}(\mathbf{x})$ represents the true data distribution,
+and $p_{z}(\mathbf{z})$ represents the distribution of noise.
+The goal in training a GAN is to minimize error in the generator
+and maximize error detection in the discriminator \cite{cgan}.
+Optimizations and variants can be made from this simple concept, of which include
+the implementations of cGAN, DCGAN, and SRGAN.
 
-\subsection{Data Processing}
-\label{subsec:data_processing}
-Data from a 3D scene contains countless relationships hidden within it.
-Take for example the interactions of light on a surface --
-what is rendered to the screen completely depends on
-the properties of the surface and the amount of light cast onto it.
-The addition of realistic lighting properties, such as reflection and refraction,
-further complicates the problem of segmenting the 3D scene data.
-Capsule Networks have been used to segment shape data in a
-more efficient way than the Convolutional Nueral Network (CNN) has
-done in the past. CNN's and other architectures
-``\dots often discard
-spatial arrangements in data, hence falling short of respecting
-the parts-to-whole relationship, which is critical to explain
-and describe 3D shapes'' \cite{3D_capsule_networks}.
-\cite{dynamic_routing} introduced capsule networks (CapsNets) as a powerful
-alternative to CNNs, which learn ``\dots a more equivariant representation of images
-that is more robust to changes in pose and spatial relationships of parts of objects
-in images'' \cite{transforming_auto_encoders}.
-%\cite{dynamic_routing} also argue that, because of the natural variance in
-%the representation of data,
-%``\dots  CapsNet is moderately robust to small affine transformations of the
-%training data''.
-The Capsule Network has been extended to 3 dimensions, by
-\cite{video_capsule} and \cite{3D_capsule_networks}.
-The former used CNs to classify actions in video,
-while the latter learned to perform several different manipulations
-requiring a greater understanding of the data as a whole.
-The Capsule-GAN proposed by \cite{capsule_synthesis}, \cite{capsgan},
-and \cite{capsule_gan}
-showed improvements in image generation through dynamic routing.
+\begin{equation}
+\label{eq:gan_basic}
+\begin{split}
+\text{min}_G\text{max}_DV(D,G) &=
+E_{\mathbf{x}\sim p_{data}(\mathbf{x})}[\log D(\mathbf{x})] \\
+&+ E_{\mathbf{z}\sim p_{z}(\mathbf{z})}[\log(1 - D(G(\mathbf{z})))]
+\end{split}
+\end{equation}
 
 \section{Related Work}
 \label{sec:related}
 
 \subsection*{Pose Guided Person Image Generation, 2017}
-\nocite{pose_guided_image_generation}
+\nocite{pg2}
 This paper discusses the development of the Pose Guided Person Generation
 Network (PG\textsuperscript{2}). PG\textsuperscript{2} contains two stages:
 the first is a generative network using several stacked convolutional layers,
@@ -227,7 +111,7 @@ the authors show that it is possible to produce withstanding results of
 high similarity to the subject positioned in the target pose.
 Ma et al. use a U-Net architecture for the generators, and a discriminator
 similar to that used in the DCGAN created by
-\cite{unsupervised_learning}.
+\cite{unsupervised_representational}.
 
 The PG\textsuperscript{2} architecture is very relevant to our proposed work,
 however there are a few key differences. The ``target pose'' that was used as 
@@ -295,7 +179,7 @@ and later applying the work from other architectures to try to improve
 our results.
 
 \subsection*{Image-to-Image Translation with Conditional Adversarial Networks, 2017}
-\nocite{image_to_image}
+\nocite{pix2pix}
 Isola et al. show that a conditional GAN (cGAN) architecture can be used to
 convert from one type of image to another; examples include edges to photograph,
 day to night, and black and white to color. The constructed architecture, called
@@ -346,7 +230,7 @@ our final results, BMFR or an alternative algorithm could be
 applied to further refine or correct anomalies.
 
 \subsection*{3D Point Capsule Networks, 2019}
-\nocite{3D_capsule_networks}
+\nocite{point_capsule}
 As discussed previously, one of the most prevalent problems in processing raw 3D
 scene data is accurately capturing the relationships inherent to the data itself.
 Zhao et al. designed a network architecture to encapsulate this information into
@@ -354,8 +238,7 @@ learned objects of data. Their architecture, called 3D-PointCapsNet,
 builds upon the recent research of 2D capsule networks (CNs).
 They state that their 3D-PointCapsNet architecture functions as
 ``\dots an auto-encoder for generic representation
-learning in unstructured 3D data'' \cite{3D_capsule_networks}.
-The network was trained
+learning in unstructured 3D data'' \cite{point_capsule}. The network was trained
 to recognize spatial arrangements of 3D point cloud data, as well as perform
 numerous tasks such as part segmentation and configuration interpolation.
 
@@ -398,8 +281,6 @@ including the source frames we plan to use in our proposed work.
 
 \subsection{Timeline}
 \label{subsec:timeline}
-
-\nocite{pixel_cnn}
 
 \bibliography{proposal}
 \bibliographystyle{aaai}
