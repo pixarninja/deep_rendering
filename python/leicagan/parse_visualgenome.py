@@ -21,8 +21,21 @@ class data():
         print("Image: ", self.image )
         print("Attributes: ", self.attr )
 
-# Save the image with optional regions to disk.
-def visualize_regions(path, image, regions):
+# Save the image with attributes to disk.
+def visualize_regions():
+    # Open attribute JSON file.
+    print('Loading JSON file...')
+    with open('./datasets/VisualGenome/attributes.json', 'r') as f:
+        attributes = json.load(f)
+        
+    # Store ids for each image.
+    ids = vg.get_image_ids_in_range(start_index=0, end_index=(batch_size - 1))
+    
+    # Select an image index and image.
+    i = 0
+    image = vg.get_image_data(id=ids[i])
+    path = './datasets/VisualGenome/' + str(i + 1) + '_attrs.jpg'
+        
     response = requests.get(image.url)
     if response.status_code == 200:
         os.path.dirname(path)
@@ -31,34 +44,44 @@ def visualize_regions(path, image, regions):
                 f.write(chunk)
     
     img = Image.open(path)
+    h, w = np.array(img).shape[:2]
+    attrs = attributes[i]['attributes']
+    filtered_data = process_attributes(attrs, float(w), float(h))
+    
     plt.imshow(img)
     ax = plt.gca()
     ax.set_xticks([])
     ax.set_yticks([])
-    for region in regions:
-        ax.add_patch(Rectangle((region.x, region.y), region.width, region.height, fill=False, edgecolor='red', linewidth=1))
-        ax.text(region.x, region.y, region.phrase, style='italic', bbox={'facecolor':'white', 'alpha':0.7, 'pad':10})
+    for line in filtered_data:
+        attr = line.split()
+        ax.add_patch(Rectangle((float(attr[4]) * w, float(attr[5]) * h), float(attr[2]) * w, float(attr[3]) * h, fill=False, edgecolor='red', linewidth=1))
+        ax.text(float(attr[4]) * w, float(attr[5]) * h, attr[1], style='italic', bbox={'facecolor':'white', 'alpha':0.7, 'pad':10})
     fig = plt.gcf()
+    fig.set_size_inches(18.5, 10.5)
     plt.savefig(path)
     plt.clf()
 
 # Parse VisualGenome dataset from JSON.
 def parse_json(image_path, attr_path, batch_size):
     # Open attribute JSON file.
+    print('Loading JSON file...')
     with open('./datasets/VisualGenome/attributes.json', 'r') as f:
         attributes = json.load(f)
         
     # Store ids for each image.
     ids = vg.get_image_ids_in_range(start_index=0, end_index=(batch_size - 1))
-    w = 800.0;
-    h = 600.0;
+    w = 800.0
+    h = 600.0
     
     for i, image_id in enumerate(ids):
+        print('Processing ID ' + str(image_id) + '...')
+        
         # Process image data.
         image = vg.get_image_data(id=image_id)
         response = requests.get(image.url)
         if response.status_code == 200:
             img = Image.open(BytesIO(response.content))
+            h, w = np.array(img).shape[:2]
             if not os.path.exists(image_path):
                 os.makedirs(image_path)
                 
@@ -66,7 +89,7 @@ def parse_json(image_path, attr_path, batch_size):
                     
         # Process attribute data.
         attrs = attributes[i]['attributes']
-        filtered_data = process_attributes(attrs, w, h)
+        filtered_data = process_attributes(attrs, float(w), float(h))
         
         #regions = vg.get_region_descriptions_of_image(id=image_id)
         #filtered_data = process_regions(regions, w, h)
@@ -93,7 +116,7 @@ def process_regions(regions, w, h):
 def process_attributes(attrs, w, h):
     filtered_data = []
     for attr in attrs:
-        filtered_data.append(str(attr['object_id']) + ' ' + attr['names'][0] + ' ' + str(attr['h'] / h) + ' ' + str(attr['w'] / w) + ' ' + str(attr['x'] / w) + ' ' + str(attr['y'] / h))
+        filtered_data.append(str(attr['object_id']) + ' ' + attr['names'][0].replace(" ", "") + ' ' + str(attr['h'] / h) + ' ' + str(attr['w'] / w) + ' ' + str(attr['x'] / w) + ' ' + str(attr['y'] / h))
     
     return filtered_data
 
@@ -103,4 +126,6 @@ attr_path = base_path + '/attributes/'
 batch_size = 512
 
 # Parse images from source dataset.
+visualize_regions()
+exit()
 parse_json(image_path, attr_path, batch_size)
