@@ -11,6 +11,7 @@
 \usepackage{graphicx}
 \graphicspath{{images/}}
 \usepackage{caption,subcaption}
+\usepackage{array}
 
 \title{Deep Rendering}
 \author{Mark Wesley Harris\\
@@ -46,8 +47,8 @@ to generate realistic, high-resolution renderings of 3D scenes.
 \item Where else might this pipeline be applied?
 \end{enumerate}
 
-\subsection{Proposed Methodology}
-\label{subsec:methodology}
+\section{Proposed Methodology}
+\label{sec:methodology}
 \begin{enumerate}
 \item Draft a pipeline that could work in theory based on current research.
 \item Apply the latest research in deep image generation to the drafted pipeline.
@@ -433,6 +434,8 @@ of the work.
 \subsection{Initial Results}
 \label{subsec:initial}
 
+Figure \ref{fig:initial_results}.
+
 \begin{figure}[h!]
 \centering
 % Frame samples
@@ -465,6 +468,36 @@ of the work.
 
 \subsection{Timeline}
 \label{subsec:timeline}
+
+\begin{center}
+\def\arraystretch{3}
+\begin{tabular}{ | m{0.25\textwidth} | m{0.1\textwidth} | m{0.375\textwidth} | m{0.1125\textwidth} | } 
+\hline
+\textbf{Task} & \textbf{Duration} & \textbf{Description} & \textbf{Status} \\ 
+\hline
+\hline
+Initial project research & 1 month & Foundational research and project planning. & Completed \\
+\hline
+Data preprocessing & 2 months & Construct a framework for data processing. Create a starting dataset and write documentation on project expectations. & Completed\\
+\hline
+Create source scene data & 2 weeks & Create an visually-rich animated 3D scene using current animation and rendering technologies. & Completed\\
+\hline
+Extract scene semantics & 1 month & Extract semantic data for each input frame or portion of the frame. Include scripts for generating the data from the starting dataset in an organized fashion. & Completed \\
+\hline
+Generator II & 2 months & Research, develop, and test suitable upscaling networks for the proposed second generative model. Compare and document the results. & Completed \\
+\hline
+Generator I & 3 months & Confirm the work of \cite{leica} in text-to-image generation and apply it to the generated semantics for each frame. & In Progress \\
+\hline
+Evaluation & 2 weeks & Test the central generative network and determine if further research is required. Alternate options include Attention and/or Capsule Networks. & Pending \\
+\hline
+Frame reconstruction & 3 months & Reconstruct a completely generated frame given the outputs of Generator II. & Not Started \\
+\hline
+Data collection & 1 month & Collect data from the architecture and compare against current methods and benchmarks. & Not Started\\
+\hline
+Final documentation & 2 months & Given the final results, complete the thesis and publication write-ups. & Not Started\\
+\hline
+\end{tabular}
+\end{center}
 
 \nocite{pixel_cnn}
 
