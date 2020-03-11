@@ -10,7 +10,7 @@ class Point:
         self.y = y
         
     def toString(self):
-        return str(self.x) + ", " + str(self.y)
+        return str(self.x) + ', ' + str(self.y)
 
 def generate_imageblocks(path):
     # Initialize seed variables.
@@ -37,23 +37,22 @@ def generate_imageblocks(path):
     images.sort()
 
     # Process each image.
-    for image_index in range(0, len(images)):
-        if image_index > 0:
-            exit()
+    for i in range(0, len(images)):
         # Obtain attributes from written file.
         attrs = []
-        with open(attr_path + '%03d.dat' % (image_index + 1), 'r') as f:
+        with open(attr_path + '%03d.dat' % (i + 1), 'r') as f:
             for line in f:
                 values = line.split()
                 attrs.append(values)
 
-        image = images[image_index]
-        image_str_out = 'image' + str(image_index + 1)
+        image = images[i]
+        print('Processing: ' + image + '...')
+        image_str_out = 'image' + str(i + 1)
         block_index = 1
-        block_str_out = 'block' + str(block_index + 1)
+        block_str_out = 'block' + str(block_index)
 
         # Initialize seed variables.
-        img_str = images_path + images[image_index]
+        img_str = images_path + images[i]
 
         # Choose smallest boundaries.
         img = cv2.imread(img_str)
@@ -84,21 +83,15 @@ def generate_imageblocks(path):
                     
                     l1 = Point(left / float(width), bottom / float(height)) 
                     r1 = Point(right / float(width), top / float(height)) 
-                    l2 = Point(x, y + h) 
+                    l2 = Point(x, y + h)
                     r2 = Point(x + w, y)
                     
                     if overlap( l1, r1, l2, r2 ):
                         # Calculate offsets based on coordinates of frameblock
-                        attr[2] = str(h)
-                        attr[3] = str(w)
-                        attr[4] = str((x - left))
-                        attr[5] = str((y - top))
-                        attrs_inside_roi.append(attr)
+                        roi_attr = [ attr[1], str((x - left)), str((y - top)), str(w), str(h) ]
+                        attrs_inside_roi.append(roi_attr)
 
                 if attrs_inside_roi != []:
-                    # ROI pixel processing
-                    print(str(block_index) + ". imageblock: (" + str(left) + ", " + str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
-
                     # Store window contents as image.
                     img_str_out = training_path + image_str_out + block_str_out
                     img_roi = img[top:bottom, left:right]
@@ -115,7 +108,7 @@ def generate_imageblocks(path):
 
                 # Increase imageblock index.
                 block_index += 1
-                block_str_out = 'block' + str(block_index + 1)
+                block_str_out = 'block' + str(block_index)
                 
                 # Shift horizontally.
                 left += int(block_dim / block_offset)
@@ -124,7 +117,6 @@ def generate_imageblocks(path):
             # Shift vertically.
             top += int(block_dim / block_offset)
             bottom += int(block_dim / block_offset)
-            print(str(bottom) + ', ' + str(height))
             left = 0
             right = block_dim
 
