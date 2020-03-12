@@ -30,8 +30,17 @@ Colorado Springs\\
 \maketitle
 
 \begin{abstract}
-We propose a new render pipeline that combines current research in deep learning
-to generate realistic, high-resolution renderings of 3D scenes.
+We propose the research and development of new render pipeline
+to generate plausible renderings of 3D scenes.
+Our proposed work combines current research in deep learning to generate
+coarse-to-fine image outputs for portions of the frame being rendered.
+These portions can then stitched together to form the final output frame.
+The results of our work will give insight into solving the complex problem of
+frame prediction without the expense of formal rendering.
+Our proposed architecture could also be used to speed up
+the animation pipeline itself, by rendering predictions of an animated
+scene in real-time based on the data from previously rendered and predicted
+frames.
 \end{abstract}
 
 \section{Hypothesis}
@@ -40,47 +49,58 @@ to generate realistic, high-resolution renderings of 3D scenes.
 \subsection{Research Questions}
 \label{subsec:questions}
 \begin{enumerate}
-\item Is it possible to create a system to generate frames dynamically, based off of past render data and the scene data of previously un-rendered frames?
-\item How much resolution and semantic relevance can be expected from the outputs of such an approach?
-\item How do previously rendered frames impact the results of the pipeline given new inputs?
-\item How efficient could the proposed system be, compared to the outputs of current rendering technologies?
+\item Is it possible to create a system to generate frames dynamically, based off
+past render data and the scene data of previously un-rendered frames?
+\item How much resolution and semantic relevance can be expected from the outputs
+of such an approach?
+\item How do previously rendered frames impact the results of the pipeline given
+new inputs?
+\item How efficient could the proposed system be, compared to the outputs of
+current rendering technologies?
 \item Where else might this pipeline be applied?
 \end{enumerate}
 
-\section{Proposed Methodology}
+\subsection{Proposed Methodology}
 \label{sec:methodology}
 \begin{enumerate}
 \item Draft a pipeline that could work in theory based on current research.
 \item Apply the latest research in deep image generation to the drafted pipeline.
-\item Create training data, including rendered frames (or pieces of frames) with corresponding binary from the source scene.
+\item Create training data, including rendered frames (or pieces of frames) with
+corresponding binary from the source scene.
 \item Evaluate the pipeline on generated and benchmark sources.
-\item Compare the results to current state-of-the-art solutions.
+\item Compare the results to current state-of-the-art solutions for text-to-image
+synthesis and frame prediction.
 \end{enumerate}
 
 \section{Introduction}
 \label{sec:introduction}
-Rendering a 3D scene is difficult
-even for state-of-the-art machines. This is due to the
-preprocessing and complex computations which occur for each
+Rendering a 3D scene is time consuming
+even for state-of-the-art technology. This is due to the
+accumulation of complex computations which occur for each
 artifact in the scene and every pixel on the screen. The problem is exacerbated
-further for higher resolution renderings, wherein millions of objects are present
-in the scene all of which must be processed at rendertime.
+further for higher resolution renderings wherein millions of objects are present
+in the scene, all of which must be processed at rendertime.
 We propose using machine learning to assist in the rendering process.
 Our proposed system would work alongside current rendering pipelines
 to potentially lower the time and resources spent during rendering.
-Once trained, the model could also be used to preview small changes in
-real-time without re-rendering any parts of the scene.
+Once trained, we predict the model could also be used to preview small changes in
+real-time without re-rendering any parts of the scene, which could have major
+implications for real-time rendering technologies such as Augmented and Virtual
+Reality.
 
 We propose a study on how relevant scene data in the form of text could be
 converted into a corresponding image representative of the rendered frame.
 The architecture is built in two stages: a coarse-image generator, focused on
 creating global structure; and a fine-image generator, which has the purpose
-of up-scaling the output of the first generator to create a final output
-of comparable quality and detail as a rendered frame.
+of up-scaling the output of the first generator and creating a final output.
+%of comparable quality and detail as a rendered frame.
+We hope to create a baseline that could justify the application of our process
+to research in future rendering technologies.
 While a deep learning method has not yet been proposed as an aid for rendering
 animated sequences, image generation is well researched as a whole.
-Here we cover an overview of applicable research for our proposed work,
-including an overview of current model architectures.
+Here we cover an overview of applicable research,
+including an overview of current model architectures and how they could benefit
+our proposed work.
 
 \subsection{Generative Adversarial Networks}
 \label{subsec:gan}
@@ -93,26 +113,28 @@ a generator and a discriminator.
 By training both models in tandem,
 GANs are able to generate new images that have similar qualities to
 those in the dataset which they are trained on.
-The Deep Convolutional Generative Adversarial Network (DCGAN)
-proposed by \cite{unsupervised_learning}
-uses convolutional and convolutional-transpose layers in
-the discriminator and generator architectures, respectively.
-\cite{pose_guided_image_generation} were successful in using
-a variant conditional DCGAN as their G2 model, and
-\cite{unsupervised_learning} employed a DCGAN to
-create a generative system for image arithmetic.
-Their results show that the DCGAN could work well
-for generating low-quality images with semantic relevance.
-
 While the vanilla GAN works fairly well as a random generative model,
-\cite{image_transformer} state that GANs are
-``\dots notoriously unstable``, and that their outputs
-``\dots fail to reflect the diversity in the training set.''
+\cite{image_transformer} state that GANs
+tend to be unstable,
+%are ``\dots notoriously unstable``,
+and that their outputs
+do not reflect the diversity in the training set.
+%``\dots fail to reflect the diversity in the training set.''
 Recent research, such as \cite{texture_synthesis} and \cite{multiscale_video},
 shows that we are able to obtain
 higher quality images with more semantic relevance by giving
 an algorithm non-random seed data
 -- such as a low-quality image or textual description -- to generate from.
+
+\nocite{dcgan}
+uses convolutional and convolutional-transpose layers in
+the discriminator and generator architectures, respectively.
+\cite{pose_guided_image_generation} were successful in using
+a variant conditional Deep Convolutional GAN (DCGAN) as their G2 model, and
+\cite{unsupervised_learning} employed a DCGAN to
+create a generative system for image arithmetic.
+%Their results show that GAN architectures could work well
+%for generating low-quality images with semantic relevance.
 \cite{image_to_image} and \cite{deep_video} used a conditional GAN (cGAN),
 which requires a condition image as part of the random input vector.
 They found their model worked well in
@@ -120,44 +142,23 @@ synthesizing, reconstructing, and colorizing input images.
 The Super Resolution GAN (SRGAN), which was first developed through
 Single Image Super Resolution (SISR) research,
 showed a drastic decrease in loss measurements
-compared to ``NN, bicubic interpolation, and four state-of-the-art methods''
+other state-of-the-art methods, including Neural Networks and interpolation
+%compared to ``NN, bicubic interpolation, and four state-of-the-art methods''
 \cite{srgan}.
-\cite{semantic_photo} created a system called GANPaint, to allow users to
-semantically edit photographs through image representational learning,
-and \cite{fewer_labels} showed how GANs can be self-supervised to reduce
+\cite{semantic_photo} created a system called GANPaint, which allows users to
+semantically edit photographs through image representational learning.
+\cite{fewer_labels} showed how GANs can be self-supervised to reduce
 the amount of labeled data needed during training.
-Each of these model architectures improves on the GAN as a framework to generate
+Each of these model architectures improves on the GAN framework to generate
 higher-quality images with more relevance to situations in the real world.
 
 \subsection{Non-Adversarial Networks}
 \label{subsec:non_adversarial}
 GANs are not the only worthwhile image generation algorithms.
-Another class of data translation architectures is the Transformer,
-which was first proposed as a way to use attention mechanisms more efficiently
-\cite{attention_need}.
-Transformers are able to ``\dots model arbitrary dependencies
-in a constant number of layers'' and have proven useful for natural language processing \cite{generative_transformers}.
-In their Sparse Attention architecture,
-\cite{sparse_transformers} introduced sparse factorizations on the attention matrix
-of a Transformer in order to speed up processing for long sequences of
-data.
-\cite{image_transformer} performed similar work by using a self-attention
-architecture to perform
-``\dots a sequence
-modeling formulation of image generation with
-a tractable likelihood.''
-%Essentially, they implemented an approximation of the dense attention
-%operation by combining several cheaper attention operations.
-%The result was a faster and better attention-based architecture
-%that could be trained on longer sequences of data 
-%\cite{generative_transformers}.
-\cite{subscale_pixel} used a network based on Attention as well, which they named
-the Subscale Pixel Network (SPN).
- 
-Another prominent solution in deep image processing is
-the Convolutional Neural Network, which uses filtering operations
+A popular alternative in deep image processing is
+the Convolutional Neural Network (CNN), which uses filtering operations
 in parallel to learn features of input images.
-CNNs excel at feature extraction, however researchers have also started to
+While CNNs excel at feature extraction, researchers have also started to
 apply them to the problem of image generation.
 \cite{deep_colorization} used a CNN for image colorization, and
 \cite{posecnn} developed a CNN to estimate pose information
@@ -168,11 +169,42 @@ One of the most prominent named CNN architectures is PixelCNN,
 which uses an input image vector to generate similar output images.
 The system was tested by \cite{comparing_simulations} for evaluating simulation
 data. \cite{pixelcnn++} provides improvements on the original
-PixelCNN architecture, and showed increased efficiency and better outputs.
+PixelCNN architecture, and showed increased efficiency with better outputs.
 \cite{parallel_multiscale} also proposed improvements on PixelCNN runtime,
-with implications that it could be used qualitatively to
-``\dots achieve compelling results in text-to-image synthesis and
-video generation, as well as diverse super-resolution from very small images.''
+with implications that it could be applied to the problems of
+text-to-image synthesis and diverse super-resolution.
+%used qualitatively to ``\dots achieve compelling results in text-to-image synthesis and
+%video generation, as well as diverse super-resolution from very small images.''
+
+Another class of data translation is the Transformer,
+which was first proposed by \cite{attention_need}
+as a way to use attention mechanisms more efficiently.
+\cite{generative_transformers} explain that Transformers are able to
+model an arbitrary number of dependencies in a constant number of layers,
+%``\dots model arbitrary dependencies
+%in a constant number of layers''
+and have proven useful for natural language processing.
+In their Sparse Attention architecture, \cite{sparse_transformers} introduced
+sparse factorizations on the attention matrix
+of a Transformer in order to speed up processing for long sequences of
+data.
+\cite{image_transformer} performed similar work by using a self-attention
+architecture to
+generate images with tractable likelihood.
+%perform ``\dots a sequence
+%modeling formulation of image generation with
+%a tractable likelihood.''
+%Essentially, they implemented an approximation of the dense attention
+%operation by combining several cheaper attention operations.
+%The result was a faster and better attention-based architecture
+%that could be trained on longer sequences of data 
+%\cite{generative_transformers}.
+\cite{subscale_pixel} used a network based on Attention as well, which they named
+the Subscale Pixel Network (SPN).
+Text-to-image generation was notably improved by \cite{attngan}, with their
+AttnGAN architecture. The network combines the best of the
+generator/discriminator GAN framework with the improvements in
+dependency correlation found in Transformers.
 
 \subsection{Data Processing}
 \label{subsec:data_processing}
@@ -183,16 +215,20 @@ what is rendered to the screen completely depends on
 the properties of the surface and the amount of light cast onto it.
 The addition of realistic lighting properties, such as reflection and refraction,
 further complicates the segmentation of scene data.
-New research suggests that
-Capsule Networks can be used to segment shape data in a
-more efficient way than CNNs. This is because CNNs and similar architectures
-``\dots often discard
-spatial arrangements in data, hence falling short of respecting
-the parts-to-whole relationship, which is critical to explain
-and describe 3D shapes'' \cite{3D_capsule_networks}.
+New research by \cite{3D_capsule_networks} suggests that
+Capsule Networks could be more efficient for segmenting shape data
+than other neural networks, which
+often discard the spatial arrangements inherent in data structures.
+%``\dots often discard
+%spatial arrangements in data, hence falling short of respecting
+%the parts-to-whole relationship, which is critical to explain
+%and describe 3D shapes''.
 \cite{dynamic_routing} introduced capsule networks (CapsNets) as a powerful
-alternative to CNNs, which learn ``\dots a more equivariant representation of 
-images that is more robust to changes in pose and spatial relationships of parts of objects in images'' \cite{transforming_auto_encoders}.
+alternative to CNNs. They state that CapsNets learns
+a representation of images that is more robust to natural variance.
+%``\dots a more equivariant representation of 
+%images that is more robust to changes in pose and spatial relationships of
+%parts of objects in images'' \cite{transforming_auto_encoders}.
 %\cite{dynamic_routing} also argue that, because of the natural variance in
 %the representation of data,
 %``\dots  CapsNet is moderately robust to small affine transformations of the
@@ -203,14 +239,20 @@ The former used CNs to classify actions in video,
 while the latter learned to perform several different manipulations
 requiring a greater understanding of the point data as a whole.
 The Capsule-GAN proposed by \cite{capsule_synthesis}, \cite{capsgan},
-and \cite{capsule_gan}
+and \cite{capsule_gan},
 showed improvements in image generation through dynamic routing.
-They stipulate that the application of capsules and GANs should improve
-``\dots image generation, and plausibly video (frame) generation''
+The researchers stipulate that the emergence of capsules and GANs could improve
+frame generation for videos, which is the focus of our proposed work
+%``\dots image generation, and plausibly video (frame) generation''
 \cite{capsgan}.
 
 \section{Related Work}
 \label{sec:related}
+We now cover in detail several key sources.
+While our scope will not be limited to these sources alone,
+they provide the most relevance to our goal. On top of what is mentioned below,
+we plan to make use of evaluation metrics, benchmarks, and assessments the
+researchers made for their respective projects.
 
 \subsection*{Pose Guided Person Image Generation, 2017}
 \nocite{pose_guided_image_generation}
@@ -221,7 +263,8 @@ which generates an initial course output;
 the second is a similar generative network that refines the
 result of the previous stage. By combining both of these,
 the authors show that it is possible to produce withstanding results of
-high similarity to the subject positioned in the target pose.
+high similarity to the subject positioned in the target pose
+(Figure \ref{fig:pose_guided_image_generation}).
 \cite{pose_guided_image_generation} use a U-Net architecture for the generators, 
 and a discriminator
 similar to that used in the DCGAN created by
@@ -253,7 +296,8 @@ foundation for our proposed network and its components.
 The architecture covered in this paper is similar to that of PG
 \textsuperscript{2}
 discussed previously; it is also comprised of two generative
-networks, and was evaluated in its ability to create a new view of a given pose.
+networks, and was evaluated in its ability to create a new view of a given pose
+(Figure \ref{fig:multi_view}).
 \cite{multi_view} argue that it is difficult for basic
 Generative Adversarial Networks (GANs) to learn global structures,
 which is why they implemented what they
@@ -282,7 +326,7 @@ of textual-visual co-embedding (TVE) and multiple priors aggregation (MPA)
 to further extract semantic meaning from their inputs. \cite{leica} argue that
 their network more closely models how the human brain analyzes textual data,
 and therefore will have better results in identifying the relationships between
-an image and its textual description.
+an image and its textual description (Figure \ref{fig:leica}).
 
 The LeicaGAN was not evaluated in the same way as the PG\textsuperscript{2} and
 the VariGAN architectures; instead of converting one image to another, they
@@ -290,15 +334,16 @@ generate a novel image off of textual input alone. In this sense, the LeicaGAN
 is the most relevant research to our proposed work. However, since the results
 are more arbitrary, it is possible the network could fail in recognizing the
 precise representations and complexities within a scene as a whole.
-We propose first using the coarse image generator of the LeicaGAN architecture,
-and later applying the work from other architectures to try to improve
-our results.
+We propose first using the baseline AttnGAN architecture also used by 
+\cite{leica}, and later applying the work from LeicaGAN and other architectures 
+to try to improve our results.
 
 \subsection*{Image-to-Image Translation with Conditional Adversarial Networks, 2017}
 \nocite{image_to_image}
 Isola et al. show that a conditional GAN (cGAN) architecture can be used to
 convert from one type of image to another; examples include edges to photograph,
-day to night, and black and white to color. The constructed architecture, called
+day to night, and black and white to color (Figure \ref{fig:image_to_image}).
+The constructed architecture, called
 Pix2Pix, uses a U-Net like structure similar to what
 \cite{pose_guided_image_generation} developed for
 PG\textsuperscript{2}. However, the Pix2Pix discriminator network is modeled off
@@ -329,8 +374,8 @@ at real-time frame rates'' \cite{path_tracing}.
 To alleviate this problem, they propose using a
 Blockwise Multi-Order Feature Regression (BMFR) algorithm.
 As explained, BMFR creates a non-linear fit with respect to the
-features of a 1 spp path-traced
-frame. They also include a preprocessing stage where frame data (including
+features of a 1 spp path-traced frame (Figure \ref{fig:path_tracing}).
+They also include a preprocessing stage where frame data (including
 spacial positions and normals) from previous frames is accumulated to improve
 temporal stability of noise. The results of their experiments showed
 improvements upon current real-time methods for certain aspects of the image
@@ -358,10 +403,11 @@ learned objects of data. Their architecture, called 3D-PointCapsNet,
 builds upon the recent research of 2D capsule networks (CNs).
 They state that their 3D-PointCapsNet architecture functions as
 ``\dots an auto-encoder for generic representation
-learning in unstructured 3D data.''
+learning in unstructured 3D data''.
 The network was trained
 to recognize spatial arrangements of 3D point cloud data, as well as perform
-numerous tasks such as part segmentation and configuration interpolation.
+numerous tasks such as part segmentation and configuration interpolation
+(Figure \ref{fig:3D_capsule_networks}).
 
 This work is promising for the future of 3D shape processing, however its
 implications on rendering are yet to be uncovered. Nonetheless, Zhao et al.
@@ -382,7 +428,8 @@ output based on all previous input data.
 which consumes previous frame information and outputs a depth prediction of the
 frame. They then generate the next frame off of the depth prediction, in the same
 way as the methods improved upon by \cite{image_to_image},
-in applying Pix2Pix to convert one type of image into another.
+in applying Pix2Pix to convert one type of image into another
+(Figure \ref{fig:frame_prediction}).
 
 The existing results of the LSTM network are close to the
 target output, but include gaps where the densities are unknown.
@@ -394,54 +441,101 @@ between source data and rendered frame. \cite{frame_prediction} show that
 LSTM architectures would prove useful for temporally related data,
 including the source frames we plan to use in our proposed work.
 
-\subsection{Methodology}
-\label{subsec:methodology}
-Based off of the research referenced above,
-we propose an architecture to supplement the rendering process by dynamically
-generating plausible frames off of scene data. We refer to this concept as
-Deep Rendering.
-%TODO more detail...
-
-\subsection{Approach}
-\label{subsec:approach}
-A basic block diagram of the proposed architecture is shown
-in Figure \ref{fig:block_diagram}. The overall structure of the work is
-built off of the PG\textsuperscript{2} architecture created b
-\cite{pose_guided_image_generation}, as well as the LeicaGAN network
-from \cite{leica}. Both architectures obtained remarkable results using
-a coarse-to-fine approach in image generation, wherein two generative networks
-are used one after the other. We propose to use the same approach;
-Generator I is based off of the Attention GAN model of \cite{leica},
-which proved to have the best text-to-image capabilities out of all the papers
-surveyed; for Generator II we will use the SRGAN by \cite{srgan}, which
-created good results in our tests for super resolution and anomaly removal.
-
-\begin{figure}[htbp]
-\centerline{\includegraphics[width=8cm]{block_diagram.png}}
-\caption{Block diagram for proposed architecture.}
-\label{fig:block_diagram}
+\begin{figure}[h!]
+\centering
+% PG2
+\begin{subfigure}{0.45\textwidth}
+\begin{center}
+\begin{minipage}[t]{0.855\linewidth}
+\begin{centering}
+{\includegraphics[width=\linewidth]{pg2_results.png}}
+\caption{PG\textsuperscript{2} (\cite{pose_guided_image_generation}).}\label{fig:pose_guided_image_generation}
+\end{centering}
+\end{minipage}
+\end{center}
+\end{subfigure}
+% BMFR
+\begin{subfigure}{0.45\textwidth}
+\begin{center}
+\begin{minipage}[t]{0.95\linewidth}
+\begin{centering}
+{\includegraphics[width=\linewidth]{bmfr.png}}
+\caption{BMFR Filtering (\cite{path_tracing}).}
+\label{fig:path_tracing}
+\end{centering}
+\end{minipage}
+\end{center}
+\end{subfigure}
+% Leica GAN
+\begin{subfigure}{0.45\textwidth}
+\begin{center}
+\begin{minipage}[t]{0.95\linewidth}
+\begin{centering}
+{\includegraphics[width=\linewidth]{leicagan.png}}
+\caption{LeicaGAN (\cite{leica}).}
+\label{fig:leica}
+\end{centering}
+\end{minipage}
+\end{center}
+\end{subfigure}
+% VariGAN
+\begin{subfigure}{0.45\textwidth}
+\begin{center}
+\begin{minipage}[t]{0.825\linewidth}
+\begin{centering}
+{\includegraphics[width=\linewidth]{multi_view.png}}
+\caption{VariGAN (\cite{multi_view}).}
+\label{fig:multi_view}
+\end{centering}
+\end{minipage}
+\end{center}
+\end{subfigure}
+% Pix2Pix
+\begin{subfigure}{0.45\textwidth}
+\begin{center}
+\begin{minipage}[t]{0.95\linewidth}
+\begin{centering}
+{\includegraphics[width=\linewidth]{pix2pix.png}}
+\caption{Pix2Pix (\cite{image_to_image}).}
+\label{fig:image_to_image}
+\end{centering}
+\end{minipage}
+\end{center}
+\end{subfigure}
+% Capsule Networks
+\begin{subfigure}{0.45\textwidth}
+\begin{center}
+\begin{minipage}[t]{0.925\linewidth}
+\begin{centering}
+{\includegraphics[width=\linewidth]{capsules.png}}
+\caption{3D-PointCapsNet (\cite{3D_capsule_networks}).}
+\label{fig:3D_capsule_networks}
+\end{centering}
+\end{minipage}
+\end{center}
+\end{subfigure}
+% Next frame prediction
+\begin{subfigure}{0.45\textwidth}
+\begin{center}
+\begin{minipage}[t]{0.95\linewidth}
+\begin{centering}
+{\includegraphics[width=\linewidth]{frame_prediction.png}}
+\caption{Frame Prediction \cite{frame_prediction}.}
+\label{fig:frame_prediction}
+\end{centering}
+\end{minipage}
+\end{center}
+\end{subfigure}
+\caption{Graphical references for related work.}
+\label{fig:related_work}
 \end{figure}
-
-Depending on the quality of the outputs, a paradigm shift may need to take place.
-In this instance, we plan to use the Transformer architectures discussed by
-\cite{image_transformer} and \cite{sparse_transformers} to leverage better
-results. We plan to conclude the project with a conference paper ready for
-publication. The report will also include the implications of Attention
-mechanisms and Capsule Networks -- the two newest architectures to be applied
-to deep image generation -- in order to support the completeness
-of the work.
-
-\subsection{Initial Results}
-\label{subsec:initial}
-
-Figure \ref{fig:initial_results}.
 
 \begin{figure}[h!]
 \centering
 % Frame samples
-\begin{subfigure}{0.375\textwidth}
+\begin{subfigure}{0.45\textwidth}
 \begin{center}
-\begin{minipage}[t]{0.95\linewidth}
+\begin{minipage}[t]{0.9\linewidth}
 \begin{centering}
 {\includegraphics[width=\linewidth]{srgan_frame_samples.png}}
 \caption{Generated dataset.}
@@ -466,11 +560,98 @@ Figure \ref{fig:initial_results}.
 \label{fig:initial_results}
 \end{figure}
 
+\section{Methodology}
+\label{sec:methodology}
+Based off of the research referenced above,
+we propose an architecture to supplement the rendering process by dynamically
+generating plausible frames off of scene data. We refer to this concept as
+Deep Rendering. A basic block diagram of the proposed architecture is shown
+in Figure \ref{fig:block_diagram}. Here we discuss our proposed approach and
+timeline for the research.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8cm]{block_diagram.png}}
+\caption{Block diagram for proposed architecture.}
+\label{fig:block_diagram}
+\end{figure}
+
+\subsection{Approach}
+\label{subsec:approach}
+The overall structure of our work is
+based off of the PG\textsuperscript{2} architecture created by
+\cite{pose_guided_image_generation}, as well as the LeicaGAN network
+from \cite{leica}. Both architectures obtained remarkable results using
+a coarse-to-fine approach in image synthesis, wherein two generative networks
+are applied one after the other. We propose to use the same approach;
+our Generator I is based off of the Attention GAN model of \cite{attngan},
+which should provide a reasonable baseline for image generation;
+%which proved to have the best text-to-image capabilities out of all the papers
+%surveyed;
+Generator II will use the SRGAN by \cite{srgan}, on which we
+obtained good results when testing super resolution and anomaly removal
+over our generated frameblock dataset.
+
+Depending on the quality of the outputs, a paradigm shift may need to take place.
+In this instance, we plan to use the architectures discussed by
+\cite{image_transformer}, \cite{sparse_transformers}, and
+\cite{3D_capsule_networks} to leverage better
+results. We plan to conclude the project with a conference paper ready for
+publication. The report will also include the implications of Attention
+mechanisms and Capsule Networks -- the two newest architectures to be applied
+to deep image generation -- in order to support the completeness
+of our work.
+
+\subsection{Initial Results}
+\label{subsec:initial}
+Our initial work and results are described below.
+We first created an animation source file and wrote scripts
+to generate training data to be used in our Deep Rendering research.
+We also exported textual data pairs for each image, to serve as labels for
+the training data. Finally, we worked on the Generator II model, and obtained
+good results for anomaly removal. We will next focus on the text-to-image
+model for Generator I.
+
+\subsubsection{Data Preprocessing}
+\label{subsubsec:data}
+In order to generate proper inputs for our proposed system,
+a preprocessing phase is necessary for all frames of a given
+animated sequence. This process involves selecting portions of each frame
+to become a part of the training and test datasets.
+We call these portions ``frameblocks'', as they are square sections
+of uniform width and height.
+By using buffering techniques, we ensure that even the gradual changes in the 
+scene are represented in the training data.
+Figure \ref{fig:frame_dataset} shows random samples of the training data;
+as we required, a majority of the images are unique in correlation to the changes
+in the source animation.
+%The goal of our first generative model, Generator I, is to produce a crude
+%image based on a textual description.
+So for every frameblock produced
+we must also extract semantic data from the animation source file.
+The text-image pair is then fed as input into the generator.
+While the exported features may need to be tuned to achieve the best results,
+we decided to export name, position, orientation, and property data for each
+object represented inside the frameblock. This concludes our preprocessing
+for network inputs.
+
+\subsubsection{Generator II}
+The second generator, Generator II,
+is meant to take the crude, low-quality inputs of the first generative model
+and output a higher quality image with believable detail.
+Figure \ref{fig:srgan_outputs} shows the output of our SRGAN model trained
+on the dataset discussed in Section \ref{subsubsec:data}.
+The $\mathbf{\alpha}$ and $\mathbf{\beta}$ parameters control
+how much noise and blur was used, respectively.
+The results are both analytically and visually promising.
+The average accuracy on testing data was 0.84291 for all cases,
+which included both strong and weak noise and blur. We are confident that
+the SRGAN model will prove capable enough to upsample the crude results of
+Generator I.
+
 \subsection{Timeline}
 \label{subsec:timeline}
-
 \begin{center}
-\def\arraystretch{3}
+\def\arraystretch{2.5}
 \begin{tabular}{ | m{0.25\textwidth} | m{0.1\textwidth} | m{0.375\textwidth} | m{0.1125\textwidth} | } 
 \hline
 \textbf{Task} & \textbf{Duration} & \textbf{Description} & \textbf{Status} \\ 
@@ -490,7 +671,7 @@ Generator I & 3 months & Confirm the work of \cite{leica} in text-to-image gener
 \hline
 Evaluation & 2 weeks & Test the central generative network and determine if further research is required. Alternate options include Attention and/or Capsule Networks. & Pending \\
 \hline
-Frame reconstruction & 3 months & Reconstruct a completely generated frame given the outputs of Generator II. & Not Started \\
+Frame reconstruction & 3 months & Reconstruct a frame given the outputs of Generator II. & Not Started \\
 \hline
 Data collection & 1 month & Collect data from the architecture and compare against current methods and benchmarks. & Not Started\\
 \hline
