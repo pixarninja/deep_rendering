@@ -2,6 +2,7 @@
 /docs/*/output/
 /jupyter/images/
 *.ipynb_checkpoints*
+*/logs/
 /python/*/*checkpoints*
 /python/*/original/.git*
 /python/datasets/VisualGenome/images/
