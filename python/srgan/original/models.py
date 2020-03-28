@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""Implements SRGAN models: https://arxiv.org/abs/1609.04802
+
+TODO:
+
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
