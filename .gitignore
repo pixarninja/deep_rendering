@@ -5,6 +5,8 @@
 */logs/
 /python/*/*checkpoints*
 /python/*/original/.git*
+/python/attngan/data/
+/python/attngan/eval/
 /python/datasets/VisualGenome/images/
 /python/datasets/VisualGenome/attributes*
 /python/datasets/VisualGenome/training/
