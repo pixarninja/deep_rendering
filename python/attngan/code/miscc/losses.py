@@ -24,12 +24,12 @@ def sent_loss(cnn_code, rnn_code, labels, class_ids,
     masks = []
     if class_ids is not None:
         for i in range(batch_size):
-            mask = (class_ids == class_ids[i]).astype(np.uint8)
+            mask = (class_ids == class_ids[i]).astype(np.bool)
             mask[i] = 0
             masks.append(mask.reshape((1, -1)))
         masks = np.concatenate(masks, 0)
         # masks: batch_size x batch_size
-        masks = torch.ByteTensor(masks)
+        masks = torch.BoolTensor(masks)
         if cfg.CUDA:
             masks = masks.cuda()
 
@@ -71,7 +71,7 @@ def words_loss(img_features, words_emb, labels,
     cap_lens = cap_lens.data.tolist()
     for i in range(batch_size):
         if class_ids is not None:
-            mask = (class_ids == class_ids[i]).astype(np.uint8)
+            mask = (class_ids == class_ids[i]).astype(np.bool)
             mask[i] = 0
             masks.append(mask.reshape((1, -1)))
         # Get the i-th text description
@@ -116,7 +116,7 @@ def words_loss(img_features, words_emb, labels,
     if class_ids is not None:
         masks = np.concatenate(masks, 0)
         # masks: batch_size x batch_size
-        masks = torch.ByteTensor(masks)
+        masks = torch.BoolTensor(masks)
         if cfg.CUDA:
             masks = masks.cuda()
 
@@ -181,7 +181,7 @@ def generator_loss(netsD, image_encoder, fake_imgs, real_labels,
             g_loss = cond_errG
         errG_total += g_loss
         # err_img = errG_total.data[0]
-        logs += 'g_loss%d: %.2f ' % (i, g_loss.data[0])
+        logs += 'g_loss%d: %.2f ' % (i, g_loss.item())
 
         # Ranking loss
         if i == (numDs - 1):
@@ -202,7 +202,7 @@ def generator_loss(netsD, image_encoder, fake_imgs, real_labels,
             # err_sent = err_sent + s_loss.data[0]
 
             errG_total += w_loss + s_loss
-            logs += 'w_loss: %.2f s_loss: %.2f ' % (w_loss.data[0], s_loss.data[0])
+            logs += 'w_loss: %.2f s_loss: %.2f ' % (w_loss.item(), s_loss.item())
     return errG_total, logs
 
 
