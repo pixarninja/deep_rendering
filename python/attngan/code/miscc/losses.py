@@ -5,6 +5,7 @@ import numpy as np
 from miscc.config import cfg
 
 from GlobalAttention import func_attention
+import torchvision.transforms as transforms
 
 
 # ##################Loss for matching text-image###################

@@ -3,6 +3,7 @@
 /jupyter/images/
 *.ipynb_checkpoints*
 */logs/
+*__pycache__*
 /python/*/*checkpoints*
 /python/*/original/.git*
 /python/attngan/data/
