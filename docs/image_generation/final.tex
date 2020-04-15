@@ -49,25 +49,14 @@ Abstract.
 \label{sec:introduction}
 Text to image generation is a largely studied problem in Computer Graphics, and 
 more specifically Computer Vision.
-Since this problem is impossible to perform analytically,
-researchers are now turning to machine learning to solve
-this and other complex image processing problems.
-Here we attempt to discern the best suited architecture for generating images 
-off of text inputs.
-Generating textual descriptions off of images is easier, but still very 
-difficult.
-
-\section{Overview of Architectures}
 Text-to-image generation is made possible through recent advancements in the 
 intersection between Computer Graphics and Machine Learning. Researchers are 
 applying the complex adaptive capabilities of neural networks to generate 
 portions of the image not described directly through the text input.
-Two of the most popular concepts are generative networks using adversarial 
-learning, and attention mechanisms. The most recent developments in the field 
-involve a combination of the two concepts, to create architectures with new 
-ways of processing data.
+Two of the most popular architectures studied are Generative Adversarial 
+Networks and Transformers.
 
-\subsection{Generative Adversarial Networks}
+\section{Generative Adversarial Networks}
 The Generative Adversarial Network (GAN)
 was first proposed as a way to train a model to produce more realistic images
 from noise. The vanilla GAN model works as essentially a random image generator.
@@ -79,19 +68,17 @@ those in the dataset on which they are trained
 A generalization of the GAN architecture is shown in Figure \ref{fig:gan}.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=7cm]{gan.png}}
-\caption{Basic Generative Adversarial Network architecture, with a 
-generator $G$
-and discriminator $D$
-\cite{cgan}.}
-\label{fig:gan}
+	\centerline{\includegraphics[width=7cm]{gan.png}}
+	\caption{Basic Generative Adversarial Network architecture, with a generator $G$
+		and discriminator $D$
+		\cite{cgan}.}
+	\label{fig:gan}
 \end{figure}
 
 The model works by training both the generator and
 discriminator in tandem.
 $G$ is trained to progressively generate more realistic images,
-while $D$ is trained to recognize differences between real and fake inputs 
-\cite{cgan}.
+while $D$ is trained to recognize differences between real and fake inputs \cite{cgan}.
 This relationship can be expressed in the format of a
 ``two-player min-max game'', shown in Equation \ref{eq:gan_basic}.
 
@@ -107,24 +94,36 @@ E_{\mathbf{x}\sim p_{data}(\mathbf{x})}[\log D(\mathbf{x})] \\
 $p_{data}(\mathbf{x})$ represents the true data distribution,
 and $p_{z}(\mathbf{z})$ represents the distribution of noise.
 Optimizations and variants are based off this simple concept, of which include
-the DCGAN and SRGAN architectures.
+the cGAN, DCGAN, and SRGAN architectures.
 
+\subsection{Deep Convolutional Generative Adversarial Networks}
 Many researchers found it difficult to train basic GANs to learn global 
 structures. Many found the application of variation inference and other types 
 of embedding to increase the quality of generated images \cite{varigan}.
 The Deep Convolutional Generative Adversarial Network (DCGAN)
 was first proposed as a way to bridge the capabilities of supervised learning 
-(such as Convolutional Neural Networks) and unsupervised learning (GANs). 
+(such as with Convolutional Neural Networks) and unsupervised learning (GANs). 
 The DCGAN has a similar structure to the original GAN model, but uses 
 convolutional and convolutional-transpose layers in D and G, respectively
 \cite{unsupervised_learning}.
 
-Many frameworks also make use of a Super Resolution GAN (SRGAN) architecture, 
-first proposed by \cite{srgan}. The SRGAN takes an input image and outputs a 
-larger image with higher resolution. By combining these techniques and others, 
-researchers created architectures such as the MSG-GAN, AttnGAN, and LeicaGAN.
+\subsubsection{Generative Adversarial Text to Image Synthesis}
+\cite{gan_text_to_image}
 
-\subsection{Attention Mechanisms}
+\subsubsection{Learning Deep Representations of Fine-Grained Visual 
+Descriptions}
+\cite{deep_visual_descriptions}
+
+\subsection{TBD}
+\subsubsection{MSG-GAN: Multi-Scale Gradients for Generative Adversarial
+Networks}
+\cite{msggan}
+
+\subsubsection{StackGAN++: Realistic Image Synthesis
+with Stacked Generative Adversarial Networks}
+\cite{stackgan++}
+
+\section{Attention Mechanisms}
 Attention is a technique that references past data during each iteration of 
 training.
 An attention function is a mapping of a query and a
@@ -178,7 +177,7 @@ generation
 \begin{figure}[htbp]
 \centerline{\includegraphics[width=6cm]{transformer.png}}
 \caption{Transformer architecture
-\cite{attention_need}.}
+	\cite{attention_need}.}
 \label{fig:transformer}
 \end{figure}
 
@@ -217,65 +216,12 @@ generation
 %The architecture is also simpler than other autoregressive models that perform
 %similar functions, including upscaling and enhancement \cite{pixel_subscale}.
 
-\section{Related Work}
-While the topic of image generation as a whole is very broad, text-to-image 
-generation using machine learning is a newer and lesser studied area. Starting 
-as early as 2016 with \cite{gan_text_to_image}, GANs were applied to image 
-generation given textual specifications. Research has continued to the present, 
-where attention mechanisms are being applied as secondary inputs, such as with 
-AttnGAN \cite{attngan}.
-
-%\subsection{Object-driven Text-to-Image Synthesis via Adversarial Training}
-%\cite{objgan}
-
-%\subsection{Text-Guided Attention Model for Image Captioning}
-%\cite{attention_caption}
-
-\subsection{ Generative Adversarial Text to Image Synthesis}
-The text-conditional convolutional GAN architecture developed by 
-\cite{gan_text_to_image} for text-to-image synthesis is provided in Figure 
-\ref{fig:cond_gan}. To train the generator, data is transmuted into a 
-description embedding, denoted as the function $\varphi(t)$. This step is 
-very similar to what is done in most text processing machine learning models. 
-The architecture they developed is shown in Figure \ref{fig:cond_gan}. Compared 
-to other models, this DCGAN architecture is a simple definition of the problem. 
-\cite{gan_text_to_image} also developed a way introduce a matching-aware 
-discriminator (GAN-CLS) and manifold interpolation (GAN-INT). They found 
-through testing that a combination of these two * gave better qualitative 
-results than the base DCGAN model. The implications of their results is that 
-the stability of GANs can be improved with better ways of recognizing important 
-data from unimportant data.
-
-\begin{figure}[htbp]
-\centerline{\includegraphics[width=8cm]{cond_gan.png}}
-\caption{.}
-\label{fig:cond_gan}
-\end{figure}
-
-%\subsection{Learning Deep Representations of Fine-Grained Visual 
-%Descriptions, 2016}
-%\cite{deep_visual_descriptions}
-
-%\subsection{StackGAN++: Realistic Image Synthesis
-%with Stacked Generative Adversarial Networks, 2017}
-%\cite{stackgan++} also found problems with GAN stability.
+\subsection{Object-driven Text-to-Image Synthesis via Adversarial Training}
+\cite{objgan}
 
 \subsection{AttnGAN: Fine-Grained Text to Image Generation
 with Attentional Generative Adversarial Networks}
 \cite{attngan}
-Text-to-image generation was notably improved by \cite{attngan}, with their
-AttnGAN architecture. The network combines the best of the
-generator/discriminator GAN framework with the improvements in
-dependency correlation found in Transformers.
-AttnGAN was based on the work of the StackGAN++ architecture, which found a 
-multi-stage approach was necessary for stabilizing sensitivities in training 
-GAN models.
-``
-This problem is more severe when training GANs to generate
-high-resolution (e.g., 256x256) images because the chance is
-very low for the image distribution and the model distribution
-to share supports in a high-dimensional space
-'' \cite{stackgan++}.
 
 \begin{figure*}[htbp]
 \centerline{\includegraphics[width=0.95\linewidth]{attngan.png}}
@@ -283,21 +229,11 @@ to share supports in a high-dimensional space
 \label{fig:attngan}
 \end{figure*}
 
-%\subsection{MirrorGAN: Learning Text-to-image Generation by Redescription}
-%\cite{mirrorgan}
-
-\subsection{MSG-GAN: Multi-Scale Gradients for Generative Adversarial
-Networks}
-``
-MSG-GAN allows
-the discriminator to look at not only the final output (highest resolution) of 
-the generator, but also at the outputs of
-the intermediate layers 
-''
-\cite{msggan}
+%\subsection{Text-Guided Attention Model for Image Captioning}
+%\cite{attention_caption}
 
 \subsection{Learn, Imagine and Create: Text-to-Image Generation from Prior 
-Knowledge}
+Knowledge, 2019}
 \nocite{leica}
 \cite{leica} combine Attention with concepts from GANs to create what they call
 LEarn, Imagine and CreAte GAN (LeicaGAN). Similar to the papers discussed
