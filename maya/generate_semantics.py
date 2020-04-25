@@ -2,10 +2,23 @@ import maya.cmds as cmds
 import maya.OpenMaya as om
 import maya.OpenMayaUI as omui
 from functools import partial
+import json as json
+import os as os
 
 ##########################
 #### Helper Functions ####
 ##########################
+
+# Convert screen space to world space
+# https://forums.autodesk.com/t5/maya-programming/getting-click-position-in-world-coordinates/td-p/7578289
+def screenSpaceToWorldSpace(screenPoint):
+    worldPos = om.MPoint() # out variable
+    worldDir = om.MVector() # out variable
+    
+    activeView = omui.M3dView().active3dView()
+    activeView.viewToWorld(int(screenPoint[0]), int(screenPoint[1]), worldPos, worldDir)
+    
+    return worldPos
 
 # Convert world space to screen space
 # https://video.stackexchange.com/questions/23382/maya-python-worldspace-to-screenspace-coordinates
@@ -49,7 +62,7 @@ def collectObjects(currSel):
                     meshSel.append(xform)
   
     return meshSel
-    
+
 # Test if the mesh is bounded by the coordinates
 # https://boomrigs.com/blog/2016/1/12/how-to-get-mesh-vertex-position-through-maya-api
 def testMesh(mesh, bounds):    
@@ -114,19 +127,7 @@ def opCode(p, bounds):
         code = code | 8
         
     return code
-    
-# Update the color of a shader given r, g, b
-def updateShaderColor(mesh, colorCode, n):
-    shader = findShader(mesh)
-    cmds.setAttr ( (shader) + '.r', colorCode[0] )
-    cmds.setAttr ( (shader) + '.g', colorCode[1] )
-    cmds.setAttr ( (shader) + '.b', colorCode[2] ) 
-    cmds.setAttr ( (shader) + '.n', n ) 
-    cmds.setKeyframe( (shader) + '.r' )
-    cmds.setKeyframe( (shader) + '.g' )
-    cmds.setKeyframe( (shader) + '.b' )
-    cmds.setKeyframe( (shader) + '.n' )
-    
+
 # Return correct shader given a shader name
 def findShader(mesh):
     cmds.select(mesh)
@@ -140,17 +141,72 @@ def findShader(mesh):
             return node
     return None
 
+# Extract semantic data based on block position and meshes in block
+def extractSemantics(meshes, screenPoint, neighbors, border):
+    semantics = []
+    
+    for mesh in meshes:
+        semanticsForMesh = []
+        semanticsForNeighbors = []
+        
+        # Calculate semantics for mesh
+        translation = formatList( cmds.xform(mesh, q=1, ws=1, t=1) )
+        rotation = formatList( cmds.xform(mesh, q=1, ws=1, rp=1) )
+        scaling = formatList( cmds.xform(mesh, q=1, ws=1, s=1) )
+        worldPoint = screenSpaceToWorldSpace(screenPoint)
+        d = postionDistance(meshPosition(mesh), worldPoint)
+        
+        # Basic JSON formatting
+        # semanticsForMesh.append('d : {:.3f}'.format( d ))
+        # semanticsForMesh.append('t : [{:.3f}, {:.3f}, {:.3f}]'.format( translation[0], translation[1], translation[2] ))
+        # semanticsForMesh.append('r : [{:.3f}, {:.3f}, {:.3f}]'.format( rotation[0], rotation[1], rotation[2] ))
+        # semanticsForMesh.append('s : [{:.3f}, {:.3f}, {:.3f}]'.format( scaling[0], scaling[1], scaling[2] ))
+        # semantics.append('{} : {}'.format( mesh, semanticsForMesh ))
+        
+        # Plain text formatting
+        semanticsForMesh.append('{} with dist {:06d}'.format( mesh, int( d * 1e6 ) ))
+        semantics.append(semanticsForMesh)
+                
+    return semantics
+    
+def formatList(list):
+    for i, val in enumerate(list):
+        if float('{0:.6f}'.format( val )) == -0.0:
+            list[i] = 0.0
+            
+    return list
+
+# Return the Euclidean distance between the centers of two meshes
+def findDistance(meshA, meshB):
+    return postionDistance(meshPosition(meshA), meshPosition(meshB))
+
+# Obtain the position of a mesh in world space
+def meshPosition(mesh):
+    cmds.select(mesh)
+    return cmds.xform( q=True, ws=True, t=True )
+
+# Find the distance between two points
+def postionDistance(posA, posB):
+    return ((posA[0] - posB[0])**2 + (posA[1] - posB[1])**2 + (posA[2] - posB[2])**2)**0.5
+
+# Makes a folder if none exists for the input path
+# https://stackoverflow.com/questions/47738227/create-a-folder-using-python-in-a-maya-program
+def make_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
+
 ##########################
 ### Main Functionality ###
 ##########################
 
 # Create and display menu system
 def displayWindow():
-    menu = cmds.window( title="Setup Semantics Tool", iconName='SetupSemanticsTool', widthHeight=(350, 400) )
+    menu = cmds.window( title="Extract Semantics Tool", iconName='ExtractSemanticsTool', widthHeight=(350, 400) )
     scrollLayout = cmds.scrollLayout( verticalScrollBarThickness=16 )
     cmds.flowLayout( columnSpacing=10 )
     cmds.columnLayout( cat=('both', 25), rs=10, cw=340 )
-    cmds.text( label="\nThis is the \"Semantics Shader Tool\"! This tool will generate semantics shaders for the loaded scene.\n\n", ww=True, al="left" )
+    cmds.text( label="\nThis is the \"Extract Sematics Tool\"! This tool will extract semantics for the loaded scene.\n\n", ww=True, al="left" )
     cmds.text( label="To run:\n1) Input the information in the fields below.\n2) Click \"Run\".", al="left" )
     cmds.text( label='Enter the keyframe at which to start semantics generation (1):', al='left', ww=True )
     startTimeField = cmds.textField()
@@ -158,13 +214,15 @@ def displayWindow():
     endTimeField = cmds.textField()
     cmds.text( label='Enter the step at which to process frames (1):', al='left', ww=True )
     stepTimeField = cmds.textField()
-    cmds.text( label='Enter the number of bits used to store each, a multiple of 8 is recommended (8):', al='left', ww=True )
-    bitNumField = cmds.textField()
-    cmds.button( label='Run', command=partial( setupShaders, menu, startTimeField, endTimeField, stepTimeField, bitNumField ) )
+    cmds.text( label='Enter the border distance for generating semantics (0):', al='left', ww=True )
+    borderField = cmds.textField()
+    cmds.text( label='Enter the dimension for each extracted image, a power of 2 is recommended (64):', al='left', ww=True )
+    dimensionField = cmds.textField()
+    cmds.button( label='Run', command=partial( generateSemantics, menu, startTimeField, endTimeField, stepTimeField, borderField, dimensionField ) )
     cmds.text( label="\n", al='left' )
     cmds.showWindow( menu )
 
-def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField, *args ):
+def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, borderField, dimensionField, *args ):
     # Grab user input and delete window
     startTime = cmds.textField(startTimeField, q=True, tx=True )
     if (startTime == ''):
@@ -178,11 +236,15 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
     if (stepTime == ''):
         print 'WARNING: Default step time (1) used...'
         stepTime = '1'
-    bitNum = cmds.textField(bitNumField, q=True, tx=True )
-    if (bitNum == ''):
-        print 'WARNING: Default bit number (8) used...'
-        bitNum = '8'
-    N = int(bitNum)
+    border = cmds.textField(borderField, q=True, tx=True )
+    if (border == '' or int(border) < 0):
+        print 'WARNING: Default border (0) used...'
+        border = '0'
+    dimension = cmds.textField(dimensionField, q=True, tx=True )
+    if (dimension == ''):
+        print 'WARNING: Default dimension (64) used...'
+        dimension = '64'
+    dim = int(dimension)
     cmds.deleteUI( menu, window=True )
     cmds.currentTime( int(startTime), edit=True )
     currTime = startTime
@@ -190,39 +252,42 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
     # Set up program
     resWidth = cmds.getAttr('defaultResolution.width')
     resHeight = cmds.getAttr('defaultResolution.height')
-    blockDim = [int(resWidth / (2 * N)), int(resHeight / ((N / 8) * N))]
+    blockDim = [dim, dim]
+    print(resWidth, resHeight, blockDim)
     xDiv = float(resWidth) / blockDim[0]
     yDiv = float(resHeight) / blockDim[1]
-    step = (resWidth / blockDim[0]) / (N / 2)
-        
-    # Set up blocks
-    blocks = []
-    for h in range(int(yDiv)):
-        row = []
-        
-        # Find boundaries for each block in the row
-        top = h / yDiv
-        bottom = (h + 1) / yDiv
-        for w in range(int(xDiv)):
-            left = w / xDiv
-            right = (w + 1) / xDiv
-            
-            row.append([[left,right],[top,bottom]])
-            
-        # Append the finished row
-        blocks.append(row)
-            
-    print('Block Dim: (%d, %d), Blocks: (%d, %d)' % (blockDim[0], blockDim[1], len(blocks), len(blocks[0])))
     
     # Obtain all meshes in the scene
     currSel = cmds.ls()
     meshes = collectObjects(currSel)
-    meshColors = []
-    for n in range(len(meshes)):
-        meshColors.append([0x0, 0x0, 0x0])
     
     # Iterate over range of frames
     while int(currTime) <= int(endTime):
+        print('Processing frame {:03d}'.format(int(currTime)))
+    
+        # Set up blocks
+        blocks = []
+        blockToMeshMap = []
+        meshBlocks = {}
+        for h in range(int(yDiv)):
+            row = []
+            blockToMeshMap.append([])
+            
+            # Find boundaries for each block in the row
+            top = h / yDiv
+            bottom = (h + 1) / yDiv
+            for w in range(int(xDiv)):
+                left = w / xDiv
+                right = (w + 1) / xDiv
+                
+                row.append([[left,right],[top,bottom]])
+                blockToMeshMap[h].append([])
+                
+            # Append the finished row
+            blocks.append(row)
+                
+        #print('Block Dim: (%d, %d), Blocks: (%d, %d)' % (blockDim[0], blockDim[1], len(blocks), len(blocks[0])))
+    
         # Iterate over all meshes and all boundaries
         for k, mesh in enumerate(meshes):
             cmds.select(mesh)
@@ -263,7 +328,7 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
                 bottom = 1.0
             
             # Translate bounds to i and j values
-            bounds = [int(left * len(blocks[0])), int(right * len(blocks[0])) + 1, int(top * len(blocks)), int(bottom * len(blocks)) + 1]
+            bounds = [int(left * len(blocks[0])) - int(border), int(right * len(blocks[0])) + 1 + int(border), int(top * len(blocks)) - int(border), int(bottom * len(blocks)) + 1 + int(border)]
             if bounds[0] > len(blocks[0]) - 1:
                 bounds[0] = len(blocks[0]) - 1
             if bounds[1] > len(blocks[0]) - 1:
@@ -273,25 +338,41 @@ def setupShaders( menu, startTimeField, endTimeField, stepTimeField, bitNumField
             if bounds[3] > len(blocks) - 1:
                 bounds[3] = len(blocks) - 1
             
-            print('Processing {}: [({},{}),({},{})]'.format(mesh, bounds[0], bounds[1], bounds[2], bounds[3]))
-            
+            #print('Processing {}: [({},{}),({},{})]'.format(mesh, bounds[0], bounds[1], bounds[2], bounds[3]))
             for i in range(bounds[2], bounds[3] + 1):
-                b = i % N
                 for j in range(bounds[0], bounds[1] + 1):
-                    r = j % N
-                    g = int((i / (N / 2))) * int(step) + int((j / (N / 2)))
-                    
-                    # Find bounds and color code for current block
-                    subBounds = blocks[i][j]
-                    colorCode = [0x1 << r, 0x1 << g, 0x1 << b]
-                    
                     # Test which meshes are contained within the block
-                    if testMesh(mesh, subBounds):
-                        for n in range(len(colorCode)):
-                            meshColors[k][n] |= colorCode[n]
+                    #subBounds = blocks[i][j]
+                    #if testMesh(mesh, subBounds):
+                    if blockToMeshMap[i][j] is None:
+                        blockToMeshMap[i][j] = [mesh]
+                    else:
+                        blockToMeshMap[i][j].append(mesh)
+                            
+        # Extract semantics for each mesh
+        framePath = 'C:\\Users\\wesha\\Git\\dynamic_frame_generator\\python\\attngan\\data\\frame\\text\\{:03d}'.format( int(currTime) )
+        make_dir(framePath)
+        for i, data in enumerate(blockToMeshMap):
+            for j, meshesInBlock in enumerate(data):
+                if meshesInBlock:
+                    # Screen point = Ydim * (i + 1), Xdim * (j + 1)
+                    screenPoint = blockDim[1] * (i + 0.5), blockDim[0] * (j + 0.5)
+                    semantics = extractSemantics(meshesInBlock, screenPoint, meshes, float(border))
 
-        for k, mesh in enumerate(meshes):
-            updateShaderColor(mesh, meshColors[k], N)
+                    #print('Processing semantics for block({},{})'.format( i, j ))
+                    blockPath = framePath + '\\{:03d}.txt'.format( int(i * xDiv + j + 1) )
+                    with open(blockPath, 'w') as f:
+                        for row in semantics:
+                            if len(row) <= 1:
+                                f.write( ''.join(row) )
+                            else:
+                                prefix = ''
+                                for k, caption in enumerate(row):
+                                    if k > 0:
+                                        prefix = ' and '
+                                    # Write data to an output file
+                                    f.write( prefix.join( caption ) )
+                            f.write( '\n' )
         
         # Move to next frame
         cmds.currentTime( int(currTime) + int(stepTime), edit=True )

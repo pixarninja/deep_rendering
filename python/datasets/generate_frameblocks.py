@@ -6,6 +6,7 @@ import os as os
 import utils as utils
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--inPath', default='./input/', help='input image directory path')
 parser.add_argument('--blockDim', type=int, default=64, help='dimension of frameblocks')
 parser.add_argument('--blockOffset', type=int, default=1, help='offset for blocks, > 1 blocks will overlap')
 parser.add_argument('--startBlock', type=bool, default=False, help='whether to record the start block as well')
@@ -19,24 +20,26 @@ block_offset = opt.blockOffset
 start_and_end = opt.startBlock
 
 # Initialize path prefixes.
-path_prefix = './images/' + str(block_dim) + '/'
-training_prefix = './training/' + str(block_dim) + '/'
-src_prefix = '../source/animations/'
-buffer_prefix = path_prefix
+training_prefix = opt.inPath + 'training/'
+training_dim = training_prefix + str(block_dim) + '/'
+buff_prefix = opt.inPath + 'buffer/'
+buff_dim = buff_prefix + str(block_dim) + '/'
 
 # Initialize path variables.
-frames_path = src_prefix + 'glass_full/'
-training_path = training_prefix + 'blocks/'
-shadow_img_path = path_prefix + 'shadow/'
-roi_img_path = path_prefix + 'roi/'
-shadow_buff_path = buffer_prefix + 'shadows/'
-frame_buff_path = buffer_prefix + 'frames/'
+frames_path = opt.inPath + 'images/'
+training_path = training_dim + 'blocks/'
+shadow_img_path = training_dim + 'shadow/'
+roi_img_path = training_dim + 'roi/'
+shadow_buff_path = buff_dim + 'shadows/'
+frame_buff_path = buff_dim + 'frames/'
 
 # Delete previously output frameblocks, and buffer shadows and buffer frames.
 utils.make_dir(training_prefix)
+utils.make_dir(training_dim)
 utils.clear_dir(training_path)
 
-utils.make_dir(buffer_prefix)
+utils.make_dir(buff_prefix)
+utils.make_dir(buff_dim)
 utils.clear_dir(shadow_buff_path)
 utils.clear_dir(frame_buff_path)
 
@@ -46,10 +49,10 @@ frames.sort()
 
 # Process each frame.
 for frame_index in range(0, len(frames), 2):
+    utils.make_dir(training_path + '{:03d}/'.format( frame_index + 1 ))
     frame = frames[frame_index]
-    frame_str_out = 'frame' + str(frame_index + 1)
     block_index = 1
-    block_str_out = 'block' + str(block_index + 1)
+    block_str_out = '{:03d}'.format( block_index + 1 )
 
     # If the frame index is 0, store all frameblocks.
     if frame_index < 1 and start_and_end:
@@ -79,7 +82,7 @@ for frame_index in range(0, len(frames), 2):
                 print(str(block_index) + ". Frameblock: (" + str(left) + ", " + str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
 
                 # Store window contents as image.
-                img_str_out = training_path + frame_str_out + block_str_out
+                img_str_out = training_path + block_str_out
                 img_roi = img_1[top:bottom, left:right]
                 if start_and_end:
                     suffix = '_end.jpg'
@@ -196,7 +199,7 @@ for frame_index in range(0, len(frames), 2):
                             print(str(block_index) + ". Sum: " + str(pixel_sum) + ", Frameblock: (" + str(left) + ", " + str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
                             
                             # Store window contents as image.
-                            img_str_out = training_path + frame_str_out + block_str_out
+                            img_str_out = training_path + block_str_out
                             img_roi = img_2[top:bottom, left:right]
                             if start_and_end:
                                 suffix = '_end.jpg'

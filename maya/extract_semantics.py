@@ -76,13 +76,17 @@ def extractSemantics(meshes, screenPoint, neighbors, cutoff):
         scaling = formatList( cmds.xform(mesh, q=1, ws=1, s=1) )
         worldPoint = screenSpaceToWorldSpace(screenPoint)
         d = postionDistance(meshPosition(mesh), worldPoint)
-        print(translation)
-        semanticsForMesh.append('d : {0:.6f}'.format( d ))
-        semanticsForMesh.append('t : [{0:.6f}, {0:.6f}, {0:.6f}]'.format( translation[0], translation[1], translation[2] ))
-        semanticsForMesh.append('r : [{0:.6f}, {0:.6f}, {0:.6f}]'.format( rotation[0], rotation[1], rotation[2] ))
-        semanticsForMesh.append('s : [{0:.6f}, {0:.6f}, {0:.6f}]'.format( scaling[0], scaling[1], scaling[2] ))
         
-        semantics.append('{} : {}'.format( mesh, semanticsForMesh ))
+        # Basic JSON formatting
+        # semanticsForMesh.append('d : {0:.3f}'.format( d ))
+        # semanticsForMesh.append('t : [{0:.3f}, {0:.3f}, {0:.3f}]'.format( translation[0], translation[1], translation[2] ))
+        # semanticsForMesh.append('r : [{0:.3f}, {0:.3f}, {0:.3f}]'.format( rotation[0], rotation[1], rotation[2] ))
+        # semanticsForMesh.append('s : [{0:.3f}, {0:.3f}, {0:.3f}]'.format( scaling[0], scaling[1], scaling[2] ))
+        # semantics.append('{} : {}'.format( mesh, semanticsForMesh ))
+        
+        # Plain text formatting
+        semanticsForMesh.append('dist {0:.3f}'.format( d ) + ' trns {0:.3f},{0:.3f},{0:.3f}'.format( translation[0], translation[1], translation[2] ) + ' rotn {0:.3f},{0:.3f},{0:.3f}'.format( rotation[0], rotation[1], rotation[2] ) + ' scle {0:.3f},{0:.3f},{0:.3f}'.format( scaling[0], scaling[1], scaling[2] ))
+        semantics.append('mesh {} with {}'.format( mesh, semanticsForMesh[0] ))
                 
     return semantics
     
