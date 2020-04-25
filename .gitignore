@@ -8,9 +8,7 @@
 /python/*/original/.git*
 /python/attngan/data/
 /python/attngan/eval/
-/python/datasets/VisualGenome/images/
-/python/datasets/VisualGenome/attributes*
-/python/datasets/VisualGenome/training/
+/python/*/datasets/
 /python/evaluation/attention/
 /python/evaluation/dcgan/
 /python/evaluation/srgan/
