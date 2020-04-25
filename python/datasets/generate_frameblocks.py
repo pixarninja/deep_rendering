@@ -3,7 +3,10 @@ import cv2 as cv2
 import glob as glob
 import numpy as np
 import os as os
-import utils as utils
+import sys as sys
+sys.path.append(os.path.abspath('../utils'))
+from utils import clear_dir
+from utils import make_dir
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--inPath', default='./input/', help='input image directory path')
@@ -21,41 +24,41 @@ start_and_end = opt.startBlock
 
 # Initialize path prefixes.
 training_prefix = opt.inPath + 'training/'
-training_dim = training_prefix + str(block_dim) + '/'
 buff_prefix = opt.inPath + 'buffer/'
 buff_dim = buff_prefix + str(block_dim) + '/'
 
 # Initialize path variables.
 frames_path = opt.inPath + 'images/'
-training_path = training_dim + 'blocks/'
-shadow_img_path = training_dim + 'shadow/'
-roi_img_path = training_dim + 'roi/'
+training_path = training_prefix + str(block_dim) + '/'
+shadow_img_path = training_path + 'shadow/'
+roi_img_path = training_path + 'roi/'
 shadow_buff_path = buff_dim + 'shadows/'
 frame_buff_path = buff_dim + 'frames/'
 
 # Delete previously output frameblocks, and buffer shadows and buffer frames.
-utils.make_dir(training_prefix)
-utils.make_dir(training_dim)
-utils.clear_dir(training_path)
+make_dir(training_prefix)
+make_dir(training_path)
+clear_dir(training_path + 'blocks/')
 
-utils.make_dir(buff_prefix)
-utils.make_dir(buff_dim)
-utils.clear_dir(shadow_buff_path)
-utils.clear_dir(frame_buff_path)
+make_dir(buff_prefix)
+make_dir(buff_dim)
+clear_dir(shadow_buff_path)
+clear_dir(frame_buff_path)
 
 # Setup main loop to process all frames in an animation.
 frames = os.listdir(frames_path)
 frames.sort()
 
 # Process each frame.
-for frame_index in range(0, len(frames), 2):
-    utils.make_dir(training_path + '{:03d}/'.format( frame_index + 1 ))
+for frame_index in range(0, len(frames), 1):
+    blocks_path = training_path + 'blocks/{:03d}/'.format( frame_index + 1 )
+    make_dir(blocks_path)
     frame = frames[frame_index]
     block_index = 1
-    block_str_out = '{:03d}'.format( block_index + 1 )
+    block_str_out = blocks_path + '/{:03d}'.format( block_index )
 
     # If the frame index is 0, store all frameblocks.
-    if frame_index < 1 and start_and_end:
+    if frame_index < 1:
         # Initialize seed variables.
         img_str_1 = frames_path + frames[frame_index]
 
@@ -82,7 +85,7 @@ for frame_index in range(0, len(frames), 2):
                 print(str(block_index) + ". Frameblock: (" + str(left) + ", " + str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
 
                 # Store window contents as image.
-                img_str_out = training_path + block_str_out
+                img_str_out = block_str_out
                 img_roi = img_1[top:bottom, left:right]
                 if start_and_end:
                     suffix = '_end.jpg'
@@ -92,7 +95,7 @@ for frame_index in range(0, len(frames), 2):
 
                 # Increase frameblock index.
                 block_index += 1
-                block_str_out = 'block' + str(block_index + 1)
+                block_str_out = blocks_path + '/{:03d}'.format( block_index )
                 
                 # Shift horizontally.
                 left += int(block_dim / block_offset)
@@ -199,7 +202,7 @@ for frame_index in range(0, len(frames), 2):
                             print(str(block_index) + ". Sum: " + str(pixel_sum) + ", Frameblock: (" + str(left) + ", " + str(top) + "), (" + str(right) + ", " + str(bottom) + "))")
                             
                             # Store window contents as image.
-                            img_str_out = training_path + block_str_out
+                            img_str_out = block_str_out
                             img_roi = img_2[top:bottom, left:right]
                             if start_and_end:
                                 suffix = '_end.jpg'
@@ -277,7 +280,7 @@ for frame_index in range(0, len(frames), 2):
 
                 # Increase frameblock index.
                 block_index += 1
-                block_str_out = 'block' + str(block_index + 1)
+                block_str_out = blocks_path + '/{:03d}'.format( block_index )
                 
                 # Shift horizontally.
                 left += int(block_dim / block_offset)

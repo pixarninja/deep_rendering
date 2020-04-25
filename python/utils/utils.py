@@ -19,9 +19,14 @@ def alter_image(img, alpha, beta):
 
 def clear_dir(path):
     if os.path.exists(path):
-        filelist = glob.glob(path + '*')
-        for file in filelist:
-            os.remove(file)
+        filelist = glob.glob(path + '/*')
+        for f in filelist:
+            try:
+                os.remove(f)
+            except:
+                if len(os.listdir(f)) > 0:
+                    print('rm ' + f)
+                    clear_dir(f)
     else:
         os.mkdir(path)
 

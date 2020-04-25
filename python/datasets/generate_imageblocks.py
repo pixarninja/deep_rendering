@@ -22,15 +22,11 @@ def generate_imageblocks(path, block_dim, block_offset):
     attr_path = path + '/attributes/'
     
     training_prefix = path + '/training/'
-    block_prefix = training_prefix + str(block_dim)
-    training_path = block_prefix + '/blocks/'
-    attribute_path = block_prefix + '/attributes/'
+    training_path = training_prefix + str(block_dim) + '/'
 
     # Delete previously output imageblocks, and buffer shadows and buffer images.
     make_dir(training_prefix)
-    make_dir(block_prefix)
     clear_dir(training_path)
-    clear_dir(attribute_path)
 
     # Setup main loop to process all images in an animation.
     images = os.listdir(images_path)
@@ -38,6 +34,11 @@ def generate_imageblocks(path, block_dim, block_offset):
 
     # Process each image.
     for i in range(0, len(images)):
+        blocks_path = training_path + 'blocks/{:03d}/'.format( i + 1 )
+        make_dir(blocks_path)
+        attributes_path = training_path + '/attributes/{:03d}/'.format( i + 1 )
+        make_dir(attributes_path)
+
         # Obtain attributes from written file.
         attrs = []
         with open(attr_path + '%03d.dat' % (i + 1), 'r') as f:
@@ -47,9 +48,8 @@ def generate_imageblocks(path, block_dim, block_offset):
 
         image = images[i]
         print('Processing: ' + image + '...')
-        image_str_out = 'image' + str(i + 1)
         block_index = 1
-        block_str_out = 'block' + str(block_index)
+        str_out = '{:03d}'.format( block_index )
 
         # Initialize seed variables.
         img_str = images_path + images[i]
@@ -93,13 +93,13 @@ def generate_imageblocks(path, block_dim, block_offset):
 
                 if attrs_inside_roi != []:
                     # Store window contents as image.
-                    img_str_out = training_path + image_str_out + block_str_out
+                    img_str_out = blocks_path + str_out
                     img_roi = img[top:bottom, left:right]
                     cv2.imwrite(img_str_out + '.jpg', img_roi)
                     
                     # Output found attributes to file.
-                    attr_str_out = attribute_path + image_str_out + block_str_out
-                    with open(attr_str_out + '.dat', 'w') as f:
+                    attr_str_out = attributes_path + str_out
+                    with open(attr_str_out + '.txt', 'w') as f:
                         for n, line in enumerate(attrs_inside_roi):
                             if n > 0:
                                 f.write('\n' + ' '.join(line))
@@ -108,7 +108,7 @@ def generate_imageblocks(path, block_dim, block_offset):
 
                 # Increase imageblock index.
                 block_index += 1
-                block_str_out = 'block' + str(block_index)
+                str_out = '{:03d}'.format( block_index )
                 
                 # Shift horizontally.
                 left += int(block_dim / block_offset)
