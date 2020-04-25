@@ -21,8 +21,11 @@ def clear_dir(path):
     if os.path.exists(path):
         filelist = glob.glob(path + '*')
         for file in filelist:
-            clear_dir(path + '/' + file)
-            os.remove(file)
+            try:
+                os.remove(file)
+            except:
+                if len(os.listdir(file)) > 0:
+                    clear_dir(file)
     else:
         os.mkdir(path)
 

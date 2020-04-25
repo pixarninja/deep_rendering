@@ -9,6 +9,10 @@
 /python/attngan/data/
 /python/attngan/eval/
 /python/*/datasets/
+/python/datasets/*/attributes*
+/python/datasets/*/buffer/
+/python/datasets/*/images/
+/python/datasets/*/training/
 /python/evaluation/attention/
 /python/evaluation/dcgan/
 /python/evaluation/srgan/
