@@ -230,7 +230,7 @@ class condGANTrainer(object):
 
         gen_iterations = 0
         # gen_iterations = start_epoch * self.num_batches
-        for epoch in range(start_epoch, self.max_epoch):
+        for epoch in range(start_epoch, self.max_epoch + 1):
             start_t = time.time()
 
             data_iter = iter(self.data_loader)
@@ -320,6 +320,9 @@ class condGANTrainer(object):
                   % (epoch, self.max_epoch, self.num_batches,
                      errD_total.item(), errG_total.item(),
                      end_t - start_t))
+            f_out = open('gen_train.csv', 'a')
+            f_out.write('{:d}, {:.5f}, {:.5f}\n'.format( epoch, errD_total.item(), errG_total.item() ))
+            f_out.close()
 
             if epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
                 self.save_model(netG, avg_param_G, netsD, epoch)

@@ -59,7 +59,7 @@ def evaluate_images(img_str_real, img_str_fake, img_str_out):
     return 1 - (pixel_sum / (3 * 255.0 * width * height))
 
 # Definition for plotting values.
-def plot_together(values, colors, labels, title, path):
+def plot_together(values, colors, labels, title, axes, path, legend):
     samples = len(values[0])
     x = [i for i in range(samples)]
     x_axis = np.linspace(0, samples, samples, endpoint=True)
@@ -68,15 +68,15 @@ def plot_together(values, colors, labels, title, path):
     # Plot values and fits.
     for i in range(len(values)):
         avg = np.average(values[i])
-        plt.plot(x_axis, values[i], color=colors[i], alpha=0.33)
+        plt.plot(x_axis, values[i], color=colors[i], alpha=0.2)
         plt.plot(np.unique(x), np.poly1d(np.polyfit(x, values[i], 1))(np.unique(x)), color=colors[i], linestyle='--')
         patches.append(mpatches.Patch(color=colors[i]))
         print(title + '[' + str(i) + ']: ' + str(avg))
     
     # Finish plot.
-    plt.legend(patches, labels, loc='lower right')
-    plt.xlabel('Epoch')
-    plt.ylabel('Difference Ratio')
+    plt.legend(patches, labels, loc=legend)
+    plt.xlabel(axes[0])
+    plt.ylabel(axes[1])
     plt.title(title)
     axes = plt.gca()
     axes.set_xlim([0, samples])

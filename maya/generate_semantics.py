@@ -4,6 +4,12 @@ import maya.OpenMayaUI as omui
 from functools import partial
 import json as json
 import os as os
+import re as re
+
+class MeshInfo:
+    def __init__(self, mesh, bbox):
+        self.mesh = mesh
+        self.bbox = bbox
 
 ##########################
 #### Helper Functions ####
@@ -63,14 +69,66 @@ def collectObjects(currSel):
   
     return meshSel
 
+# Return the bounding box for a given mesh
+def findBoundingBox(mesh):
+    cmds.select(mesh)
+    bb = cmds.xform( q=True, bb=True, ws=True )
+    
+    # Obtain all 8 points to test from the bounding box
+    # Format: xmin ymin zmin xmax ymax zmax
+    bbPoints = []
+    bbPoints.append(om.MPoint( bb[0], bb[1], bb[2], 1.0 ))
+    bbPoints.append(om.MPoint( bb[0], bb[1], bb[5], 1.0 ))
+    bbPoints.append(om.MPoint( bb[0], bb[4], bb[2], 1.0 ))
+    bbPoints.append(om.MPoint( bb[0], bb[4], bb[5], 1.0 ))
+    bbPoints.append(om.MPoint( bb[3], bb[1], bb[2], 1.0 ))
+    bbPoints.append(om.MPoint( bb[3], bb[1], bb[5], 1.0 ))
+    bbPoints.append(om.MPoint( bb[3], bb[4], bb[2], 1.0 ))
+    bbPoints.append(om.MPoint( bb[3], bb[4], bb[5], 1.0 ))
+    
+    # Translate to screen space and obtain overall bounds
+    left, right, top, bottom = 1.0, 0.0, 1.0, 0.0
+    for p in bbPoints:
+        P = worldSpaceToScreenSpace(p)
+        if left > P[0]:
+            left = P[0]
+        if right < P[0]:
+            right = P[0]
+        if top > P[1]:
+            top = P[1]
+        if bottom < P[1]:
+            bottom = P[1]
+                
+    if left < 0.0 or left >= 1.0:
+        left = 0.0
+    if right > 1.0 or right <= 0.0:
+        right = 1.0
+    if top < 0.0 or top >= 1.0:
+        top = 0.0
+    if bottom > 1.0 or bottom <= 0.0:
+        bottom = 1.0
+    
+    return [[left, right], [top, bottom]]
+
 # Test if the mesh is bounded by the coordinates
 # https://boomrigs.com/blog/2016/1/12/how-to-get-mesh-vertex-position-through-maya-api
-def testMesh(mesh, bounds):    
+def testMesh(meshInfo, bounds, subDim):
+    # Extract mesh information
+    mesh = meshInfo.mesh
+    bbox = meshInfo.bbox
+
     # Store bounds
     left = bounds[0][0]
     right = bounds[0][1]
     top = bounds[1][0]
     bottom = bounds[1][1]
+    blockDim = (right - left) / float(subDim)
+    faces = []
+
+    # Short-circuit for special cases
+    # if left <= bbox[0][0] and right >= bbox[0][1] and top <= bbox[1][0] and bottom >= bbox[1][1]:
+    if 'Floor' in mesh:
+        return 0x1ff
     
     # Get Api MDagPath for object
     activeList = om.MSelectionList()
@@ -84,13 +142,74 @@ def testMesh(mesh, bounds):
         startPoint = mItEdge.point(0, om.MSpace.kWorld)
         endPoint = mItEdge.point(1, om.MSpace.kWorld)
         
-        # Return with a True value if the edge is within the boundaries
-        if clippingTest(startPoint, endPoint, bounds):
-            return True
+        # Track the edge and its faces if it is within the bounds
+        p, q = clippingTest(startPoint, endPoint, bounds)
+        if not (p & q):
+            faceEdges = om.MIntArray()
+            mItEdge.getConnectedFaces( faceEdges )
+            if faceEdges not in faces:
+                faces.append(faceEdges)
                 
         mItEdge.next()
     
-    return False
+    v = 0
+    if len(faces) > 0:
+        for m in range(0, subDim):
+            for n in range(0, subDim):
+                k = 0x1 << (subDim * ((m + subDim / 2) % subDim) + ((n + subDim / 2) % subDim))
+                
+                # Short-circuit if the bounds are contained within the bounding box
+                subBounds = [[left + n * blockDim, left + (n + 1) * blockDim] , [top + m * blockDim, top + (m + 1) * blockDim]]
+                # if subBounds[0][0] >= bbox[0][0] and subBounds[0][1] <= bbox[0][1] and subBounds[1][0] >= bbox[1][0] and subBounds[1][1] <= bbox[1][1]:
+                #     print('{}:{} |=1 {} | {}'.format( mesh, subBounds, v, k ))
+                #     v |= k
+                #     continue
+
+                # Iterate over edges found in each face
+                codes = 0
+                for facePair in faces:
+                    for face in facePair:
+                        cmds.select( '{}.f[{}]'.format(mesh, face), r=True )
+                        edgeData = cmds.polyListComponentConversion(cmds.ls( sl=True ), ff=True, te=True)
+                        edges = []
+                        for data in edgeData:
+                            if ':' in data:
+                                seq = data.split(':')
+                                start = int(re.sub("[^0-9]", "", seq[0]))
+                                end = int(re.sub("[^0-9]", "", seq[1]))
+                                for e in range(start, end + 1):
+                                    edges.append(e)
+                            else:
+                                edges.append(re.sub("[^0-9]", "", data))
+
+                        for edge in edges:
+                            cmds.select( cl=True )
+                            cmds.select(mesh +'.e[{}]'.format(edge), add=True)
+                            cmds.select( cmds.polyListComponentConversion( tv=True ) ) 
+                            verts = cmds.ls( sl=True )
+                            vertPositions = cmds.xform(verts, q=True, ws=True, t=True)
+                            startPoint, endPoint = vertPositions[0:3], vertPositions[3:7]
+                                        
+                            # Check if the edge is within the boundaries
+                            p, q = clippingTest(startPoint, endPoint, subBounds)
+                            codes |= (p | q)
+                            if not (p & q):
+                                codes = 0xf
+                                break
+
+                        if codes == 0xf:
+                            break
+
+                    if codes == 0xf:
+                        break
+                
+                if codes == 0xf:
+                    v |= k
+
+                if v == 0x1ff:
+                    return v
+
+    return v
     
 # Perform the Cohen-Sutherland Clipping test using Op Codes
 # https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
@@ -99,6 +218,8 @@ def clippingTest(p, q, bounds):
     Q = worldSpaceToScreenSpace(q)
     opCodeP = opCode(P, bounds)
     opCodeQ = opCode(Q, bounds)
+
+    return opCodeP, opCodeQ
         
     # Trivial reject
     if (opCodeP & opCodeQ):
@@ -142,17 +263,26 @@ def findShader(mesh):
     return None
 
 # Extract semantic data based on block position and meshes in block
-def extractSemantics(meshes, screenPoint, neighbors, border):
+def extractSemantics(meshes, bounds, screenPoint, subDim, frame):
     semantics = []
+    left = bounds[0][0]
+    right = bounds[0][1]
+    top = bounds[1][0]
+    bottom = bounds[1][1]
     
-    for mesh in meshes:
-        semanticsForMesh = []
-        semanticsForNeighbors = []
+    for meshInfo in meshes:
+        semanticsForMesh = ''
+        mesh = meshInfo.mesh
+        bbox = meshInfo.bbox
         
         # Calculate semantics for mesh
-        translation = formatList( cmds.xform(mesh, q=1, ws=1, t=1) )
-        rotation = formatList( cmds.xform(mesh, q=1, ws=1, rp=1) )
-        scaling = formatList( cmds.xform(mesh, q=1, ws=1, s=1) )
+        # translation = formatList( cmds.xform(mesh, q=1, ws=1, t=1) )
+        # rotation = formatList( cmds.xform(mesh, q=1, ws=1, rp=1) )
+        # scaling = formatList( cmds.xform(mesh, q=1, ws=1, s=1) )
+        
+        v = testMesh(meshInfo, bounds, subDim)
+        if v == 0:
+            continue
         worldPoint = screenSpaceToWorldSpace(screenPoint)
         d = postionDistance(meshPosition(mesh), worldPoint)
         
@@ -164,9 +294,14 @@ def extractSemantics(meshes, screenPoint, neighbors, border):
         # semantics.append('{} : {}'.format( mesh, semanticsForMesh ))
         
         # Plain text formatting
-        semanticsForMesh.append('{} with dist {:06d}'.format( mesh, int( d * 1e6 ) ))
-        semantics.append(semanticsForMesh)
-                
+        divider = ', '
+        semanticsForMesh += '{} with '.format( mesh )
+        semanticsForMesh += 'd{:06d}'.format( int(d * 1e5) )
+        semanticsForMesh += divider + 'v{:03d}'.format( int(v) )
+
+        if semanticsForMesh not in semantics:
+            semantics.append(semanticsForMesh)
+    
     return semantics
     
 def formatList(list):
@@ -202,11 +337,11 @@ def make_dir(path):
 
 # Create and display menu system
 def displayWindow():
-    menu = cmds.window( title="Extract Semantics Tool", iconName='ExtractSemanticsTool', widthHeight=(350, 400) )
+    menu = cmds.window( title="Generate Semantics Tool", iconName='GenerateSemanticsTool', widthHeight=(350, 400) )
     scrollLayout = cmds.scrollLayout( verticalScrollBarThickness=16 )
     cmds.flowLayout( columnSpacing=10 )
     cmds.columnLayout( cat=('both', 25), rs=10, cw=340 )
-    cmds.text( label="\nThis is the \"Extract Sematics Tool\"! This tool will extract semantics for the loaded scene.\n\n", ww=True, al="left" )
+    cmds.text( label="\nThis is the \"Generate Sematics Tool\"! This tool will generate semantics for the loaded scene.\n\n", ww=True, al="left" )
     cmds.text( label="To run:\n1) Input the information in the fields below.\n2) Click \"Run\".", al="left" )
     cmds.text( label='Enter the keyframe at which to start semantics generation (1):', al='left', ww=True )
     startTimeField = cmds.textField()
@@ -250,6 +385,8 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, border
     currTime = startTime
     
     # Set up program
+    print('Disabling UNDO to save memory usage...')
+    cmds.undoInfo( state=False )
     resWidth = cmds.getAttr('defaultResolution.width')
     resHeight = cmds.getAttr('defaultResolution.height')
     blockDim = [dim, dim]
@@ -290,45 +427,11 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, border
     
         # Iterate over all meshes and all boundaries
         for k, mesh in enumerate(meshes):
-            cmds.select(mesh)
-            bb = cmds.xform( q=True, bb=True, ws=True )
-            
-            # Obtain all 8 points to test from the bounding box
-            # Format: xmin ymin zmin xmax ymax zmax
-            bbPoints = []
-            bbPoints.append(om.MPoint( bb[0], bb[1], bb[2], 1.0 ))
-            bbPoints.append(om.MPoint( bb[0], bb[1], bb[5], 1.0 ))
-            bbPoints.append(om.MPoint( bb[0], bb[4], bb[2], 1.0 ))
-            bbPoints.append(om.MPoint( bb[0], bb[4], bb[5], 1.0 ))
-            bbPoints.append(om.MPoint( bb[3], bb[1], bb[2], 1.0 ))
-            bbPoints.append(om.MPoint( bb[3], bb[1], bb[5], 1.0 ))
-            bbPoints.append(om.MPoint( bb[3], bb[4], bb[2], 1.0 ))
-            bbPoints.append(om.MPoint( bb[3], bb[4], bb[5], 1.0 ))
-            
-            # Translate to screen space and obtain overall bounds
-            left, right, top, bottom = 1.0, 0.0, 1.0, 0.0
-            for p in bbPoints:
-                P = worldSpaceToScreenSpace(p)
-                if left > P[0]:
-                    left = P[0]
-                if right < P[0]:
-                    right = P[0]
-                if top > P[1]:
-                    top = P[1]
-                if bottom < P[1]:
-                    bottom = P[1]
-                        
-            if left < 0.0 or left >= 1.0:
-                left = 0.0
-            if right > 1.0 or right <= 0.0:
-                right = 1.0
-            if top < 0.0 or top >= 1.0:
-                top = 0.0
-            if bottom > 1.0 or bottom <= 0.0:
-                bottom = 1.0
+            bbox = findBoundingBox(mesh)
+            meshInfo = MeshInfo(mesh, bbox)
             
             # Translate bounds to i and j values
-            bounds = [int(left * len(blocks[0])) - int(border), int(right * len(blocks[0])) + 1 + int(border), int(top * len(blocks)) - int(border), int(bottom * len(blocks)) + 1 + int(border)]
+            bounds = [int(bbox[0][0] * len(blocks[0])) - int(border), int(bbox[0][1] * len(blocks[0])) + 1 + int(border), int(bbox[1][0] * len(blocks)) - int(border), int(bbox[1][1] * len(blocks)) + 1 + int(border)]
             if bounds[0] > len(blocks[0]) - 1:
                 bounds[0] = len(blocks[0]) - 1
             if bounds[1] > len(blocks[0]) - 1:
@@ -342,37 +445,27 @@ def generateSemantics( menu, startTimeField, endTimeField, stepTimeField, border
             for i in range(bounds[2], bounds[3] + 1):
                 for j in range(bounds[0], bounds[1] + 1):
                     # Test which meshes are contained within the block
-                    #subBounds = blocks[i][j]
-                    #if testMesh(mesh, subBounds):
+                    # subBounds = blocks[i][j]
+                    # if testMesh(meshInfo, subBounds):
                     if blockToMeshMap[i][j] is None:
-                        blockToMeshMap[i][j] = [mesh]
+                        blockToMeshMap[i][j] = [meshInfo]
                     else:
-                        blockToMeshMap[i][j].append(mesh)
+                        blockToMeshMap[i][j].append(meshInfo)
                             
         # Extract semantics for each mesh
-        framePath = 'C:\\Users\\wesha\\Git\\dynamic_frame_generator\\python\\attngan\\data\\frame\\text\\{:03d}'.format( int(currTime) )
+        framePath = 'C:\\Users\\wesha\\Git\\deep_rendering\\python\\datasets\\Frame\\training\\{}\\attributes\\{:03d}'.format( dim, int(currTime) )
         make_dir(framePath)
         for i, data in enumerate(blockToMeshMap):
             for j, meshesInBlock in enumerate(data):
                 if meshesInBlock:
                     # Screen point = Ydim * (i + 1), Xdim * (j + 1)
                     screenPoint = blockDim[1] * (i + 0.5), blockDim[0] * (j + 0.5)
-                    semantics = extractSemantics(meshesInBlock, screenPoint, meshes, float(border))
+                    semantics = extractSemantics(meshesInBlock, blocks[i][j], screenPoint, 3, i * xDiv + j + 1)
 
                     #print('Processing semantics for block({},{})'.format( i, j ))
                     blockPath = framePath + '\\{:03d}.txt'.format( int(i * xDiv + j + 1) )
                     with open(blockPath, 'w') as f:
-                        for row in semantics:
-                            if len(row) <= 1:
-                                f.write( ''.join(row) )
-                            else:
-                                prefix = ''
-                                for k, caption in enumerate(row):
-                                    if k > 0:
-                                        prefix = ' and '
-                                    # Write data to an output file
-                                    f.write( prefix.join( caption ) )
-                            f.write( '\n' )
+                        f.write( ' and '.join( semantics ).replace('|', '') + '\n' )
         
         # Move to next frame
         cmds.currentTime( int(currTime) + int(stepTime), edit=True )

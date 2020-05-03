@@ -267,12 +267,13 @@ if __name__ == "__main__":
     # At any point you can hit Ctrl + C to break out of training early.
     try:
         lr = cfg.TRAIN.ENCODER_LR
-        for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH):
+        for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH + 1):
             optimizer = optim.Adam(para, lr=lr, betas=(0.5, 0.999))
             epoch_start_time = time.time()
             count = train(dataloader, image_encoder, text_encoder,
                           batch_size, labels, optimizer, epoch,
                           dataset.ixtoword, image_dir)
+                          
             print('-' * 89)
             if len(dataloader_val) > 0:
                 s_loss, w_loss = evaluate(dataloader_val, image_encoder,
@@ -280,6 +281,10 @@ if __name__ == "__main__":
                 print('| end epoch {:3d} | valid loss '
                       '{:5.2f} {:5.2f} | lr {:.5f}|'
                       .format(epoch, s_loss, w_loss, lr))
+                f_out = open('pre_train.csv', 'a')
+                f_out.write('{:d}, {:.5f}, {:.5f}\n'.format( epoch, s_loss, w_loss ))
+                f_out.close()
+
             print('-' * 89)
             if lr > cfg.TRAIN.ENCODER_LR/10.:
                 lr *= 0.98
@@ -291,6 +296,7 @@ if __name__ == "__main__":
                 torch.save(text_encoder.state_dict(),
                            '%s/text_encoder%d.pth' % (model_dir, epoch))
                 print('Save G/Ds models.')
-    except KeyboardInterrupt:
+
+    except:
         print('-' * 89)
         print('Exiting from training early')
