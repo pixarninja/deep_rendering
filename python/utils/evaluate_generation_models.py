@@ -202,6 +202,6 @@ def image_from_blocks():
 def run_evaluations():
     evaluate_pretraining()
     evaluate_gentraining()
-    #image_from_blocks()
+    image_from_blocks()
 
 run_evaluations()
