@@ -134,7 +134,7 @@ def image_from_blocks():
     # Initialize file variables
     f_original = '../datasets/Frame/images/001.jpg'
     img_original = cv2.imread(f_original)[0 : (y_div * dim), 0 : (x_div * dim)]
-    eval_folder = '../attngan/models/netG_epoch_250/'
+    eval_folder = '../attngan/output/frame/frame_subdiv8/gen_train/Model/netG_epoch_300/'
     f_out = eval_folder + 'frame_full.png'
     img_out = np.full((y_div * dim, x_div * dim * 2, 3), 0, dtype=int)
 
@@ -200,8 +200,8 @@ def image_from_blocks():
     print('Wrote image: ' + f_out)
 
 def run_evaluations():
-    evaluate_pretraining()
-    evaluate_gentraining()
+    #evaluate_pretraining()
+    #evaluate_gentraining()
     image_from_blocks()
 
 run_evaluations()
