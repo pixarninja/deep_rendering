@@ -54,7 +54,9 @@ def gen_example(wordtoix, algo):
                     if len(sent) == 0:
                         continue
                     sent = sent.replace("\ufffd\ufffd", " ")
-                    tokenizer = RegexpTokenizer(r'\w+')
+                    #tokenizer = RegexpTokenizer(r'\w+')
+                    # parse whitespace, commas, and periods instead
+                    tokenizer = RegexpTokenizer('\s+|\.$|\.\s+|,$|,\s+', gaps=True)
                     tokens = tokenizer.tokenize(sent.lower())
                     if len(tokens) == 0:
                         print('sent', sent)

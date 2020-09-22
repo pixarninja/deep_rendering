@@ -1,11 +1,13 @@
 import cv2 as cv2
 import glob as glob
+import imutils
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 import os as os
 import random
 import torch
+from skimage.measure import compare_ssim
 
 def alter_image(img, alpha, beta):
     # Add noise.
@@ -33,11 +35,14 @@ def clear_dir(path):
 def make_dir(path):
     if not os.path.exists(path):
         os.mkdir(path)
-        
+
+# Evaluate two images using SSIM.
+# Source: https://ourcodeworld.com/articles/read/991/how-to-calculate-the-structural-similarity-index-ssim-between-two-images-with-python.
+# Reference: https://github.com/mostafaGwely/Structural-Similarity-Index-SSIM-.
 def evaluate_images(img_str_real, img_str_fake, img_str_out):
     # Read in images from input file paths.
     img_real = cv2.imread(img_str_real)
-    img_real = cv2.resize(img_real, (0,0), fx=0.5, fy=0.5) 
+    img_real = cv2.resize(img_real, (0,0), fx=0.5, fy=0.5)
     height_1, width_1 = img_real.shape[:2]
     img_fake = cv2.imread(img_str_fake)
     img_fake = cv2.resize(img_fake, (0,0), fx=0.5, fy=0.5)
@@ -48,15 +53,20 @@ def evaluate_images(img_str_real, img_str_fake, img_str_out):
     width = min(width_1, width_2)
 
     # Evaluate images.
-    img_xor = cv2.bitwise_xor(img_real, img_fake)
-    pixel_sum = np.sum(img_xor)
-    img_out = cv2.bitwise_not(cv2.cvtColor(img_xor, cv2.COLOR_BGR2GRAY))
+    #img_xor = cv2.bitwise_xor(img_real, img_fake)
+    #img_out = cv2.bitwise_not(cv2.cvtColor(img_xor, cv2.COLOR_BGR2GRAY))
+
+    # Compute the Structural Similarity Index (SSIM).
+    img_real_gray = cv2.cvtColor(img_real, cv2.COLOR_BGR2GRAY)
+    img_fake_gray = cv2.cvtColor(img_fake, cv2.COLOR_BGR2GRAY)
+    (score, img_out) = compare_ssim(grayA, grayB, full=True)
+    img_out = (img_out * 255).astype("uint8")
 
     # Print evaluation and save output image.
     cv2.imwrite(img_str_out + '.png', img_out)
     cv2.imwrite(img_str_out + '_real.png', img_real)
     cv2.imwrite(img_str_out + '_fake.png', img_fake)
-    return 1 - (pixel_sum / (3 * 255.0 * width * height))
+    return score
 
 # Definition for plotting values.
 def plot_together(values, colors, labels, title, axes, path, legend):

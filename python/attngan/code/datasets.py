@@ -159,7 +159,9 @@ class TextDataset(data.Dataset):
                     cap = cap.replace("\ufffd\ufffd", " ")
                     # picks out sequences of alphanumeric characters as tokens
                     # and drops everything else
-                    tokenizer = RegexpTokenizer(r'\w+')
+                    #tokenizer = RegexpTokenizer(r'\w+')
+                    # parse whitespace, commas, and periods instead
+                    tokenizer = RegexpTokenizer('\s+|\.$|\.\s+|,$|,\s+', gaps=True)
                     tokens = tokenizer.tokenize(cap.lower())
                     # print('tokens', tokens)
                     if len(tokens) == 0:

@@ -1,6 +1,8 @@
+import argparse
 import csv
 import cv2 as cv2
 import numpy as np
+import os as os
 import pandas as pd
 import re as re
 from utils import plot_together
@@ -124,84 +126,104 @@ def evaluate_gentraining():
     graph_loss(values, 'Averaged Loss of Generation Models', out_path, axes, colors, labels, 'upper right')
 
 def image_from_blocks():
-    dim = 64
-    x_res = 1920
-    y_res = 1080
+    dim = int(opt.blockDim)
+    captions = int(opt.captions)
+    x_res = int(opt.xRes)
+    y_res = int(opt.yRes)
     x_div = int(x_res / dim)
     y_div = int(y_res / dim)
-    avg = []
 
     # Initialize file variables
-    f_original = '../datasets/Frame/images/001.jpg'
-    img_original = cv2.imread(f_original)[0 : (y_div * dim), 0 : (x_div * dim)]
-    eval_folder = '../attngan/output/frame/frame_subdiv8/gen_train/Model/netG_epoch_300/'
-    f_out = eval_folder + 'frame_full.png'
-    img_out = np.full((y_div * dim, x_div * dim * 2, 3), 0, dtype=int)
+    f_original = opt.targetFrame
+    eval_folder = '../attngan/output/frame/{}/gen_train/{}/'.format(opt.inputSpecifier, opt.inputPrefix)
 
-    # Iterate over image space
-    for row in range(0, y_div):
-        data = []
-        for col in range(0, x_div):
-            # Find input index and store image
-            index = row * x_div + col
-            f_in = eval_folder + '{:03d}/0_s_0_g1.png'.format(index + 1)
-            img_in = cv2.resize(cv2.imread(f_in), (dim, dim)) 
+    # Iterate over all captions
+    for c in range(0, captions):
+        avg = []
+        img_original = cv2.imread(f_original)[0 : y_res, 0 : x_res]
+        img_out = np.full((y_res, x_res * 2, 3), 0, dtype=int)
+        index = 1
 
-            # Place image in output
-            x_offset = col * dim
-            y_offset = row * dim
-            img_out[y_offset : (y_offset + dim), x_offset : (x_offset + dim)] = img_in
-            data.append(img_in.mean(axis=0).mean(axis=0))
-        avg.append(data)
+        # Iterate over image space
+        for row in range(0, y_div):
+            data = []
+            for col in range(0, x_div):
+                # Find input index and store image
+                index = row * x_div + col + 1
+                f_in = eval_folder + '{}/0_s_{:d}_g1.png'.format(index, c)
+                if not f_in or not os.path.exists(f_in):
+                    data.append([0, 0, 0])
+                    continue
 
-    # Write full-resolution images
-    img_out[0 : (y_div * dim), (x_div * dim) : (x_div * dim * 2)] = img_original
-    img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
-    cv2.imwrite(f_out, img_out)
-    print('Wrote image: ' + f_out)
+                # Place image in output
+                img_in = cv2.resize(cv2.imread(f_in), (dim, dim))
+                x_offset = col * dim
+                y_offset = row * dim
+                img_out[y_offset : (y_offset + dim), x_offset : (x_offset + dim)] = img_in
+                data.append(img_in.mean(axis=0).mean(axis=0))
+            avg.append(data)
 
-    # Write half-resolution images
-    img_out = cv2.resize(cv2.imread(f_out), (int(x_res), int(y_res / 2)))
-    img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
-    f_out = eval_folder + 'frame_half.png'
-    cv2.imwrite(f_out, img_out)
-    print('Wrote image: ' + f_out)
+        # Write full-resolution images
+        img_out[0 : y_res, x_res : x_res * 2] = img_original
+        img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
+        f_out = eval_folder + '{}_frame_full.png'.format(c)
+        cv2.imwrite(f_out, img_out)
+        print('Wrote image: ' + f_out)
 
-    # Write tenth-resolution images
-    img_out = cv2.resize(cv2.imread(f_out), (int(x_res / 5), int(y_res / 10)))
-    img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
-    f_out = eval_folder + 'frame_tenth.png'
-    cv2.imwrite(f_out, img_out)
-    print('Wrote image: ' + f_out)
+        # # Write half-resolution images
+        # img_out = cv2.resize(cv2.imread(f_out), (int(x_res), int(y_res / 2)))
+        # img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
+        # f_out = eval_folder + '{}_frame_half.png'.format(c)
+        # cv2.imwrite(f_out, img_out)
+        # print('Wrote image: ' + f_out)
 
-    # Write fortieth-resolution images
-    img_out = cv2.resize(cv2.imread(f_out), (int(x_res / 20), int(y_res / 40)))
-    img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
-    f_out = eval_folder + 'frame_fortieth.png'
-    cv2.imwrite(f_out, img_out)
-    print('Wrote image: ' + f_out)
+        # # Write tenth-resolution images
+        # img_out = cv2.resize(cv2.imread(f_out), (int(x_res / 5), int(y_res / 10)))
+        # img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
+        # f_out = eval_folder + '{}_frame_tenth.png'.format(c)
+        # cv2.imwrite(f_out, img_out)
+        # print('Wrote image: ' + f_out)
 
-    # Write min-resolution images
-    img_out = cv2.resize(cv2.imread(f_out), (x_div, y_div))
-    img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
-    f_out = eval_folder + 'frame_minimum.png'
-    cv2.imwrite(f_out, img_out)
-    print('Wrote image: ' + f_out)
+        # # Write fortieth-resolution images
+        # img_out = cv2.resize(cv2.imread(f_out), (int(x_res / 20), int(y_res / 40)))
+        # img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
+        # f_out = eval_folder + '{}_frame_fortieth.png'.format(c)
+        # cv2.imwrite(f_out, img_out)
+        # print('Wrote image: ' + f_out)
 
-    # Write average-resolution images
-    f_out = eval_folder + 'frame_avg.png'
-    img_out = np.full((y_div, x_div * 2, 3), 0, dtype=int)
-    img_in = np.array(avg, dtype='uint8')
-    img_out[0 : y_div, 0 : x_div] = img_in
-    img_original = cv2.resize(cv2.imread(f_original), (x_div, y_div))
-    img_out[0 : y_div * dim, x_div : (x_div * 2)] = img_original
-    img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
-    cv2.imwrite(f_out, img_out)
-    print('Wrote image: ' + f_out)
+        # # Write min-resolution images
+        # img_out = cv2.resize(cv2.imread(f_out), (x_div, y_div))
+        # img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
+        # f_out = eval_folder + '{}_frame_minimum.png'.format(c)
+        # cv2.imwrite(f_out, img_out)
+        # print('Wrote image: ' + f_out)
+
+        # Write average-resolution images
+        f_out = eval_folder + '{}_frame_avg.png'.format(c)
+        img_out = np.full((y_div, x_div * 2, 3), 0, dtype=int)
+        img_in = np.array(avg, dtype='uint8')
+        img_out[0 : y_div, 0 : x_div] = img_in
+        img_original = cv2.resize(cv2.imread(f_original), (x_div, y_div))
+        img_out[0 : y_div * dim, x_div : (x_div * 2)] = img_original
+        img_out = cv2.resize(np.array(img_out, dtype='uint8'), (x_res * 2, y_res))
+        cv2.imwrite(f_out, img_out)
+        print('Wrote image: ' + f_out)
 
 def run_evaluations():
     #evaluate_pretraining()
     #evaluate_gentraining()
     image_from_blocks()
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--inputSpecifier', default='frame_16_all', help='input GAN path specifier')
+parser.add_argument('--inputPrefix', default='netG_epoch_50', help='input GAN path prefix')
+parser.add_argument('--targetFrame', default='../datasets/Frame/images/003.jpg', help='target frame source')
+parser.add_argument('--blockDim', type=int, default=4, help='dimension of frameblocks')
+parser.add_argument('--captions', type=int, default=1, help='number of captions to output')
+parser.add_argument('--xRes', type=int, default=1920, help='resolution of target image in the x dimension')
+parser.add_argument('--yRes', type=int, default=1080, help='resolution of target image in the y dimension')
+
+opt = parser.parse_args()
+print(opt)
 
 run_evaluations()

@@ -13,18 +13,16 @@ TREE:
 
 TRAIN:
     FLAG: True
-    NET_E: ''  # '../DAMSMencoders/frame/text_encoder300.pth'
+    NET_E: '' # '../output/frame/frame_16_f/pre_train/text_encoder90.pth'
     BATCH_SIZE: 48
-    MAX_EPOCH: 200
-    SNAPSHOT_INTERVAL: 50
+    MAX_EPOCH: 100
+    SNAPSHOT_INTERVAL: 5
     ENCODER_LR: 0.002  # 0.0002best; 0.002good; scott: 0.0007 with 0.98decay
     RNN_GRAD_CLIP: 0.25
     SMOOTH:
         GAMMA1: 4.0  # 1,2,5 good 4 best  10&100bad
         GAMMA2: 5.0
         GAMMA3: 10.0  # 10good 1&100bad
-
-
 
 TEXT:
     EMBEDDING_DIM: 256

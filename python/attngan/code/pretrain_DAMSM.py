@@ -297,6 +297,6 @@ if __name__ == "__main__":
                            '%s/text_encoder%d.pth' % (model_dir, epoch))
                 print('Save G/Ds models.')
 
-    except:
+    except Exception as e:
         print('-' * 89)
-        print('Exiting from training early')
+        print('Exiting from training early: ' + str(e))
